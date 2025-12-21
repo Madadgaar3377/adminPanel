@@ -1,23 +1,141 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useEffect } from "react";
+import { Routes, Route, Navigate } from "react-router-dom";
+import Navbar from "./compontents/Navbar";
+import LoginPage from "./compontents/LoginPage";
+import Dashboard from "./pages/Dashboard";
+import Users from "./pages/Users";
+import InstallmentsAdd from "./pages/installnmentsAdd";
+import InstallmentsList from "./pages/InstallmentsList";
+import InstallmentsManage from "./pages/InstallmentsManage";
+import InstallmentsEdit from "./pages/InstallmentsEdit";
+import InstallmentApplications from "./pages/InstallmentApplications";
+import InstallmentApplicationDetails from "./pages/InstallmentApplicationDetails";
+import BannersList from "./pages/BannersList";
+import BannersAdd from "./pages/BannersAdd";
+import AgentsList from "./pages/AgentsList";
+import AgentAssignments from "./pages/AgentAssignments";
+import AgentAdd from "./pages/AgentAdd";
 
 function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const authData = localStorage.getItem('adminAuth');
+    if (authData) {
+      try {
+        const { expiry } = JSON.parse(authData);
+        if (new Date().getTime() < expiry) {
+          setIsAuthenticated(true);
+        } else {
+          localStorage.removeItem('adminAuth');
+        }
+      } catch (e) {
+        localStorage.removeItem('adminAuth');
+      }
+    }
+    setLoading(false);
+  }, []);
+
+  const handleLoginSuccess = () => {
+    setIsAuthenticated(true);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('adminAuth');
+    setIsAuthenticated(false);
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-red-600"></div>
+      </div>
+    );
+  }
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div className="min-h-screen bg-gray-50">
+      {isAuthenticated && <Navbar onLogout={handleLogout} />}
+
+      <div className={isAuthenticated ? "max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10" : ""}>
+        <Routes>
+          {/* Public Route */}
+          <Route
+            path="/login"
+            element={!isAuthenticated ? <LoginPage onLoginSuccess={handleLoginSuccess} /> : <Navigate to="/" />}
+          />
+
+          {/* Protected Routes */}
+          <Route
+            path="/"
+            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/users"
+            element={isAuthenticated ? <Users /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/add"
+            element={isAuthenticated ? <InstallmentsAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/all"
+            element={isAuthenticated ? <InstallmentsList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/update"
+            element={isAuthenticated ? <InstallmentsManage /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/edit/:id"
+            element={isAuthenticated ? <InstallmentsEdit /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/all-applications"
+            element={isAuthenticated ? <InstallmentApplications /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/application/:id"
+            element={isAuthenticated ? <InstallmentApplicationDetails /> : <Navigate to="/login" />}
+          />
+
+          {/* Banner Routes */}
+          <Route
+            path="/banner/all"
+            element={isAuthenticated ? <BannersList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/banner/add"
+            element={isAuthenticated ? <BannersAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/banner/update/:id"
+            element={isAuthenticated ? <BannersAdd /> : <Navigate to="/login" />}
+          />
+
+          {/* Agent Routes */}
+          <Route
+            path="/agent/all"
+            element={isAuthenticated ? <AgentsList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/agent/assign"
+            element={isAuthenticated ? <AgentAssignments /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/agent/add"
+            element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/agent/update/:id"
+            element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+          />
+
+          {/* Catch all / Redirect */}
+          <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
+        </Routes>
+      </div>
     </div>
   );
 }
