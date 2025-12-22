@@ -15,6 +15,10 @@ import BannersAdd from "./pages/BannersAdd";
 import AgentsList from "./pages/AgentsList";
 import AgentAssignments from "./pages/AgentAssignments";
 import AgentAdd from "./pages/AgentAdd";
+import PropertyList from "./pages/PropertyList";
+import PropertyAdd from "./pages/PropertyAdd";
+import PropertyApplications from "./pages/PropertyApplications";
+import PropertyApplicationDetails from "./pages/PropertyApplicationDetails";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -130,6 +134,32 @@ function App() {
           <Route
             path="/agent/update/:id"
             element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+          />
+
+          {/* Property Routes */}
+          <Route
+            path="/property/all"
+            element={isAuthenticated ? <PropertyList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/property/add"
+            element={isAuthenticated ? <PropertyAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/property/edit/:id"
+            element={isAuthenticated ? <PropertyAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/property/update"
+            element={isAuthenticated ? <PropertyList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/property/all-applications"
+            element={isAuthenticated ? <PropertyApplications /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/property/application/:id"
+            element={isAuthenticated ? <PropertyApplicationDetails /> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}
