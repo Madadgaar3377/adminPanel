@@ -15,6 +15,10 @@ import BannersAdd from "./pages/BannersAdd";
 import AgentsList from "./pages/AgentsList";
 import AgentAssignments from "./pages/AgentAssignments";
 import AgentAdd from "./pages/AgentAdd";
+import UnverifiedAgents from "./pages/UnverifiedAgents";
+import Profile from "./pages/Profile";
+import Partners from "./pages/Partners";
+import UpdatePassword from "./pages/UpdatePassword";
 import PropertyList from "./pages/PropertyList";
 import PropertyAdd from "./pages/PropertyAdd";
 import PropertyApplications from "./pages/PropertyApplications";
@@ -134,6 +138,22 @@ function App() {
           <Route
             path="/agent/update/:id"
             element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/agent/unverified"
+            element={isAuthenticated ? <UnverifiedAgents /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/profile"
+            element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/update-password"
+            element={isAuthenticated ? <UpdatePassword /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/partners/all"
+            element={isAuthenticated ? <Partners /> : <Navigate to="/login" />}
           />
 
           {/* Property Routes */}

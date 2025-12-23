@@ -80,14 +80,16 @@ const BannersList = () => {
             {/* Header Section */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Visual Assets Management</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">
+                        All Banners
+                    </h1>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Banners & Promotions Console</p>
                 </div>
                 <button
                     onClick={() => navigate('/banner/add')}
                     className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all active:scale-95"
                 >
-                    + Deploy New Banner
+                    +  New Banner
                 </button>
             </div>
 

@@ -317,7 +317,7 @@ const PropertyAdd = () => {
             {/* Nav Header */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">{id ? 'Override Protocol' : 'Deploy Protocol'}</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Add Property</h1>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1 flex items-center gap-2">
                         <span className="w-2 h-2 bg-red-600 rounded-full animate-pulse"></span>
                         Real Estate Module v5.2 (STEP {step}/6)

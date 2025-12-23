@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 
-const AgentsList = () => {
+const UnverifiedAgents = () => {
     const [agents, setAgents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -10,34 +10,32 @@ const AgentsList = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        fetchAgents();
+        fetchUnverifiedAgents();
     }, []);
 
-    const fetchAgents = async () => {
+    const fetchUnverifiedAgents = async () => {
         setLoading(true);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            // Utilizing the existing getAllUsers and filtering for 'agent'
-            const res = await fetch(`${ApiBaseUrl}/getAllUsers`, {
+            const res = await fetch(`${ApiBaseUrl}/getAllUnverifiedAgents`, {
                 headers: {
                     'Authorization': `Bearer ${authData.token}`,
                 }
             });
             const data = await res.json();
             if (data.success) {
-                const filtered = data.users.filter(u => u.UserType === 'agent');
-                setAgents(filtered);
+                setAgents(data.agents || data.users || []);
             } else {
                 setError(data.message);
             }
         } catch (err) {
-            setError("Failed to synch agent directory.");
+            setError("Failed to synch unverified agent registry.");
         } finally {
             setLoading(false);
         }
     };
 
-    const handleBlockToggle = async (user) => {
+    const handleVerifyToggle = async (agent) => {
         const authData = JSON.parse(localStorage.getItem('adminAuth'));
         try {
             const res = await fetch(`${ApiBaseUrl}/updateUser`, {
@@ -47,13 +45,18 @@ const AgentsList = () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    userId: user.userId,
-                    updates: { isBlocked: !user.isBlocked }
+                    userId: agent.userId,
+                    updates: { isVerified: true }
                 })
             });
-            if (res.ok) fetchAgents();
+            const data = await res.json();
+            if (data.success) {
+                fetchUnverifiedAgents();
+            } else {
+                alert(data.message || "Verification failed");
+            }
         } catch (err) {
-            alert("Blocked/Unblock broadcast failed.");
+            alert("Verification broadcast failed.");
         }
     };
 
@@ -75,15 +78,9 @@ const AgentsList = () => {
             {/* Header Section */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase"> All Agents</h1>
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Authorized Personnel</p>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase"> Unverified Agents</h1>
+                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Pending Authorization</p>
                 </div>
-                {/* <button
-                    onClick={() => navigate('/agent/add')}
-                    className="px-8 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 transition-all shadow-xl shadow-gray-200 active:scale-95"
-                >
-                    + Recruit New Agent
-                </button> */}
             </div>
 
             {/* Search Shell */}
@@ -102,15 +99,15 @@ const AgentsList = () => {
 
             {/* Agents Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {filtered.map((agent) => (
+                {filtered.length > 0 ? filtered.map((agent) => (
                     <div key={agent._id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col group overflow-hidden">
                         <div className="p-8 flex-1 space-y-6">
                             <div className="flex justify-between items-start">
                                 <div className={`w-14 h-14 rounded-2xl bg-gray-50 flex items-center justify-center text-gray-300 group-hover:bg-red-50 group-hover:text-red-600 transition-colors`}>
                                     <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                 </div>
-                                <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${agent.isBlocked ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                    {agent.isBlocked ? 'Blocked' : 'Verified'}
+                                <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border bg-amber-50 text-amber-600 border-amber-100`}>
+                                    Pending Verification
                                 </div>
                             </div>
 
@@ -133,29 +130,29 @@ const AgentsList = () => {
 
                         <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-50 flex gap-2">
                             <button
-                                onClick={() => navigate(`/agent/update/${agent._id}`)}
-                                className="flex-1 py-3 bg-gray-900 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-100"
+                                onClick={() => handleVerifyToggle(agent)}
+                                className="flex-1 py-3 bg-red-600 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-red-100"
                             >
-                                Control Profile
+                                Verify Agent
                             </button>
                             <button
-                                onClick={() => handleBlockToggle(agent)}
-                                className={`px-4 py-3 rounded-xl transition-all border ${agent.isBlocked ? 'bg-emerald-600 text-white border-transparent' : 'bg-white text-gray-400 hover:text-red-600 border-gray-100'}`}
+                                onClick={() => navigate(`/agent/update/${agent._id}`)}
+                                className="px-4 py-3 bg-white text-gray-400 hover:text-red-600 border border-gray-100 rounded-xl transition-all"
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    {agent.isBlocked ? (
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M8 11V7a4 4 0 118 0m-4 8v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2z" />
-                                    ) : (
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zM10 7a2 2 0 012-2h0a2 2 0 012 2v2H10V7z" />
-                                    )}
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                 </svg>
                             </button>
                         </div>
                     </div>
-                ))}
+                )) : (
+                    <div className="col-span-full py-20 text-center bg-white rounded-[2.5rem] border border-gray-100 shadow-sm">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">No unverified agents found</p>
+                    </div>
+                )}
             </div>
         </div>
     );
 };
 
-export default AgentsList;
+export default UnverifiedAgents;

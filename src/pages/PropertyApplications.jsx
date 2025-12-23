@@ -92,7 +92,7 @@ const PropertyApplications = () => {
             {/* Header Section */}
             <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Property Acquisition Requests</h1>
+                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Property Applications</h1>
                     <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Reviewing High-Value Asset Inquiries</p>
                 </div>
                 <div className="flex gap-2 overflow-x-auto pb-2 md:pb-0">
