@@ -105,6 +105,12 @@ const Navbar = ({ onLogout }) => {
                 { label: 'Add Banner', href: '/banner/add' },
                 { label: 'Manage Portfolio', href: '/banner/all' },
             ]
+        },
+        {
+            title: 'Partners',
+            items: [
+                { label: 'Manage Partners', href: '/partners/all' },
+            ]
         }
     ];
 
@@ -137,7 +143,7 @@ const Navbar = ({ onLogout }) => {
                     {/* Right Section */}
                     <div className="flex items-center space-x-2">
                         {/* Desktop Search */}
-                        <div className="hidden md:flex relative group mr-2">
+                        {/* <div className="hidden md:flex relative group mr-2">
                             <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                                 <svg className="h-4 w-4 text-gray-400 group-focus-within:text-red-500 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -148,7 +154,7 @@ const Navbar = ({ onLogout }) => {
                                 className="block w-40 lg:w-48 pl-9 pr-3 py-1.5 border border-gray-200 rounded-lg bg-gray-50/50 text-xs focus:outline-none focus:ring-2 focus:ring-red-500 focus:bg-white transition-all"
                                 placeholder="Search..."
                             />
-                        </div>
+                        </div> */}
 
                         {/* Notifications */}
                         <button className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-all relative">
