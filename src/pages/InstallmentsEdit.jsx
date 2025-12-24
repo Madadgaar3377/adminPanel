@@ -47,7 +47,9 @@ const InstallmentsEdit = () => {
         videoUrl: "",
         description: "",
         companyName: "",
+        companyNameOther: "",
         category: "",
+        customCategory: "",
         status: "pending",
         productImages: [],
         paymentPlans: [{ ...defaultPlan }],
@@ -61,16 +63,22 @@ const InstallmentsEdit = () => {
         connectivity: { data: "", nfc: "", bluetooth: "", infrared: "" },
 
         airConditioner: {
-            brand: "", capacityInTon: "", type: "", energyEfficient: ""
+            brand: "", model: "", color: "", capacityInTon: "", type: "", energyEfficient: "",
+            display: "", indoorDimension: "", outdoorDimension: "", indoorWeightKg: "",
+            outdoorWeightKg: "", powerSupply: "", otherFeatures: "", warranty: "",
         },
 
         electricalBike: {
-            model: "", batterySpec: "", rangeKm: "", motor: "", chargingTime: "", speed: "",
+            model: "", dimensions: "", weight: "", speed: "", batterySpec: "", chargingTime: "",
+            brakes: "", warranty: "", transmission: "", rangeKm: "", groundClearance: "",
+            starting: "", motor: "", controllers: "", electricityConsumption: "", recommendedLoadCapacity: "",
+            wheelBase: "", shocks: "", tyreFront: "", tyreBack: "", otherFeatures: "", colors: "",
         },
 
         mechanicalBike: {
-            generalFeatures: { model: "", engine: "" },
-            performance: { transmission: "", displacement: "", petrolCapacity: "" },
+            generalFeatures: { model: "", dimensions: "", weight: "", engine: "", colors: "", other: "" },
+            performance: { transmission: "", groundClearance: "", starting: "", displacement: "", petrolCapacity: "" },
+            assembly: { compressionRatio: "", boreAndStroke: "", tyreAtFront: "", tyreAtBack: "", seatHeight: "" },
         },
     });
 
@@ -155,34 +163,50 @@ const InstallmentsEdit = () => {
 
     const recalcPlan = (index) => {
         setForm(f => {
+            if (!f.paymentPlans || !f.paymentPlans[index]) return f;
             const pp = [...f.paymentPlans];
-            const p = pp[index];
-            const rawPrice = parseFloat(f.price) || 0;
-            const productDown = parseFloat(p.downPayment) || 0;
-            const markupAmount = parseFloat(p.markup) || 0;
-            const principal = Math.max(0, rawPrice - productDown + markupAmount);
+            const p = { ...pp[index] };
+
+            const cashPrice = Number(f.price) || 0;
+            const downPayment = Number(p.downPayment) || 0;
+            const financedAmount = Math.max(0, cashPrice - downPayment);
             const months = parseInt(p.tenureMonths) || 0;
-            const rate = parseFloat(p.interestRatePercent) || 0;
+            const isIslamic = p.interestType === "Profit-Based (Islamic/Shariah)";
+            const isReducing = p.interestType === "Reducing Balance";
 
             let monthly = 0;
-            if (months > 0) {
-                if (p.interestType === "Flat Rate") {
-                    monthly = flatRateMonthlyPayment(principal, rate, months);
-                } else {
-                    monthly = amortizedMonthlyPayment(principal, rate, months);
-                }
+            let totalPayable = 0;
+            let totalMarkup = 0;
+            let rate = Number(p.interestRatePercent) || 0;
+
+            if (isIslamic) {
+                // Profit-Based (Islamic): Markup is input, Rate is derived
+                totalMarkup = Number(p.markup) || 0;
+                rate = cashPrice > 0 ? (totalMarkup / cashPrice) * 100 : 0;
+                totalPayable = financedAmount + totalMarkup;
+                monthly = months > 0 ? totalPayable / months : 0;
+            } else if (isReducing) {
+                // Reducing Balance: Rate is input, Monthly is amortized
+                monthly = amortizedMonthlyPayment(financedAmount, rate, months);
+                totalPayable = monthly * months;
+                totalMarkup = Math.max(0, totalPayable - financedAmount);
+            } else {
+                // Flat Rate: Rate is input, Markup is (Financed * Rate * years)
+                totalMarkup = financedAmount * (rate / 100) * (months / 12);
+                totalPayable = financedAmount + totalMarkup;
+                monthly = months > 0 ? totalPayable / months : 0;
             }
 
-            const installmentPrice = Number((monthly * months).toFixed(2));
-            const totalInterest = Number((installmentPrice - principal).toFixed(2));
+            const totalCostToCustomer = cashPrice + totalMarkup;
 
             pp[index] = {
-                ...pp[index],
+                ...p,
+                interestRatePercent: Number(rate.toFixed(2)),
+                markup: Number(totalMarkup.toFixed(2)),
                 monthlyInstallment: Number(monthly.toFixed(2)),
-                installmentPrice,
-                principal: Number(principal.toFixed(2)),
-                totalInterest,
-                downPayment: Number(productDown || 0),
+                installmentPrice: Number(totalPayable.toFixed(2)),
+                totalInterest: Number(totalMarkup.toFixed(2)),
+                totalCostToCustomer: Number(totalCostToCustomer.toFixed(2)),
             };
 
             return { ...f, paymentPlans: pp };
@@ -246,7 +270,9 @@ const InstallmentsEdit = () => {
                 },
                 body: JSON.stringify({
                     ...form,
+                    category: form.category === "other" ? form.customCategory : form.category,
                     price: Number(form.price),
+                    downpayment: Number(form.downpayment),
                 }),
             });
             const data = await res.json();
@@ -308,6 +334,7 @@ const InstallmentsEdit = () => {
                                             <select value={form.category} onChange={e => updateForm('category', e.target.value)} className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-2xl text-sm font-bold outline-none transition-all">
                                                 {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                             </select>
+                                            {form.category === "other" && <InputField value={form.customCategory} onChange={v => updateForm('customCategory', v)} placeholder="Specify category..." />}
                                         </div>
                                     </div>
                                     <div className="space-y-4">
@@ -390,6 +417,9 @@ const InstallmentsEdit = () => {
                                         <InputField label="Energy Star" value={form.airConditioner.energyEfficient} onChange={v => updateForm('airConditioner.energyEfficient', v)} />
                                         <InputField label="Type (Inverter/Non)" value={form.airConditioner.type} onChange={v => updateForm('airConditioner.type', v)} />
                                     </>}
+                                    {(!form.category || form.category === "other" || form.category === "appliances") && <div className="col-span-full py-20 text-center bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
+                                        <p className="text-gray-400 font-bold uppercase tracking-widest">Generic product mode: No specific technical forms for this category.</p>
+                                    </div>}
                                 </div>
                             </div>
                         )}
@@ -431,54 +461,84 @@ const InstallmentsEdit = () => {
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center">
                                     <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial Logic</h2>
-                                    <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-6 py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-100 transition-all">+ Add Logic Tier</button>
+                                    <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Global Cash Price</span>
+                                            <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-8 w-[1px] bg-gray-700 mx-2"></div>
+                                        <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Logic Tier</button>
+                                    </div>
                                 </div>
                                 <div className="space-y-6">
                                     {form.paymentPlans.map((p, idx) => (
-                                        <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group">
+                                        <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
                                             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                                                 <InputField label="Tier ID" value={p.planName} onChange={v => {
                                                     const pp = [...form.paymentPlans];
                                                     pp[idx].planName = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
-                                                }} />
+                                                }} placeholder="e.g. Premium 12M" />
+
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Method</label>
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Markup Type</label>
                                                     <select value={p.interestType} onChange={e => {
                                                         const pp = [...form.paymentPlans];
                                                         pp[idx].interestType = e.target.value;
                                                         setForm(f => ({ ...f, paymentPlans: pp }));
                                                         setTimeout(() => recalcPlan(idx), 0);
-                                                    }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black outline-none transition-all">
+                                                    }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
                                                         <option>Flat Rate</option>
                                                         <option>Reducing Balance</option>
-                                                        <option>Compound Interest</option>
                                                         <option>Profit-Based (Islamic/Shariah)</option>
                                                     </select>
                                                 </div>
-                                                <InputField label="Months" type="number" value={p.tenureMonths} onChange={v => {
+
+                                                <InputField label="Tenure (Months)" type="number" value={p.tenureMonths} onChange={v => {
                                                     const pp = [...form.paymentPlans];
                                                     pp[idx].tenureMonths = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                     setTimeout(() => recalcPlan(idx), 0);
                                                 }} />
-                                                <InputField label="Rate %" type="number" value={p.interestRatePercent} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].interestRatePercent = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
-                                                <InputField label="Downpayment" type="number" value={p.downPayment} onChange={v => {
+
+                                                <InputField label="Downpayment (PKR)" type="number" value={p.downPayment} onChange={v => {
                                                     const pp = [...form.paymentPlans];
                                                     pp[idx].downPayment = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                     setTimeout(() => recalcPlan(idx), 0);
                                                 }} />
                                             </div>
-                                            <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
-                                                <SummaryItem label="Installment" value={p.monthlyInstallment} highlight />
-                                                <SummaryItem label="Total Interest" value={p.totalInterest} />
-                                                <SummaryItem label="Full Payable" value={p.installmentPrice} border={false} />
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
+                                                    <>
+                                                        <InputField label="Total Markup (Islamic)" type="number" value={p.markup} onChange={v => {
+                                                            const pp = [...form.paymentPlans];
+                                                            pp[idx].markup = v;
+                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                            setTimeout(() => recalcPlan(idx), 0);
+                                                        }} />
+                                                        <InputField label="Markup Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <InputField label="Markup Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
+                                                            const pp = [...form.paymentPlans];
+                                                            pp[idx].interestRatePercent = v;
+                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                            setTimeout(() => recalcPlan(idx), 0);
+                                                        }} />
+                                                        <InputField label="Total Markup (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
+                                                <SummaryItem label="Monthly Installment (EMI)" value={p.monthlyInstallment} highlight />
+                                                <SummaryItem label="Total Markup Amount" value={p.markup} />
+                                                <SummaryItem label="Total Payable" value={p.installmentPrice} />
+                                                <SummaryItem label="Total Cost to Customer" value={p.totalCostToCustomer} highlight />
+                                                <SummaryItem label="Financed Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
                                             </div>
                                             {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                         </div>
@@ -506,10 +566,17 @@ const InstallmentsEdit = () => {
     );
 };
 
-const InputField = ({ label, value, onChange, type = "text", placeholder = "" }) => (
+const InputField = ({ label, value, onChange, type = "text", placeholder = "", readOnly = false }) => (
     <div className="space-y-2 group">
         {label && <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-focus-within:text-red-600 transition-colors pl-1">{label}</label>}
-        <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent focus:border-red-600 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none shadow-sm" />
+        <input
+            type={type}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={`w-full px-5 py-3.5 border-2 border-transparent rounded-2xl text-sm font-bold transition-all outline-none shadow-sm placeholder:text-gray-300 ${readOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:border-red-600 focus:bg-white'}`}
+        />
     </div>
 );
 
@@ -517,7 +584,7 @@ const SummaryItem = ({ label, value, highlight = false, border = true }) => (
     <div className={`flex flex-col gap-1 ${border ? 'border-r border-gray-100' : ''} px-4`}>
         <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
         <span className={`text-sm font-black tracking-tighter ${highlight ? 'text-red-600' : 'text-gray-800'}`}>
-            RS. {Number(value || 0).toLocaleString()}
+            PKR {Number(value || 0).toLocaleString()}
         </span>
     </div>
 );

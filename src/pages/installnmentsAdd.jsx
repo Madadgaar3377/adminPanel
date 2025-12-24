@@ -35,6 +35,7 @@ const InstallmentsAdd = () => {
     const [localImages, setLocalImages] = useState([]);
 
     const [form, setForm] = useState({
+        userId: "",
         productName: "",
         city: "",
         price: "",
@@ -119,34 +120,50 @@ const InstallmentsAdd = () => {
 
     const recalcPlan = (index) => {
         setForm(f => {
+            if (!f.paymentPlans || !f.paymentPlans[index]) return f;
             const pp = [...f.paymentPlans];
-            const p = pp[index];
-            const rawPrice = parseFloat(f.price) || 0;
-            const productDown = parseFloat(p.downPayment) || 0;
-            const markupAmount = parseFloat(p.markup) || 0;
-            const principal = Math.max(0, rawPrice - productDown + markupAmount);
+            const p = { ...pp[index] };
+
+            const cashPrice = Number(f.price) || 0;
+            const downPayment = Number(p.downPayment) || 0;
+            const financedAmount = Math.max(0, cashPrice - downPayment);
             const months = parseInt(p.tenureMonths) || 0;
-            const rate = parseFloat(p.interestRatePercent) || 0;
+            const isIslamic = p.interestType === "Profit-Based (Islamic/Shariah)";
+            const isReducing = p.interestType === "Reducing Balance";
 
             let monthly = 0;
-            if (months > 0) {
-                if (p.interestType === "Flat Rate") {
-                    monthly = flatRateMonthlyPayment(principal, rate, months);
-                } else {
-                    monthly = amortizedMonthlyPayment(principal, rate, months);
-                }
+            let totalPayable = 0;
+            let totalMarkup = 0;
+            let rate = Number(p.interestRatePercent) || 0;
+
+            if (isIslamic) {
+                // Profit-Based (Islamic): Markup is input, Rate is derived
+                totalMarkup = Number(p.markup) || 0;
+                rate = cashPrice > 0 ? (totalMarkup / cashPrice) * 100 : 0;
+                totalPayable = financedAmount + totalMarkup;
+                monthly = months > 0 ? totalPayable / months : 0;
+            } else if (isReducing) {
+                // Reducing Balance: Rate is input, Monthly is amortized
+                monthly = amortizedMonthlyPayment(financedAmount, rate, months);
+                totalPayable = monthly * months;
+                totalMarkup = Math.max(0, totalPayable - financedAmount);
+            } else {
+                // Flat Rate: Rate is input, Markup is (Financed * Rate * years)
+                totalMarkup = financedAmount * (rate / 100) * (months / 12);
+                totalPayable = financedAmount + totalMarkup;
+                monthly = months > 0 ? totalPayable / months : 0;
             }
 
-            const installmentPrice = Number((monthly * months).toFixed(2));
-            const totalInterest = Number((installmentPrice - principal).toFixed(2));
+            const totalCostToCustomer = cashPrice + totalMarkup;
 
             pp[index] = {
-                ...pp[index],
+                ...p,
+                interestRatePercent: Number(rate.toFixed(2)),
+                markup: Number(totalMarkup.toFixed(2)),
                 monthlyInstallment: Number(monthly.toFixed(2)),
-                installmentPrice,
-                principal: Number(principal.toFixed(2)),
-                totalInterest,
-                downPayment: Number(productDown || 0),
+                installmentPrice: Number(totalPayable.toFixed(2)),
+                totalInterest: Number(totalMarkup.toFixed(2)),
+                totalCostToCustomer: Number(totalCostToCustomer.toFixed(2)),
             };
 
             return { ...f, paymentPlans: pp };
@@ -256,7 +273,7 @@ const InstallmentsAdd = () => {
                     <div className="p-10 flex-1">
                         {step === 1 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 1: Primary Discovery</h2>
+                                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 1: Basic Details</h2>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <InputField label="Product Name" value={form.productName} onChange={v => updateForm('productName', v)} placeholder="Full product title..." />
@@ -274,6 +291,8 @@ const InstallmentsAdd = () => {
                                     </div>
                                     <div className="space-y-4">
                                         <InputField label="Company / Brand" value={form.companyName} onChange={v => updateForm('companyName', v)} />
+                                        {/* for user id */}
+                                        <InputField label="User ID" value={form.userId} onChange={v => updateForm('userId', v)} />
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
                                             <textarea value={form.description} onChange={e => updateForm('description', e.target.value)} rows={4} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-[2rem] text-sm font-bold outline-none transition-all resize-none shadow-inner" />
@@ -402,8 +421,15 @@ const InstallmentsAdd = () => {
                         {step === 4 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial Logic</h2>
-                                    <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-6 py-3 bg-red-600 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-100 hover:scale-105 active:scale-95 transition-all">+ Add Logic Tier</button>
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial </h2>
+                                    <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
+                                        <div className="flex flex-col">
+                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Global Cash Price</span>
+                                            <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
+                                        </div>
+                                        <div className="h-8 w-[1px] bg-gray-700 mx-2"></div>
+                                        <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Logic Tier</button>
+                                    </div>
                                 </div>
                                 <div className="space-y-6">
                                     {form.paymentPlans.map((p, idx) => (
@@ -414,8 +440,9 @@ const InstallmentsAdd = () => {
                                                     pp[idx].planName = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                 }} placeholder="e.g. Premium 12M" />
+
                                                 <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Calculation Method</label>
+                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Markup Type</label>
                                                     <select value={p.interestType} onChange={e => {
                                                         const pp = [...form.paymentPlans];
                                                         pp[idx].interestType = e.target.value;
@@ -424,22 +451,17 @@ const InstallmentsAdd = () => {
                                                     }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
                                                         <option>Flat Rate</option>
                                                         <option>Reducing Balance</option>
-                                                        <option>Compound Interest</option>
                                                         <option>Profit-Based (Islamic/Shariah)</option>
                                                     </select>
                                                 </div>
+
                                                 <InputField label="Tenure (Months)" type="number" value={p.tenureMonths} onChange={v => {
                                                     const pp = [...form.paymentPlans];
                                                     pp[idx].tenureMonths = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                     setTimeout(() => recalcPlan(idx), 0);
                                                 }} />
-                                                <InputField label="Interest Rate %" type="number" value={p.interestRatePercent} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].interestRatePercent = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
+
                                                 <InputField label="Downpayment (PKR)" type="number" value={p.downPayment} onChange={v => {
                                                     const pp = [...form.paymentPlans];
                                                     pp[idx].downPayment = v;
@@ -447,10 +469,37 @@ const InstallmentsAdd = () => {
                                                     setTimeout(() => recalcPlan(idx), 0);
                                                 }} />
                                             </div>
-                                            <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
-                                                <SummaryItem label="Monthly Installment" value={p.monthlyInstallment} highlight />
-                                                <SummaryItem label="Total Interest" value={p.totalInterest} />
-                                                <SummaryItem label="Full Payable Price" value={p.installmentPrice} border={false} />
+
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
+                                                    <>
+                                                        <InputField label="Total Markup (Islamic)" type="number" value={p.markup} onChange={v => {
+                                                            const pp = [...form.paymentPlans];
+                                                            pp[idx].markup = v;
+                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                            setTimeout(() => recalcPlan(idx), 0);
+                                                        }} />
+                                                        <InputField label="Markup Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
+                                                    </>
+                                                ) : (
+                                                    <>
+                                                        <InputField label="Markup Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
+                                                            const pp = [...form.paymentPlans];
+                                                            pp[idx].interestRatePercent = v;
+                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                            setTimeout(() => recalcPlan(idx), 0);
+                                                        }} />
+                                                        <InputField label="Total Markup (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
+                                                    </>
+                                                )}
+                                            </div>
+
+                                            <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
+                                                <SummaryItem label="Monthly Installment (EMI)" value={p.monthlyInstallment} highlight />
+                                                <SummaryItem label="Total Markup Amount" value={p.markup} />
+                                                <SummaryItem label="Total Payable" value={p.installmentPrice} />
+                                                <SummaryItem label="Total Cost to Customer" value={p.totalCostToCustomer} highlight />
+                                                <SummaryItem label="Financed Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
                                             </div>
                                             {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                         </div>
@@ -480,10 +529,17 @@ const InstallmentsAdd = () => {
 };
 
 // Internal Atomic Components
-const InputField = ({ label, value, onChange, type = "text", placeholder = "" }) => (
+const InputField = ({ label, value, onChange, type = "text", placeholder = "", readOnly = false }) => (
     <div className="space-y-2 group">
         {label && <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest group-focus-within:text-red-600 transition-colors pl-1">{label}</label>}
-        <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent focus:border-red-600 focus:bg-white rounded-2xl text-sm font-bold transition-all outline-none shadow-sm placeholder:text-gray-300" />
+        <input
+            type={type}
+            value={value}
+            onChange={e => onChange(e.target.value)}
+            placeholder={placeholder}
+            readOnly={readOnly}
+            className={`w-full px-5 py-3.5 border-2 border-transparent rounded-2xl text-sm font-bold transition-all outline-none shadow-sm placeholder:text-gray-300 ${readOnly ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : 'bg-gray-50 focus:border-red-600 focus:bg-white'}`}
+        />
     </div>
 );
 

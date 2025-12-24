@@ -127,7 +127,7 @@ const InstallmentsManage = () => {
                                     </td>
                                     <td className="px-8 py-6">
                                         <div className="space-y-1">
-                                            <p className="text-xs font-black text-gray-900 tracking-tighter">RS. {item.price?.toLocaleString()}</p>
+                                            <p className="text-xs font-black text-gray-900 tracking-tighter">PKR {item.price?.toLocaleString()}</p>
                                             <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest">{item.category}</p>
                                         </div>
                                     </td>

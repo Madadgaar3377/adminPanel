@@ -166,16 +166,16 @@ const InstallmentApplicationDetails = () => {
                             <div className="space-y-4">
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Product Price</span>
-                                    <span className="text-sm font-black text-gray-900 tracking-tight">RS. {plan.planPrice?.toLocaleString()}</span>
+                                    <span className="text-sm font-black text-gray-900 tracking-tight">PKR {plan.planPrice?.toLocaleString()}</span>
                                 </div>
                                 <div className="flex justify-between items-center">
                                     <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Downpayment</span>
-                                    <span className="text-sm font-black text-gray-900 tracking-tight">RS. {fin.downPayment?.toLocaleString()}</span>
+                                    <span className="text-sm font-black text-gray-900 tracking-tight">PKR {fin.downPayment?.toLocaleString()}</span>
                                 </div>
                                 <div className="h-px bg-gray-100"></div>
                                 <div className="flex justify-between items-center py-2">
                                     <span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Monthly Burden</span>
-                                    <span className="text-xl font-black text-gray-900 tracking-tight">RS. {fin.monthlyInstallment?.toLocaleString()}</span>
+                                    <span className="text-xl font-black text-gray-900 tracking-tight">PKR {fin.monthlyInstallment?.toLocaleString()}</span>
                                 </div>
                                 <div className="grid grid-cols-2 gap-4 pt-4">
                                     <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
@@ -184,7 +184,9 @@ const InstallmentApplicationDetails = () => {
                                     </div>
                                     <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 text-center">
                                         <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Interest</p>
-                                        <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">{fin.interestRatePercent}% {fin.interestType === 'Flat Rate' ? 'FLT' : 'RED'}</p>
+                                        <p className="text-xs font-black text-gray-900 uppercase tracking-tighter">
+                                            {fin.interestRatePercent}% {fin.interestType === 'Flat Rate' ? 'FLT' : (fin.interestType === 'Profit-Based (Islamic/Shariah)' ? 'ISL' : 'RED')}
+                                        </p>
                                     </div>
                                 </div>
                             </div>

@@ -134,7 +134,7 @@ const InstallmentsList = () => {
                             <div className="flex justify-between items-end pb-4 border-b border-gray-50">
                                 <div>
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-0.5">Base Price</p>
-                                    <p className="text-lg font-black text-red-600 tracking-tighter">RS. {item.price?.toLocaleString()}</p>
+                                    <p className="text-lg font-black text-red-600 tracking-tighter">PKR {item.price?.toLocaleString()}</p>
                                 </div>
                                 <div className="text-right">
                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-[0.2em] mb-0.5">Plans Available</p>
@@ -152,7 +152,7 @@ const InstallmentsList = () => {
                                         </div>
                                         <div className="flex justify-between items-baseline mt-1">
                                             <span className="text-[10px] font-black text-gray-600 group-hover/plan:text-red-600">Monthly</span>
-                                            <span className="text-xs font-black text-gray-900 group-hover/plan:text-red-900">RS. {item.paymentPlans[0].monthlyInstallment?.toLocaleString()}</span>
+                                            <span className="text-xs font-black text-gray-900 group-hover/plan:text-red-900">PKR {item.paymentPlans[0].monthlyInstallment?.toLocaleString()}</span>
                                         </div>
                                     </div>
                                     {item.paymentPlans.length > 1 && (
