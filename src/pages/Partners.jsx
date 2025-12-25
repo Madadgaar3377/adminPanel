@@ -2,6 +2,13 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 
+const accessOptions = [
+    'Installments',
+    'Loan',
+    'Property',
+    'Insurance',
+];
+
 const Partners = () => {
     const [activeTab, setActiveTab] = useState('list'); // 'list' or 'add'
     const [partners, setPartners] = useState([]);
@@ -26,7 +33,8 @@ const Partners = () => {
         WhatsappNumber: "",
         Address: "",
         idCardPic: "",
-        cnicNumber: ""
+        cnicNumber: "",
+        userAccess: []
     });
 
     useEffect(() => {
@@ -63,6 +71,15 @@ const Partners = () => {
     const handleInputChange = (e) => {
         const { name, value } = e.target;
         setForm(prev => ({ ...prev, [name]: value }));
+    };
+
+    const handleAccessToggle = (access) => {
+        setForm((prev) => {
+            const newAccess = prev.userAccess.includes(access)
+                ? prev.userAccess.filter((a) => a !== access)
+                : [...prev.userAccess, access];
+            return { ...prev, userAccess: newAccess };
+        });
     };
 
     const handleImageUpload = async (e, type) => {
@@ -104,6 +121,12 @@ const Partners = () => {
             setError("Please wait for asset synchronization to complete.");
             return;
         }
+
+        if (form.userAccess.length === 0) {
+            setError("Please select at least one access area for the partner.");
+            return;
+        }
+
         setSubmitting(true);
         setError(null);
         setSuccessMessage(null);
@@ -132,7 +155,8 @@ const Partners = () => {
                     WhatsappNumber: "",
                     Address: "",
                     idCardPic: "",
-                    cnicNumber: ""
+                    cnicNumber: "",
+                    userAccess: []
                 });
                 fetchPartners();
                 setTimeout(() => setActiveTab('list'), 2000);
@@ -230,6 +254,13 @@ const Partners = () => {
                                         <div className="space-y-1">
                                             <h3 className="text-xl font-black text-gray-900 tracking-tighter uppercase truncate">{partner.name || "UNNAMED_ENTITY"}</h3>
                                             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: {partner.userId || partner._id?.slice(-6)}</p>
+                                            {partner.userAccess && partner.userAccess.length > 0 && (
+                                                <div className="flex items-center gap-1 mt-2">
+                                                    <span className="text-[8px] font-black text-red-600 uppercase tracking-widest">
+                                                        {partner.userAccess.length} Access Area{partner.userAccess.length > 1 ? 's' : ''}
+                                                    </span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         <div className="space-y-4">
@@ -397,6 +428,30 @@ const Partners = () => {
                             </div>
                         </div>
 
+                        {/* User Access Selection */}
+                        <div className="space-y-6 pt-8 border-t border-gray-100">
+                            <h4 className="text-[11px] font-black text-red-600 uppercase tracking-[0.2em] px-2 mb-4 border-l-4 border-red-600">Access Authorization Matrix</h4>
+                            <div>
+                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1 mb-4 block">Select Access Areas * (Choose at least one)</label>
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                    {accessOptions.map((option) => (
+                                        <button
+                                            key={option}
+                                            type="button"
+                                            onClick={() => handleAccessToggle(option)}
+                                            className={`py-4 px-6 rounded-2xl border-2 transition-all font-black text-xs uppercase tracking-wider ${
+                                                form.userAccess.includes(option)
+                                                    ? 'border-red-600 bg-red-50 text-red-700 shadow-lg shadow-red-100'
+                                                    : 'border-gray-200 bg-white text-gray-500 hover:border-red-400 hover:bg-red-50'
+                                            }`}
+                                        >
+                                            {option}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+
                         <div className="flex justify-center pt-6">
                             <button
                                 type="submit"
@@ -486,6 +541,23 @@ const Partners = () => {
                                                 <p className="text-sm font-bold text-gray-900 tracking-tight">{new Date(selectedPartner.createdAt).toLocaleDateString()}</p>
                                             </div>
                                         </div>
+
+                                        {/* Access Authorization */}
+                                        {selectedPartner.userAccess && selectedPartner.userAccess.length > 0 && (
+                                            <div className="col-span-full mt-4">
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-3">Authorized Access Areas</p>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {selectedPartner.userAccess.map((access, idx) => (
+                                                        <span
+                                                            key={idx}
+                                                            className="px-4 py-2 bg-red-50 border border-red-100 text-red-700 rounded-xl text-[10px] font-black uppercase tracking-wider"
+                                                        >
+                                                            {access}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </section>
 
                                     {/* Communication Block */}
