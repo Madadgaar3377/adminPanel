@@ -53,35 +53,35 @@ const LoginPage = ({ onLoginSuccess }) => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-            <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-8 xs:py-12 px-4 xs:px-6 lg:px-8 safe-top safe-bottom">
+            <div className="xs:mx-auto w-full xs:w-full xs:max-w-md">
                 {/* Brand Logo */}
                 <div className="flex justify-center">
-                    <div className="w-16 h-16 bg-red-600 rounded-2xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 shadow-xl shadow-red-200">
-                        <span className="text-white font-bold text-3xl">M</span>
+                    <div className="w-14 h-14 xs:w-16 xs:h-16 bg-red-600 rounded-xl xs:rounded-2xl flex items-center justify-center transform hover:rotate-12 transition-transform duration-300 shadow-lg xs:shadow-xl shadow-red-200">
+                        <span className="text-white font-bold text-2xl xs:text-3xl">M</span>
                     </div>
                 </div>
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-4 xs:mt-6 text-center text-2xl xs:text-3xl font-extrabold text-gray-900">
                     Madadgaar Admin
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
+                <p className="mt-1.5 xs:mt-2 text-center text-xs xs:text-sm text-gray-600">
                     Enter your credentials to access the panel
                 </p>
             </div>
 
-            <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-                <div className="bg-white py-10 px-6 shadow-2xl shadow-red-100 sm:rounded-3xl sm:px-12 border border-gray-100">
-                    <form className="space-y-6" onSubmit={handleLogin}>
+            <div className="mt-6 xs:mt-8 xs:mx-auto w-full xs:w-full xs:max-w-md">
+                <div className="bg-white py-8 px-5 xs:py-10 xs:px-6 shadow-xl xs:shadow-2xl shadow-red-100 rounded-2xl xs:rounded-3xl sm:px-12 border border-gray-100">
+                    <form className="space-y-5 xs:space-y-6" onSubmit={handleLogin}>
                         {error && (
-                            <div className="bg-red-50 border-l-4 border-red-500 p-4 rounded-lg">
+                            <div className="bg-red-50 border-l-4 border-red-500 p-3 xs:p-4 rounded-lg">
                                 <div className="flex">
                                     <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                                        <svg className="h-4 w-4 xs:h-5 xs:w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
                                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
                                         </svg>
                                     </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm text-red-700 font-medium">{error}</p>
+                                    <div className="ml-2 xs:ml-3">
+                                        <p className="text-xs xs:text-sm text-red-700 font-medium">{error}</p>
                                     </div>
                                 </div>
                             </div>
@@ -159,7 +159,7 @@ const LoginPage = ({ onLoginSuccess }) => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full flex justify-center py-3 px-4 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
+                                className={`tap-target w-full flex justify-center py-3 xs:py-3.5 px-4 border border-transparent rounded-xl shadow-lg text-sm xs:text-base font-bold text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-all duration-300 ${loading ? 'opacity-70 cursor-not-allowed' : 'hover:scale-[1.02] active:scale-[0.98]'}`}
                             >
                                 {loading ? (
                                     <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

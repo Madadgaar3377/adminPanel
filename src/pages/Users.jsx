@@ -95,37 +95,37 @@ const Users = () => {
     }
 
     return (
-        <div className="max-w-7xl mx-auto p-4 space-y-6">
+        <div className="max-w-7xl mx-auto p-3 xs:p-4 space-y-4 xs:space-y-6">
             {/* Header Section */}
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 xs:gap-4 bg-white p-4 xs:p-5 md:p-6 rounded-xl xs:rounded-2xl shadow-sm border border-gray-100">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-800">User Management</h1>
-                    <p className="text-sm text-gray-500">View and manage platform accounts</p>
+                    <h1 className="text-xl xs:text-2xl font-bold text-gray-800">User Management</h1>
+                    <p className="text-xs xs:text-sm text-gray-500 mt-0.5">View and manage platform accounts</p>
                 </div>
                 <div className="flex gap-2 w-full sm:w-auto">
-                    <div className="relative flex-1 sm:w-80">
+                    <div className="relative flex-1 sm:w-64 md:w-80">
                         <input
                             type="text"
                             placeholder="Search name, email, or ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-red-500 focus:bg-white outline-none transition-all"
+                            className="w-full px-3 xs:px-4 py-2 xs:py-2.5 bg-gray-50 border border-gray-200 rounded-lg xs:rounded-xl text-xs xs:text-sm focus:ring-2 focus:ring-red-500 focus:bg-white outline-none transition-all"
                         />
                     </div>
-                    <button onClick={fetchUsers} className="p-2.5 bg-white border border-gray-200 rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors">
-                        <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                    <button onClick={fetchUsers} className="tap-target p-2 xs:p-2.5 bg-white border border-gray-200 rounded-lg xs:rounded-xl hover:bg-red-50 hover:text-red-600 transition-colors active:scale-95 shrink-0">
+                        <svg className={`w-4 h-4 xs:w-5 xs:h-5 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
                     </button>
                 </div>
             </div>
 
             {/* Filters Bar */}
-            <div className="flex flex-wrap gap-3">
-                <div className="flex bg-white p-1 rounded-xl shadow-sm border border-gray-100">
+            <div className="flex flex-col xs:flex-row flex-wrap gap-2 xs:gap-3">
+                <div className="flex bg-white p-0.5 xs:p-1 rounded-lg xs:rounded-xl shadow-sm border border-gray-100 overflow-x-auto scrollbar-hide">
                     {['all', 'user', 'admin', 'agent', 'partner'].map((type) => (
                         <button
                             key={type}
                             onClick={() => setFilterType(type)}
-                            className={`px-4 py-1.5 rounded-lg text-xs font-bold uppercase transition-all ${filterType === type ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
+                            className={`tap-target px-3 xs:px-4 py-1.5 rounded-md xs:rounded-lg text-[10px] xs:text-xs font-bold uppercase transition-all whitespace-nowrap active:scale-95 ${filterType === type ? 'bg-red-600 text-white shadow-md' : 'text-gray-400 hover:text-gray-600'}`}
                         >
                             {type}
                         </button>
@@ -135,7 +135,7 @@ const Users = () => {
                 <select
                     value={filterStatus}
                     onChange={(e) => setFilterStatus(e.target.value)}
-                    className="px-4 py-2 bg-white border border-gray-100 rounded-xl text-xs font-bold uppercase text-gray-500 outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
+                    className="tap-target px-3 xs:px-4 py-1.5 xs:py-2 bg-white border border-gray-100 rounded-lg xs:rounded-xl text-[10px] xs:text-xs font-bold uppercase text-gray-500 outline-none focus:ring-2 focus:ring-red-500 shadow-sm"
                 >
                     <option value="all">Any Status</option>
                     <option value="verified">Verified Only</option>
@@ -145,67 +145,68 @@ const Users = () => {
             </div>
 
             {/* Main Table */}
-            <div className="bg-white border border-gray-100 rounded-2xl overflow-hidden shadow-sm">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
+            <div className="bg-white border border-gray-100 rounded-xl xs:rounded-2xl overflow-hidden shadow-sm">
+                <div className="overflow-x-auto responsive-table">
+                    <table className="w-full text-left text-xs xs:text-sm">
                         <thead className="bg-gray-50/50 text-gray-400 font-bold border-b border-gray-100">
                             <tr>
-                                <th className="px-6 py-4 uppercase tracking-wider text-[10px]">Identity</th>
-                                <th className="px-6 py-4 uppercase tracking-wider text-[10px]">Contact Details</th>
-                                <th className="px-6 py-4 uppercase tracking-wider text-[10px]">Account Class</th>
-                                <th className="px-6 py-4 uppercase tracking-wider text-[10px]">Current Status</th>
-                                <th className="px-6 py-4 text-right uppercase tracking-wider text-[10px]">Actions</th>
+                                <th className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 uppercase tracking-wider text-[9px] xs:text-[10px]">Identity</th>
+                                <th className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 uppercase tracking-wider text-[9px] xs:text-[10px] hidden sm:table-cell">Contact Details</th>
+                                <th className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 uppercase tracking-wider text-[9px] xs:text-[10px] hidden md:table-cell">Account Class</th>
+                                <th className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 uppercase tracking-wider text-[9px] xs:text-[10px]">Current Status</th>
+                                <th className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 text-right uppercase tracking-wider text-[9px] xs:text-[10px]">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-50">
                             {filteredUsers.map(user => (
                                 <tr key={user._id} className="hover:bg-red-50/10 transition-colors group">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
+                                    <td className="px-3 xs:px-4 md:px-6 py-3 xs:py-4">
+                                        <div className="flex items-center gap-2 xs:gap-3">
                                             {user.profilePic ? (
-                                                <img src={user.profilePic} alt="" className="w-10 h-10 rounded-xl object-cover border border-gray-100 shadow-sm" />
+                                                <img src={user.profilePic} alt="" className="w-8 h-8 xs:w-10 xs:h-10 rounded-lg xs:rounded-xl object-cover border border-gray-100 shadow-sm shrink-0" />
                                             ) : (
-                                                <div className="w-10 h-10 bg-red-50 rounded-xl flex items-center justify-center text-red-600 font-black border border-red-100">
+                                                <div className="w-8 h-8 xs:w-10 xs:h-10 bg-red-50 rounded-lg xs:rounded-xl flex items-center justify-center text-red-600 font-black border border-red-100 shrink-0 text-xs xs:text-base">
                                                     {user.name?.charAt(0)}
                                                 </div>
                                             )}
-                                            <div>
-                                                <div className="font-bold text-gray-900 group-hover:text-red-600 transition-colors">{user.name}</div>
-                                                <div className="text-[10px] font-black text-gray-300">ID: {user.userId}</div>
+                                            <div className="min-w-0">
+                                                <div className="font-bold text-gray-900 group-hover:text-red-600 transition-colors text-xs xs:text-sm truncate">{user.name}</div>
+                                                <div className="text-[9px] xs:text-[10px] font-black text-gray-300 truncate">ID: {user.userId}</div>
+                                                <div className="sm:hidden text-[9px] text-gray-500 font-medium truncate mt-0.5">{user.email}</div>
                                             </div>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="text-gray-600 font-medium">{user.email}</div>
-                                        <div className="text-[10px] text-gray-400 font-bold">{user.phoneNumber || 'N/A'}</div>
+                                    <td className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 hidden sm:table-cell">
+                                        <div className="text-gray-600 font-medium text-xs xs:text-sm truncate">{user.email}</div>
+                                        <div className="text-[9px] xs:text-[10px] text-gray-400 font-bold">{user.phoneNumber || 'N/A'}</div>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <span className="px-3 py-1 bg-gray-100 text-gray-500 rounded-full text-[10px] font-black uppercase tracking-widest">
+                                    <td className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 hidden md:table-cell">
+                                        <span className="inline-block px-2 xs:px-3 py-0.5 xs:py-1 bg-gray-100 text-gray-500 rounded-full text-[9px] xs:text-[10px] font-black uppercase tracking-widest">
                                             {user.UserType}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                        <div className="flex gap-1.5 flex-wrap">
-                                            <span className={`px-2 py-0.5 rounded text-[9px] font-black tracking-widest ${user.isVerified ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
+                                    <td className="px-3 xs:px-4 md:px-6 py-3 xs:py-4">
+                                        <div className="flex gap-1 xs:gap-1.5 flex-wrap">
+                                            <span className={`px-1.5 xs:px-2 py-0.5 rounded text-[8px] xs:text-[9px] font-black tracking-wider xs:tracking-widest ${user.isVerified ? 'bg-blue-100 text-blue-600' : 'bg-yellow-100 text-yellow-600'}`}>
                                                 {user.isVerified ? 'VERIFIED' : 'PENDING'}
                                             </span>
                                             {user.isBlocked && (
-                                                <span className="px-2 py-0.5 bg-red-100 text-red-600 rounded text-[9px] font-black tracking-widest">RESTRICTED</span>
+                                                <span className="px-1.5 xs:px-2 py-0.5 bg-red-100 text-red-600 rounded text-[8px] xs:text-[9px] font-black tracking-wider xs:tracking-widest">RESTRICTED</span>
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
+                                    <td className="px-3 xs:px-4 md:px-6 py-3 xs:py-4 text-right">
+                                        <div className="flex justify-end gap-1 xs:gap-2">
                                             <button
                                                 onClick={() => openView(user)}
-                                                className="p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all shadow-sm"
+                                                className="tap-target p-1.5 xs:p-2 bg-gray-50 text-gray-400 rounded-lg hover:bg-gray-100 hover:text-gray-900 transition-all shadow-sm active:scale-95"
                                                 title="View Full Profile"
                                             >
-                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                                <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
                                             </button>
                                             <button
                                                 onClick={() => openModal(user)}
-                                                className="px-4 py-2 text-[10px] font-black bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm active:scale-95 transition-all tracking-widest"
+                                                className="tap-target px-2 xs:px-3 md:px-4 py-1.5 xs:py-2 text-[8px] xs:text-[9px] md:text-[10px] font-black bg-red-600 text-white rounded-lg hover:bg-red-700 shadow-sm active:scale-95 transition-all tracking-wider xs:tracking-widest"
                                             >
                                                 EDIT
                                             </button>
