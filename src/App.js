@@ -23,6 +23,9 @@ import PropertyList from "./pages/PropertyList";
 import PropertyAdd from "./pages/PropertyAdd";
 import PropertyApplications from "./pages/PropertyApplications";
 import PropertyApplicationDetails from "./pages/PropertyApplicationDetails";
+import LoanAdd from "./pages/LoanAdd";
+import LoanList from "./pages/LoanList";
+import LoanEdit from "./pages/LoanEdit";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -180,6 +183,20 @@ function App() {
           <Route
             path="/property/application/:id"
             element={isAuthenticated ? <PropertyApplicationDetails /> : <Navigate to="/login" />}
+          />
+
+          {/* Loan Routes */}
+          <Route
+            path="/loan/all"
+            element={isAuthenticated ? <LoanList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/loan/add"
+            element={isAuthenticated ? <LoanAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/loan/edit/:id"
+            element={isAuthenticated ? <LoanEdit /> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}

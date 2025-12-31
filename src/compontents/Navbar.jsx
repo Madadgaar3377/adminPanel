@@ -77,8 +77,7 @@ const Navbar = ({ onLogout }) => {
             title: 'Loan',
             items: [
                 { label: 'Add Loan', href: '/loan/add' },
-                { label: 'Update Loan', href: '/loan/update' },
-                { label: 'View All', href: '/loan/all' },
+                { label: 'View All Loans', href: '/loan/all' },
                 { label: 'All Applications', href: '/loan/all-applications' },
             ]
         },
