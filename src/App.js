@@ -26,6 +26,7 @@ import PropertyApplicationDetails from "./pages/PropertyApplicationDetails";
 import LoanAdd from "./pages/LoanAdd";
 import LoanList from "./pages/LoanList";
 import LoanEdit from "./pages/LoanEdit";
+import Notifications from "./pages/Notifications";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -85,6 +86,10 @@ function App() {
           <Route
             path="/users"
             element={isAuthenticated ? <Users /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/notifications"
+            element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/add"
