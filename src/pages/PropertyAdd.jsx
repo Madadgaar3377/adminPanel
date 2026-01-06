@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -6,11 +6,13 @@ const PropertyAdd = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [fetchingProperty, setFetchingProperty] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [currentStep, setCurrentStep] = useState(1);
+    const [isEditMode, setIsEditMode] = useState(false);
 
     // Main property type selection
     const [propertyType, setPropertyType] = useState('Project'); // 'Project' or 'Individual'
@@ -110,12 +112,50 @@ const PropertyAdd = () => {
             internet: false,
         },
         amenities: {
+            // Infrastructure & Utilities
+            undergroundElectricity: false,
+            waterSupply: false,
+            sewerageDrainage: false,
+            backupPower: false,
+            // Religious & Community
+            grandMosque: false,
+            communityCenter: false,
+            // Education, Health & Commercial
+            schools: false,
+            healthFacility: false,
+            commercialZone: false,
+            // Recreational & Outdoor
+            parksGreenAreas: false,
+            playground: false,
+            gardenLawn: false,
+            swimmingPool: false,
+            clubhouse: false,
+            // Residential Interior
+            servantQuarters: false,
+            drawingRoom: false,
+            diningRoom: false,
+            studyRoom: false,
+            prayerRoom: false,
+            loungeSittingRoom: false,
+            storeRoom: false,
+            laundryRoom: false,
+            gym: false,
+            steamRoom: false,
+            // Building & Property Features
+            parkingSpace: false,
+            balcony: false,
+            terrace: false,
+            elevator: false,
+            receptionArea: false,
+            meetingRoom: false,
+            // Security & Building Systems
             security: false,
             cctv: false,
-            parking: false,
-            elevator: false,
-            gym: false,
-            swimmingPool: false,
+            airConditioning: false,
+            // Commercial / Miscellaneous
+            brandingSpace: false,
+            retailShops: false,
+            loadingArea: false,
         },
         nearbyLandmarks: '',
         transaction: {
@@ -201,6 +241,165 @@ const PropertyAdd = () => {
                 ...prev,
                 images: prev.images.filter((_, i) => i !== index)
             }));
+        }
+    };
+
+    // Fetch property data for edit mode
+    useEffect(() => {
+        if (id) {
+            fetchProperty();
+        }
+    }, [id]);
+
+    const fetchProperty = async () => {
+        setFetchingProperty(true);
+        setError('');
+        try {
+            const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            const response = await fetch(`${ApiBaseUrl}/getProperty/${id}`, {
+                headers: {
+                    'Authorization': `Bearer ${authData.token}`
+                }
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success) {
+                const property = data.data;
+                setIsEditMode(true);
+                
+                // Determine property type and load data
+                if (property.commonForm) {
+                    // Project type
+                    setPropertyType('Project');
+                    setProjectData({
+                        projectName: property.commonForm.projectName || '',
+                        city: property.commonForm.city || '',
+                        district: property.commonForm.district || '',
+                        tehsil: property.commonForm.tehsil || '',
+                        area: property.commonForm.area || '',
+                        street: property.commonForm.street || '',
+                        locationGPS: property.commonForm.locationGPS || '',
+                        projectType: property.commonForm.projectType || 'Residential',
+                        developmentType: property.commonForm.developmentType || '',
+                        infrastructureStatus: property.commonForm.infrastructureStatus || '',
+                        projectStage: property.commonForm.projectStage || '',
+                        expectedCompletionDate: property.commonForm.expectedCompletionDate || '',
+                        utilities: property.commonForm.utilities || {
+                            electricity: false,
+                            water: false,
+                            gas: false,
+                            internet: false,
+                            sewage: false,
+                        },
+                        amenities: property.commonForm.amenities || {
+                            security: false,
+                            cctv: false,
+                            fireSafety: false,
+                            parks: false,
+                            playground: false,
+                            clubhouse: false,
+                            gym: false,
+                            swimmingPool: false,
+                            mosque: false,
+                            school: false,
+                            medical: false,
+                            parking: false,
+                            evCharging: false,
+                            wasteManagement: false,
+                            elevator: false,
+                        },
+                        description: property.commonForm.description || '',
+                        highlights: property.commonForm.highlights || ['', '', ''],
+                        totalLandArea: property.commonForm.totalLandArea || '',
+                        propertyTypesAvailable: property.commonForm.propertyTypesAvailable || [],
+                        totalUnits: property.commonForm.totalUnits || '',
+                        typicalUnitSizes: property.commonForm.typicalUnitSizes || '',
+                        nearbyLandmarks: property.commonForm.nearbyLandmarks || '',
+                        remarks: property.commonForm.remarks || '',
+                        transaction: property.commonForm.transaction || {
+                            type: 'Sale',
+                            price: '',
+                            advanceAmount: '',
+                            monthlyRent: '',
+                            contractDuration: '',
+                            bookingAmount: '',
+                            downPayment: '',
+                            monthlyInstallment: '',
+                            tenure: '',
+                            totalPayable: '',
+                            additionalInfo: '',
+                        },
+                        images: property.commonForm.images || [],
+                        contact: property.commonForm.contact || {
+                            name: '',
+                            email: '',
+                            number: '',
+                            whatsapp: '',
+                            cnic: '',
+                            city: '',
+                            area: '',
+                        },
+                    });
+                } else if (property.individualProperty) {
+                    // Individual property type
+                    setPropertyType('Individual');
+                    setIndividualData({
+                        title: property.individualProperty.title || '',
+                        description: property.individualProperty.description || '',
+                        propertyType: property.individualProperty.propertyType || 'Apartment / Flat',
+                        areaUnit: property.individualProperty.areaUnit || 'sq. ft',
+                        areaSize: property.individualProperty.areaSize || '',
+                        city: property.individualProperty.city || '',
+                        location: property.individualProperty.location || '',
+                        bedrooms: property.individualProperty.bedrooms || '',
+                        bathrooms: property.individualProperty.bathrooms || '',
+                        kitchenType: property.individualProperty.kitchenType || '',
+                        furnishingStatus: property.individualProperty.furnishingStatus || '',
+                        floor: property.individualProperty.floor || '',
+                        totalFloors: property.individualProperty.totalFloors || '',
+                        possessionStatus: property.individualProperty.possessionStatus || '',
+                        zoningType: property.individualProperty.zoningType || 'Residential',
+                        utilities: property.individualProperty.utilities || {
+                            electricity: false,
+                            water: false,
+                            gas: false,
+                            internet: false,
+                        },
+                        amenities: property.individualProperty.amenities || individualData.amenities,
+                        nearbyLandmarks: property.individualProperty.nearbyLandmarks || '',
+                        transaction: property.individualProperty.transaction || {
+                            type: 'Sale',
+                            price: '',
+                            advanceAmount: '',
+                            monthlyRent: '',
+                            contractDuration: '',
+                            bookingAmount: '',
+                            downPayment: '',
+                            monthlyInstallment: '',
+                            tenure: '',
+                            totalPayable: '',
+                            additionalInfo: '',
+                        },
+                        images: property.individualProperty.images || [],
+                        contact: property.individualProperty.contact || {
+                            name: '',
+                            email: '',
+                            number: '',
+                            whatsapp: '',
+                            cnic: '',
+                            city: '',
+                            area: '',
+                        },
+                    });
+                }
+            } else {
+                setError(data.message || 'Failed to load property');
+            }
+        } catch (err) {
+            setError('Network error. Failed to load property.');
+        } finally {
+            setFetchingProperty(false);
         }
     };
 
@@ -306,11 +505,10 @@ const PropertyAdd = () => {
         ]
         : [
             { step: 1, id: 'basic', label: 'Basic Info', description: 'Property Details' },
-            { step: 2, id: 'details', label: 'Details', description: 'Rooms & Features' },
-            { step: 3, id: 'utilities', label: 'Utilities', description: 'Available Services' },
-            { step: 4, id: 'amenities', label: 'Amenities', description: 'Facilities' },
-            { step: 5, id: 'transaction', label: 'Transaction', description: 'Pricing Details' },
-            { step: 6, id: 'contact', label: 'Contact', description: 'Contact Information' },
+            { step: 2, id: 'details', label: 'Details', description: 'Rooms & Utilities' },
+            { step: 3, id: 'amenities', label: 'Amenities', description: 'Facilities' },
+            { step: 4, id: 'transaction', label: 'Transaction', description: 'Pricing Details' },
+            { step: 5, id: 'contact', label: 'Contact', description: 'Contact Information' },
         ];
 
     const totalSteps = steps.length;
@@ -334,6 +532,23 @@ const PropertyAdd = () => {
     const isLastStep = currentStep === totalSteps;
     const isFirstStep = currentStep === 1;
 
+    // Show loading when fetching property
+    if (fetchingProperty) {
+        return (
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+                <div className="max-w-7xl mx-auto px-3 xs:px-4 md:px-6 py-4 xs:py-6 md:py-8">
+                    <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+                        <div className="w-16 h-16 border-4 border-gray-100 border-t-red-600 rounded-full animate-spin"></div>
+                        <div className="text-center">
+                            <p className="text-lg font-black text-gray-900 uppercase tracking-wider">Loading Property Data</p>
+                            <p className="text-sm text-gray-500 font-medium mt-2">Please wait...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             <div className="max-w-7xl mx-auto px-3 xs:px-4 md:px-6 py-4 xs:py-6 md:py-8 space-y-4 xs:space-y-6 md:space-y-8 animate-in fade-in duration-700">
@@ -345,30 +560,51 @@ const PropertyAdd = () => {
                     </div>
                     
                     <div className="relative flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4 xs:gap-0">
-                        <div>
+                        <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
                                 <div className="w-10 h-10 xs:w-12 xs:h-12 bg-white/20 backdrop-blur-sm rounded-xl xs:rounded-2xl flex items-center justify-center">
                                     <svg className="w-5 h-5 xs:w-6 xs:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
                                 </div>
-                                <h1 className="text-2xl xs:text-3xl md:text-4xl font-black text-white tracking-tighter">
-                                    {id ? 'Edit' : 'Add New'} Property
-                                </h1>
+                                <div>
+                                    <h1 className="text-2xl xs:text-3xl md:text-4xl font-black text-white tracking-tighter">
+                                        {id ? 'Edit' : 'Add New'} Property
+                                    </h1>
+                                    {isEditMode && (
+                                        <p className="text-[10px] xs:text-xs font-bold text-white/70 uppercase tracking-wider mt-1">
+                                            Type: {propertyType}
+                                        </p>
+                                    )}
+                                </div>
                             </div>
                             <p className="text-[10px] xs:text-xs md:text-sm font-bold text-white/80 uppercase tracking-wider xs:tracking-widest ml-0 xs:ml-14">
                                 Real Estate Management System
                             </p>
                         </div>
-                        <button
-                            onClick={() => navigate('/property/all')}
-                            className="tap-target group px-5 xs:px-6 py-2.5 xs:py-3 bg-white/10 backdrop-blur-sm text-white border-2 border-white/20 rounded-xl xs:rounded-2xl font-bold uppercase text-[9px] xs:text-[10px] tracking-widest hover:bg-white/20 hover:border-white/40 transition-all active:scale-95 flex items-center gap-2"
-                        >
-                            <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
-                            </svg>
-                            Back to List
-                        </button>
+                        <div className="flex gap-2 xs:gap-3">
+                            {id && (
+                                <button
+                                    onClick={() => navigate(`/property/view/${id}`)}
+                                    className="tap-target group px-4 xs:px-5 py-2.5 xs:py-3 bg-white/10 backdrop-blur-sm text-white border-2 border-white/20 rounded-xl xs:rounded-2xl font-bold uppercase text-[9px] xs:text-[10px] tracking-widest hover:bg-white/20 hover:border-white/40 transition-all active:scale-95 flex items-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                    </svg>
+                                    View
+                                </button>
+                            )}
+                            <button
+                                onClick={() => navigate('/property/all')}
+                                className="tap-target group px-4 xs:px-5 py-2.5 xs:py-3 bg-white/10 backdrop-blur-sm text-white border-2 border-white/20 rounded-xl xs:rounded-2xl font-bold uppercase text-[9px] xs:text-[10px] tracking-widest hover:bg-white/20 hover:border-white/40 transition-all active:scale-95 flex items-center gap-2"
+                            >
+                                <svg className="w-4 h-4 group-hover:-translate-x-1 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 19l-7-7 7-7" />
+                                </svg>
+                                Back to List
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1462,11 +1698,11 @@ const PropertyAdd = () => {
                             </div>
                         )}
 
-                        {/* Details Tab */}
+                        {/* Details Tab (merged with Utilities) */}
                         {activeTab === 'details' && (
                             <div className="space-y-4 xs:space-y-6">
                                 <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
-                                    Property Details
+                                    Property Details & Utilities
                                 </h3>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
@@ -1605,58 +1841,259 @@ const PropertyAdd = () => {
                                         />
                                     </div>
                                 </div>
-                            </div>
-                        )}
 
-                        {/* Utilities Tab */}
-                        {activeTab === 'utilities' && (
-                            <div className="space-y-4 xs:space-y-6">
-                                <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
-                                    Utility Supplies
-                                </h3>
-                                
-                                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-                                    {['electricity', 'water', 'gas', 'internet'].map(utility => (
-                                        <label key={utility} className="flex items-center gap-2 cursor-pointer group p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
-                                            <input
-                                                type="checkbox"
-                                                checked={individualData.utilities[utility]}
-                                                onChange={(e) => handleIndividualChange('utilities', e.target.checked, utility)}
-                                                className="w-5 h-5 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
-                                            />
-                                            <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900 capitalize">
-                                                {utility === 'electricity' ? 'Electricity / Power Supply' : 
-                                                 utility === 'water' ? 'Water Supply' :
-                                                 utility === 'gas' ? 'Gas Connection' :
-                                                 'Internet / Broadband'}
-                                            </span>
-                                        </label>
-                                    ))}
+                                {/* Utility Supplies (Merged from Step 3) */}
+                                <div className="pt-4 xs:pt-6">
+                                    <h4 className="text-sm xs:text-base font-black text-gray-900 uppercase tracking-tighter mb-4">
+                                        Utility Supplies
+                                    </h4>
+                                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                        {['electricity', 'water', 'gas', 'internet'].map(utility => (
+                                            <label key={utility} className="flex items-center gap-2 cursor-pointer group p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.utilities[utility]}
+                                                    onChange={(e) => handleIndividualChange('utilities', e.target.checked, utility)}
+                                                    className="w-5 h-5 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900 capitalize">
+                                                    {utility === 'electricity' ? 'Electricity / Power Supply' : 
+                                                     utility === 'water' ? 'Water Supply' :
+                                                     utility === 'gas' ? 'Gas Connection' :
+                                                     'Internet / Broadband'}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}
 
-                        {/* Amenities Tab for Individual */}
+                        {/* Amenities Tab for Individual - Comprehensive */}
                         {activeTab === 'amenities' && (
                             <div className="space-y-4 xs:space-y-6">
                                 <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
                                     Amenities & Facilities
                                 </h3>
                                 
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                                    {Object.keys(individualData.amenities).map(amenity => (
-                                        <label key={amenity} className="flex items-center gap-2 cursor-pointer group">
-                                            <input
-                                                type="checkbox"
-                                                checked={individualData.amenities[amenity]}
-                                                onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity)}
-                                                className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
-                                            />
-                                            <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900 capitalize">
-                                                {amenity.replace(/([A-Z])/g, ' $1').trim()}
-                                            </span>
-                                        </label>
-                                    ))}
+                                {/* Infrastructure & Utilities */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Infrastructure & Utilities
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'undergroundElectricity', label: 'Underground Electricity' },
+                                            { key: 'waterSupply', label: 'Water Supply' },
+                                            { key: 'sewerageDrainage', label: 'Sewerage & Drainage System' },
+                                            { key: 'backupPower', label: 'Backup Power / Generator' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Religious & Community Facilities */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Religious & Community Facilities
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'grandMosque', label: 'Grand Mosque' },
+                                            { key: 'communityCenter', label: 'Community Center / Community Hall' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Education, Health & Commercial */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Education, Health & Commercial
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'schools', label: 'Schools' },
+                                            { key: 'healthFacility', label: 'Health Facility / Clinic' },
+                                            { key: 'commercialZone', label: 'Commercial Zone / Market' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Recreational & Outdoor */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Recreational & Outdoor
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'parksGreenAreas', label: 'Parks & Green Areas' },
+                                            { key: 'playground', label: 'Playground / Children\'s Play Area' },
+                                            { key: 'gardenLawn', label: 'Garden / Lawn' },
+                                            { key: 'swimmingPool', label: 'Swimming Pool' },
+                                            { key: 'clubhouse', label: 'Clubhouse' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Residential Interior Spaces */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Residential Interior Spaces
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'servantQuarters', label: 'Servant Quarters' },
+                                            { key: 'drawingRoom', label: 'Drawing Room' },
+                                            { key: 'diningRoom', label: 'Dining Room' },
+                                            { key: 'studyRoom', label: 'Study Room' },
+                                            { key: 'prayerRoom', label: 'Prayer Room' },
+                                            { key: 'loungeSittingRoom', label: 'Lounge / Sitting Room' },
+                                            { key: 'storeRoom', label: 'Store Room' },
+                                            { key: 'laundryRoom', label: 'Laundry Room' },
+                                            { key: 'gym', label: 'Gym' },
+                                            { key: 'steamRoom', label: 'Steam Room' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Building & Property Features */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Building & Property Features
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'parkingSpace', label: 'Parking Space' },
+                                            { key: 'balcony', label: 'Balcony' },
+                                            { key: 'terrace', label: 'Terrace' },
+                                            { key: 'elevator', label: 'Elevator / Lift' },
+                                            { key: 'receptionArea', label: 'Reception Area' },
+                                            { key: 'meetingRoom', label: 'Meeting / Conference Room' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Security & Building Systems */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Security & Building Systems
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'security', label: 'Security Services' },
+                                            { key: 'cctv', label: 'CCTV Surveillance' },
+                                            { key: 'airConditioning', label: 'Air Conditioning / HVAC' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* Commercial / Miscellaneous */}
+                                <div className="space-y-3">
+                                    <h4 className="text-xs xs:text-sm font-black text-red-600 uppercase tracking-wider">
+                                        Commercial / Miscellaneous
+                                    </h4>
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                        {[
+                                            { key: 'brandingSpace', label: 'Branding / Signage Space' },
+                                            { key: 'retailShops', label: 'Retail Shops / Commercial Outlets' },
+                                            { key: 'loadingArea', label: 'Loading & Unloading Area' },
+                                        ].map(amenity => (
+                                            <label key={amenity.key} className="flex items-center gap-2 cursor-pointer group p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors">
+                                                <input
+                                                    type="checkbox"
+                                                    checked={individualData.amenities[amenity.key]}
+                                                    onChange={(e) => handleIndividualChange('amenities', e.target.checked, amenity.key)}
+                                                    className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
+                                                />
+                                                <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
+                                                    {amenity.label}
+                                                </span>
+                                            </label>
+                                        ))}
+                                    </div>
                                 </div>
                             </div>
                         )}

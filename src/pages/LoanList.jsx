@@ -1,13 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
+import Pagination from '../compontents/Pagination';
 
 const LoanList = () => {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [filterType, setFilterType] = useState('All');
+    const [filterCategory, setFilterCategory] = useState('All');
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 10;
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -31,18 +34,18 @@ const LoanList = () => {
         }
     };
 
-    const handleDelete = async (loanPlanId) => {
+    const handleDelete = async (planId) => {
         if (!window.confirm("ARE YOU SURE YOU WANT TO DELETE THIS LOAN PLAN?")) return;
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/deleteLoan/${loanPlanId}`, {
+            const res = await fetch(`${ApiBaseUrl}/deleteLoan/${planId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${authData.token}`,
                 }
             });
             if (res.ok) {
-                setLoans(loans.filter(loan => loan.loanPlanId !== loanPlanId));
+                setLoans(loans.filter(loan => loan.planId !== planId));
             } else {
                 alert("Deletion failed.");
             }
@@ -53,15 +56,19 @@ const LoanList = () => {
 
     const filtered = loans.filter(loan => {
         const matchesSearch = 
-            loan.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loan.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loan.loanType?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            loan.loanPlanId?.toLowerCase().includes(searchTerm.toLowerCase());
-        const matchesType = filterType === 'All' || loan.loanType === filterType;
-        return matchesSearch && matchesType;
+            loan.productName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loan.bankName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loan.majorCategory?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            loan.planId?.toLowerCase().includes(searchTerm.toLowerCase());
+        const matchesCategory = filterCategory === 'All' || loan.majorCategory === filterCategory;
+        return matchesSearch && matchesCategory;
     });
 
-    const loanTypes = ['All', ...new Set(loans.map(l => l.loanType).filter(Boolean))];
+    const majorCategories = ['All', ...new Set(loans.map(l => l.majorCategory).filter(Boolean))];
+    
+    const totalPages = Math.ceil(filtered.length / itemsPerPage);
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginatedLoans = filtered.slice(startIndex, startIndex + itemsPerPage);
 
     if (loading && loans.length === 0) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
@@ -99,9 +106,12 @@ const LoanList = () => {
                 <div className="relative flex-1">
                     <input
                         type="text"
-                        placeholder="SEARCH BY NAME, EMAIL, TYPE OR ID..."
+                        placeholder="SEARCH BY PRODUCT NAME, BANK, CATEGORY OR ID..."
                         value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        onChange={(e) => {
+                            setSearchTerm(e.target.value);
+                            setCurrentPage(1);
+                        }}
                         className="w-full pl-10 xs:pl-12 md:pl-14 pr-4 xs:pr-6 py-3 xs:py-4 md:py-5 bg-white border border-gray-100 rounded-[1.5rem] xs:rounded-[2rem] text-[9px] xs:text-[10px] md:text-[11px] font-black uppercase tracking-wider xs:tracking-widest outline-none transition-all shadow-sm focus:border-red-600 focus:ring-2 xs:focus:ring-4 focus:ring-red-50/50"
                     />
                     <svg className="absolute left-3 xs:left-4 md:left-6 top-1/2 -translate-y-1/2 w-4 h-4 xs:w-5 xs:h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -110,17 +120,20 @@ const LoanList = () => {
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-                    {loanTypes.map(type => (
+                    {majorCategories.slice(0, 4).map(category => (
                         <button
-                            key={type}
-                            onClick={() => setFilterType(type)}
+                            key={category}
+                            onClick={() => {
+                                setFilterCategory(category);
+                                setCurrentPage(1);
+                            }}
                             className={`tap-target px-4 xs:px-6 py-2.5 xs:py-3 md:py-4 rounded-xl xs:rounded-2xl text-[9px] xs:text-[10px] font-black uppercase tracking-wider xs:tracking-widest whitespace-nowrap transition-all ${
-                                filterType === type
+                                filterCategory === category
                                     ? 'bg-gray-900 text-white shadow-lg xs:shadow-xl shadow-gray-200'
                                     : 'bg-white border border-gray-100 text-gray-400 hover:bg-gray-50'
                             }`}
                         >
-                            {type}
+                            {category === 'All' ? 'All' : category.split('/')[0].trim()}
                         </button>
                     ))}
                 </div>
@@ -130,8 +143,15 @@ const LoanList = () => {
 
             {/* Loans Grid */}
             <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6 md:gap-8">
-                {filtered.map((loan) => (
+                {paginatedLoans.map((loan) => (
                     <div key={loan._id} className="bg-white rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden flex flex-col group">
+                        {/* Image */}
+                        {loan.planImage && (
+                            <div className="h-32 xs:h-40 overflow-hidden">
+                                <img src={loan.planImage} alt={loan.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                            </div>
+                        )}
+                        
                         {/* Header */}
                         <div className="p-4 xs:p-6 md:p-8 flex-1 space-y-4 xs:space-y-6">
                             <div className="flex justify-between items-start">
@@ -140,48 +160,53 @@ const LoanList = () => {
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
                                     </svg>
                                 </div>
-                                {loan.isVerified && (
+                                {loan.isActive && (
                                     <span className="px-2 xs:px-3 py-0.5 xs:py-1 bg-emerald-50 text-emerald-600 rounded-md xs:rounded-lg text-[7px] xs:text-[8px] font-black uppercase tracking-wider xs:tracking-widest border border-emerald-100">
-                                        Verified
+                                        Active
                                     </span>
                                 )}
                             </div>
 
                             <div className="space-y-1 xs:space-y-2">
-                                <h3 className="text-base xs:text-lg md:text-xl font-black text-gray-900 tracking-tighter uppercase truncate">{loan.name || 'Unnamed Applicant'}</h3>
-                                <p className="text-[8px] xs:text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">ID: {loan.loanPlanId}</p>
+                                <h3 className="text-base xs:text-lg md:text-xl font-black text-gray-900 tracking-tighter uppercase truncate">{loan.productName || 'Unnamed Product'}</h3>
+                                <p className="text-[8px] xs:text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">ID: {loan.planId}</p>
                             </div>
 
                             <div className="grid grid-cols-2 gap-3 xs:gap-4 py-3 xs:py-4 border-y border-gray-50">
                                 <div>
-                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Loan Type</p>
-                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.loanType || 'N/A'}</p>
+                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Bank</p>
+                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.bankName || 'N/A'}</p>
                                 </div>
                                 <div className="text-right">
-                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Employment</p>
-                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.employmentType || 'N/A'}</p>
+                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Type</p>
+                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.financingType || 'N/A'}</p>
                                 </div>
                             </div>
 
                             <div className="space-y-1.5 xs:space-y-2">
                                 <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
                                     <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
                                     </svg>
-                                    <span className="truncate">{loan.email || 'N/A'}</span>
+                                    <span className="truncate">{loan.majorCategory?.split('/')[0] || 'N/A'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
                                     <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                     </svg>
-                                    <span className="truncate">{loan.phone || 'N/A'}</span>
+                                    <span className="truncate">PKR {loan.minFinancingAmount?.toLocaleString() || '0'} - {loan.maxFinancingAmount?.toLocaleString() || '0'}</span>
                                 </div>
                                 <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
                                     <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                                     </svg>
-                                    <span className="truncate">{loan.city || 'N/A'}</span>
+                                    <span className="truncate">Rate: {loan.indicativeRate || 'N/A'} ({loan.rateType || 'N/A'})</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
+                                    <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <span className="truncate">{loan.minTenure || '0'}-{loan.maxTenure || '0'} {loan.tenureUnit || 'Months'}</span>
                                 </div>
                             </div>
                         </div>
@@ -189,13 +214,13 @@ const LoanList = () => {
                         {/* Actions */}
                         <div className="px-4 xs:px-6 md:px-8 py-4 xs:py-5 md:py-6 bg-gray-50/50 border-t border-gray-50 flex gap-1.5 xs:gap-2">
                             <button
-                                onClick={() => navigate(`/loan/edit/${loan.loanPlanId}`)}
+                                onClick={() => navigate(`/loan/edit/${loan.planId}`)}
                                 className="tap-target flex-1 py-2.5 xs:py-3 bg-gray-900 text-white rounded-lg xs:rounded-xl text-[8px] xs:text-[9px] font-black uppercase tracking-wider xs:tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-100 active:scale-95"
                             >
-                                Edit Loan
+                                Edit Plan
                             </button>
                             <button
-                                onClick={() => handleDelete(loan.loanPlanId)}
+                                onClick={() => handleDelete(loan.planId)}
                                 className="tap-target px-3 xs:px-4 py-2.5 xs:py-3 bg-white text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg xs:rounded-xl transition-all border border-gray-100 active:scale-95 shrink-0"
                             >
                                 <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -211,6 +236,17 @@ const LoanList = () => {
                 <div className="p-16 xs:p-20 md:p-24 text-center bg-white rounded-[2rem] xs:rounded-[3rem] border-2 border-dashed border-gray-100 italic font-black text-gray-300 uppercase tracking-widest text-xs xs:text-sm">
                     No loan plans found in registry.
                 </div>
+            )}
+
+            {/* Pagination */}
+            {filtered.length > 0 && (
+                <Pagination
+                    currentPage={currentPage}
+                    totalPages={totalPages}
+                    onPageChange={setCurrentPage}
+                    totalItems={filtered.length}
+                    itemsPerPage={itemsPerPage}
+                />
             )}
         </div>
     );
