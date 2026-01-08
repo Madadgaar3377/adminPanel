@@ -257,7 +257,7 @@ const PropertyAdd = () => {
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             const response = await fetch(`${ApiBaseUrl}/getProperty/${id}`, {
-                headers: {
+                    headers: {
                     'Authorization': `Bearer ${authData.token}`
                 }
             });
@@ -534,7 +534,7 @@ const PropertyAdd = () => {
 
     // Show loading when fetching property
     if (fetchingProperty) {
-        return (
+                return (
             <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
                 <div className="max-w-7xl mx-auto px-3 xs:px-4 md:px-6 py-4 xs:py-6 md:py-8">
                     <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
@@ -544,12 +544,12 @@ const PropertyAdd = () => {
                             <p className="text-sm text-gray-500 font-medium mt-2">Please wait...</p>
                         </div>
                     </div>
-                </div>
-            </div>
-        );
+                        </div>
+                    </div>
+                );
     }
 
-    return (
+                return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             <div className="max-w-7xl mx-auto px-3 xs:px-4 md:px-6 py-4 xs:py-6 md:py-8 space-y-4 xs:space-y-6 md:space-y-8 animate-in fade-in duration-700">
                 {/* Header */}
@@ -557,7 +557,7 @@ const PropertyAdd = () => {
                     {/* Background Pattern */}
                     <div className="absolute inset-0 opacity-10">
                         <div className="absolute inset-0" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
-                    </div>
+                        </div>
                     
                     <div className="relative flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4 xs:gap-0">
                         <div className="flex-1">
@@ -566,7 +566,7 @@ const PropertyAdd = () => {
                                     <svg className="w-5 h-5 xs:w-6 xs:h-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
-                                </div>
+                    </div>
                                 <div>
                                     <h1 className="text-2xl xs:text-3xl md:text-4xl font-black text-white tracking-tighter">
                                         {id ? 'Edit' : 'Add New'} Property
@@ -576,12 +576,12 @@ const PropertyAdd = () => {
                                             Type: {propertyType}
                                         </p>
                                     )}
-                                </div>
-                            </div>
+                        </div>
+                        </div>
                             <p className="text-[10px] xs:text-xs md:text-sm font-bold text-white/80 uppercase tracking-wider xs:tracking-widest ml-0 xs:ml-14">
                                 Real Estate Management System
                             </p>
-                        </div>
+                    </div>
                         <div className="flex gap-2 xs:gap-3">
                             {id && (
                                 <button
@@ -605,8 +605,8 @@ const PropertyAdd = () => {
                                 Back to List
                             </button>
                         </div>
+                        </div>
                     </div>
-                </div>
 
                 {/* Messages */}
                 {error && (
@@ -653,7 +653,7 @@ const PropertyAdd = () => {
                             </div>
                         </div>
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-5">
-                            <button
+                                        <button
                                 type="button"
                                 onClick={() => setPropertyType('Project')}
                                 className={`tap-target group relative py-6 xs:py-8 px-5 xs:px-6 rounded-2xl font-bold uppercase text-xs xs:text-sm tracking-wider transition-all duration-300 ${
@@ -686,7 +686,7 @@ const PropertyAdd = () => {
                                         </div>
                                     </div>
                                 </div>
-                            </button>
+                                        </button>
                             <button
                                 type="button"
                                 onClick={() => setPropertyType('Individual')}
@@ -831,9 +831,9 @@ const PropertyAdd = () => {
                                     }`}>
                                         {step.label}
                                     </p>
-                                </div>
-                            ))}
-                        </div>
+                                    </div>
+                                ))}
+                                    </div>
                     </div>
                 </div>
 
@@ -854,7 +854,7 @@ const PropertyAdd = () => {
                                     <div className="sm:col-span-2">
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             Project Name *
-                                        </label>
+                                </label>
                                         <input
                                             type="text"
                                             value={projectData.projectName}
@@ -862,7 +862,7 @@ const PropertyAdd = () => {
                                             required
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+                            </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -885,7 +885,7 @@ const PropertyAdd = () => {
                                             <option value="Multan">Multan</option>
                                             <option value="Other">Other</option>
                                         </select>
-                                    </div>
+                        </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -897,7 +897,7 @@ const PropertyAdd = () => {
                                             onChange={(e) => handleProjectChange('district', e.target.value)}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+                    </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -909,7 +909,7 @@ const PropertyAdd = () => {
                                             onChange={(e) => handleProjectChange('tehsil', e.target.value)}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+                        </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -921,7 +921,7 @@ const PropertyAdd = () => {
                                             onChange={(e) => handleProjectChange('area', e.target.value)}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+                    </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -933,9 +933,9 @@ const PropertyAdd = () => {
                                             onChange={(e) => handleProjectChange('street', e.target.value)}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+        </div>
 
-                                    <div>
+                <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             GPS Location (Optional)
                                         </label>
@@ -946,7 +946,7 @@ const PropertyAdd = () => {
                                             placeholder="e.g., 24.8607,67.0011"
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+                </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -1044,9 +1044,9 @@ const PropertyAdd = () => {
                                                     {utility}
                                                 </span>
                                             </label>
-                                        ))}
-                                    </div>
-                                </div>
+                    ))}
+                </div>
+            </div>
 
                                 {/* Images */}
                                 <div>
@@ -1085,15 +1085,15 @@ const PropertyAdd = () => {
                                                     <div className="w-16 h-16 xs:w-20 xs:h-20 rounded-lg overflow-hidden border-2 border-gray-100 shadow-sm">
                                                         <img src={img} alt="" className="w-full h-full object-cover" />
                                                     </div>
-                                                    <button
+                    <button
                                                         type="button"
                                                         onClick={() => removeImage(idx)}
                                                         className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700 active:scale-90"
-                                                    >
+                    >
                                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                                         </svg>
-                                                    </button>
+                    </button>
                                                 </div>
                                             ))}
                                         </div>
@@ -1681,7 +1681,7 @@ const PropertyAdd = () => {
                                                     <div className="w-16 h-16 xs:w-20 xs:h-20 rounded-lg overflow-hidden border-2 border-gray-100 shadow-sm">
                                                         <img src={img} alt="" className="w-full h-full object-cover" />
                                                     </div>
-                                                    <button
+                        <button
                                                         type="button"
                                                         onClick={() => removeImage(idx)}
                                                         className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-700 active:scale-90"
@@ -1689,13 +1689,13 @@ const PropertyAdd = () => {
                                                         <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
                                                         </svg>
-                                                    </button>
+                        </button>
                                                 </div>
                                             ))}
                                         </div>
-                                    )}
-                                </div>
-                            </div>
+                    )}
+                </div>
+            </div>
                         )}
 
                         {/* Details Tab (merged with Utilities) */}
@@ -1717,7 +1717,7 @@ const PropertyAdd = () => {
                                             min="0"
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                                    </div>
+        </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -1747,7 +1747,7 @@ const PropertyAdd = () => {
                                             <option value="Closed">Closed</option>
                                             <option value="Semi-Open">Semi-Open</option>
                                             <option value="Island">Island</option>
-                                        </select>
+            </select>
                                     </div>
 
                                     <div>
@@ -1771,7 +1771,7 @@ const PropertyAdd = () => {
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             Floor
                                         </label>
-                                        <input
+            <input
                                             type="number"
                                             value={individualData.floor}
                                             onChange={(e) => handleIndividualChange('floor', e.target.value)}
@@ -1900,7 +1900,7 @@ const PropertyAdd = () => {
                                                 </span>
                                             </label>
                                         ))}
-                                    </div>
+    </div>
                                 </div>
 
                                 {/* Religious & Community Facilities */}
@@ -1925,7 +1925,7 @@ const PropertyAdd = () => {
                                                 </span>
                                             </label>
                                         ))}
-                                    </div>
+        </div>
                                 </div>
 
                                 {/* Education, Health & Commercial */}
@@ -1948,8 +1948,8 @@ const PropertyAdd = () => {
                                                 />
                                                 <span className="text-xs font-bold text-gray-700 group-hover:text-gray-900">
                                                     {amenity.label}
-                                                </span>
-                                            </label>
+        </span>
+    </label>
                                         ))}
                                     </div>
                                 </div>

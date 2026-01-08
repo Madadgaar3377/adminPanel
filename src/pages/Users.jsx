@@ -115,6 +115,18 @@ const Users = () => {
     return (
         <div className="p-6">
             <div className="max-w-7xl mx-auto space-y-6">
+                {/* Error Message */}
+                {error && (
+                    <div className="bg-red-50 border-2 border-red-200 rounded-xl p-4 flex items-center justify-between">
+                        <p className="text-red-600 font-semibold text-sm">{error}</p>
+                        <button onClick={() => setError('')} className="text-red-600 hover:text-red-800">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                        </button>
+                    </div>
+                )}
+
                 {/* Header */}
                 <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
@@ -280,91 +292,470 @@ const Users = () => {
                     )}
                 </div>
 
-                {/* View Modal */}
+                {/* View Modal - Enhanced with Complete Details */}
             {isViewOpen && viewUser && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-                        <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-                            <div className="p-6 border-b border-gray-200 flex justify-between items-center sticky top-0 bg-white">
-                                <h2 className="text-xl font-bold text-gray-900">{viewUser.name}</h2>
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                            {/* Header */}
+                            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-red-50 to-white">
+                                <div className="flex items-center gap-4">
+                                    {viewUser.profilePic ? (
+                                        <img src={viewUser.profilePic} alt="" className="w-16 h-16 rounded-xl object-cover border-2 border-white shadow-md" />
+                                    ) : (
+                                        <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center text-red-600 font-black text-2xl border-2 border-white shadow-md">
+                                            {viewUser.name?.charAt(0)}
+                                        </div>
+                                    )}
+                                    <div>
+                                        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">{viewUser.name}</h2>
+                                        <p className="text-xs font-semibold text-red-600 uppercase tracking-widest mt-0.5">ID: {viewUser.userId}</p>
+                                    </div>
+                                </div>
                                 <button
                                     onClick={() => setIsViewOpen(false)}
-                                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                                    className="p-2 hover:bg-white rounded-xl transition-all"
                                 >
-                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
-                            <div className="p-6 space-y-6">
-                                {/* Profile Images */}
-                                <div className="flex gap-4">
-                                    {viewUser.profilePic && (
-                                        <div>
-                                            <p className="text-xs font-semibold text-gray-600 mb-2">Profile Picture</p>
-                                            <img src={viewUser.profilePic} alt="Profile" className="w-32 h-32 rounded-lg object-cover border border-gray-200" />
-                                    </div>
-                                    )}
-                                    {viewUser.idCardPic && (
-                                        <div>
-                                            <p className="text-xs font-semibold text-gray-600 mb-2">ID Card</p>
-                                            <img src={viewUser.idCardPic} alt="ID" className="w-48 h-32 rounded-lg object-cover border border-gray-200" />
-                                    </div>
-                                )}
-                            </div>
 
-                                {/* User Info */}
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600">User ID</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.userId}</p>
+                            {/* Content */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    {/* Left Column - Images */}
+                                    <div className="space-y-6">
+                                        <div>
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Profile Picture</p>
+                                            {viewUser.profilePic ? (
+                                                <img src={viewUser.profilePic} alt="Profile" className="w-full aspect-square rounded-2xl object-cover border-2 border-gray-100 shadow-lg" />
+                                            ) : (
+                                                <div className="w-full aspect-square rounded-2xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200">
+                                                    <p className="text-sm font-semibold text-gray-400">No image</p>
+                                                </div>
+                                            )}
+                                        </div>
+                                        
+                                        <div>
+                                            <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">ID Card</p>
+                                            {viewUser.idCardPic ? (
+                                                <img src={viewUser.idCardPic} alt="ID" className="w-full aspect-video rounded-2xl object-cover border-2 border-gray-100 shadow-lg" />
+                                            ) : (
+                                                <div className="w-full aspect-video rounded-2xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200">
+                                                    <p className="text-sm font-semibold text-gray-400">No document</p>
+                                                </div>
+                                            )}
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600">Username</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.userName || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600">Email</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.email}</p>
-                            </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600">Phone</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.phoneNumber || 'N/A'}</p>
-                        </div>
-                                <div>
-                                        <label className="text-xs font-semibold text-gray-600">CNIC</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.cnicNumber || 'N/A'}</p>
-                                    </div>
-                                    <div>
-                                        <label className="text-xs font-semibold text-gray-600">Wallet Balance</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">Rs. {viewUser.walletBalance?.toLocaleString() || 0}</p>
-                                    </div>
-                                    <div className="col-span-2">
-                                        <label className="text-xs font-semibold text-gray-600">Address</label>
-                                        <p className="text-sm font-medium text-gray-900 mt-1">{viewUser.Address || 'N/A'}</p>
+
+                                    {/* Middle & Right Columns - Details */}
+                                    <div className="lg:col-span-2 space-y-6">
+                                        {/* Basic Information */}
+                                        <section>
+                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Basic Information</h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Full Name</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.name}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Username</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.userName || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">User Type</label>
+                                                    <span className="inline-block px-3 py-1 bg-gray-200 text-gray-800 rounded-lg text-xs font-black uppercase mt-1">
+                                                        {viewUser.UserType}
+                                                    </span>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">CNIC</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.cnicNumber || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </section>
+
+                                        {/* Contact Information */}
+                                        <section>
+                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Contact Information</h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Email</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 break-all">{viewUser.email}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Phone Number</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.phoneNumber || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">WhatsApp</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.WhatsappNumber || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 md:col-span-1">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Referred By</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.refferedBy || 'N/A'}</p>
+                                                </div>
+                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 md:col-span-2">
+                                                    <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Address</label>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.Address || 'N/A'}</p>
+                                                </div>
+                                            </div>
+                                        </section>
+
+                                        {/* Status & Verification */}
+                                        <section>
+                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Status & Verification</h3>
+                                            <div className="flex flex-wrap gap-3">
+                                                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
+                                                    viewUser.isActive !== false ? 'bg-emerald-100 text-emerald-700 border-2 border-emerald-200' : 'bg-gray-100 text-gray-600 border-2 border-gray-200'
+                                                }`}>
+                                                    {viewUser.isActive !== false ? '✓ Active' : '✗ Inactive'}
+                                                </span>
+                                                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
+                                                    viewUser.isVerified ? 'bg-blue-100 text-blue-700 border-2 border-blue-200' : 'bg-yellow-100 text-yellow-700 border-2 border-yellow-200'
+                                                }`}>
+                                                    {viewUser.isVerified ? '✓ Verified' : '⏳ Unverified'}
+                                                </span>
+                                                <span className={`px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider ${
+                                                    viewUser.emailVerify ? 'bg-purple-100 text-purple-700 border-2 border-purple-200' : 'bg-gray-100 text-gray-600 border-2 border-gray-200'
+                                                }`}>
+                                                    {viewUser.emailVerify ? '✓ Email Verified' : 'Email Pending'}
+                                                </span>
+                                                {viewUser.isBlocked && (
+                                                    <span className="px-4 py-2 bg-red-100 text-red-700 rounded-xl text-xs font-black uppercase tracking-wider border-2 border-red-200">
+                                                        🚫 Blocked
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </section>
+
+                                        {/* Financial Information */}
+                                        <section>
+                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Financial Information</h3>
+                                            <div className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl text-white shadow-xl">
+                                                <p className="text-xs font-black uppercase tracking-widest opacity-60 mb-2">Wallet Balance</p>
+                                                <p className="text-3xl font-black">Rs. {viewUser.walletBalance?.toLocaleString() || 0}</p>
+                                            </div>
+
+                                            {/* Bank Accounts */}
+                                            {viewUser.BankAccountinfo && viewUser.BankAccountinfo.length > 0 && (
+                                                <div className="mt-4 space-y-3">
+                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest">Bank Accounts</p>
+                                                    {viewUser.BankAccountinfo.map((bank, idx) => (
+                                                        <div key={idx} className="p-4 bg-gray-50 rounded-xl border border-gray-100 flex items-center gap-4">
+                                                            <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center text-red-600">
+                                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
+                                                                </svg>
+                                                            </div>
+                                                            <div className="flex-1">
+                                                                <p className="text-sm font-bold text-gray-900">{bank.bankName || 'N/A'}</p>
+                                                                <p className="text-xs text-gray-500">{bank.accountName || 'N/A'}</p>
+                                                            </div>
+                                                            <p className="text-xs font-mono font-bold text-gray-600">{bank.accountNumber || 'N/A'}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </section>
+
+                                        {/* Access Permissions */}
+                                        {viewUser.userAccess && viewUser.userAccess.length > 0 && (
+                                            <section>
+                                                <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Access Permissions</h3>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {viewUser.userAccess.map((access, idx) => (
+                                                        <span key={idx} className="px-4 py-2 bg-blue-50 text-blue-700 border-2 border-blue-100 rounded-xl text-xs font-black uppercase">
+                                                            {access}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </section>
+                                        )}
+
+                                        {/* Location & System Info */}
+                                        <section>
+                                            <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">System Information</h3>
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {viewUser.livelocation && (
+                                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Live Location</label>
+                                                        <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.livelocation}</p>
+                                                    </div>
+                                                )}
+                                                {viewUser.lastIpAddress && (
+                                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Last IP Address</label>
+                                                        <p className="text-sm font-mono font-bold text-gray-900 mt-1">{viewUser.lastIpAddress}</p>
+                                                    </div>
+                                                )}
+                                                {viewUser.createdAt && (
+                                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Member Since</label>
+                                                        <p className="text-sm font-bold text-gray-900 mt-1">{new Date(viewUser.createdAt).toLocaleDateString()}</p>
+                                                    </div>
+                                                )}
+                                                {viewUser.updatedAt && (
+                                                    <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                        <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Last Updated</label>
+                                                        <p className="text-sm font-bold text-gray-900 mt-1">{new Date(viewUser.updatedAt).toLocaleDateString()}</p>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </section>
+
+                                        {/* Company Details (For Partners) */}
+                                        {viewUser.UserType === 'partner' && viewUser.companyDetails && (
+                                            <section className="space-y-6">
+                                                <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Company Information</h3>
+                                                
+                                                {/* Basic Company Info */}
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                    {viewUser.companyDetails.RegisteredCompanyName && (
+                                                        <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-100">
+                                                            <label className="text-xs font-black text-blue-600 uppercase tracking-wider">Company Name</label>
+                                                            <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.RegisteredCompanyName}</p>
+                                                        </div>
+                                                    )}
+                                                    {viewUser.companyDetails.PartnerType && (
+                                                        <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-100">
+                                                            <label className="text-xs font-black text-blue-600 uppercase tracking-wider">Partner Type</label>
+                                                            <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.PartnerType}</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Registration & Tax Info */}
+                                                <div>
+                                                    <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Registration & Tax Information</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                        {viewUser.companyDetails.SECPRegistrationNumber && (
+                                                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">SECP Reg. Number</label>
+                                                                <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.SECPRegistrationNumber}</p>
+                                                            </div>
+                                                        )}
+                                                        {viewUser.companyDetails.NTN && (
+                                                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">NTN</label>
+                                                                <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.NTN}</p>
+                                                            </div>
+                                                        )}
+                                                        {viewUser.companyDetails.STRN && (
+                                                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">STRN</label>
+                                                                <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.STRN}</p>
+                                                            </div>
+                                                        )}
+                                                        {viewUser.companyDetails.AuthorizationReference && (
+                                                            <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                                <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Authorization Reference</label>
+                                                                <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.AuthorizationReference}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Address & Website */}
+                                                <div className="grid grid-cols-1 gap-4">
+                                                    {viewUser.companyDetails.HeadOfficeAddress && (
+                                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                            <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Head Office Address</label>
+                                                            <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.HeadOfficeAddress}</p>
+                                                        </div>
+                                                    )}
+                                                    {viewUser.companyDetails.OfficialWebsite && (
+                                                        <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                            <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Official Website</label>
+                                                            <a href={viewUser.companyDetails.OfficialWebsite} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-blue-600 hover:underline mt-1 block">
+                                                                {viewUser.companyDetails.OfficialWebsite}
+                                                            </a>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Commission Info */}
+                                                {(viewUser.companyDetails.CommissionType || viewUser.companyDetails.CommissionLock) && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Commission Details</p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                            {viewUser.companyDetails.CommissionType && (
+                                                                <div className="p-4 bg-emerald-50 rounded-xl border-2 border-emerald-100">
+                                                                    <label className="text-xs font-black text-emerald-600 uppercase tracking-wider">Commission Type</label>
+                                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.CommissionType}</p>
+                                                                </div>
+                                                            )}
+                                                            {viewUser.companyDetails.CommissionLock && (
+                                                                <div className="p-4 bg-emerald-50 rounded-xl border-2 border-emerald-100">
+                                                                    <label className="text-xs font-black text-emerald-600 uppercase tracking-wider">Commission Lock</label>
+                                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.CommissionLock}</p>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Documents */}
+                                                {(viewUser.companyDetails.SECPRegistrationCertificate || viewUser.companyDetails.DeliveryPolicyDocument || viewUser.companyDetails.CompanyProfilePDF || viewUser.companyDetails.AuthorizedAgencyLetter) && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Company Documents</p>
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                            {viewUser.companyDetails.SECPRegistrationCertificate && (
+                                                                <a href={viewUser.companyDetails.SECPRegistrationCertificate} target="_blank" rel="noopener noreferrer" className="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-300 transition-all flex items-center gap-3 group">
+                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 group-hover:bg-purple-200">
+                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-xs font-black text-purple-600 uppercase">SECP Certificate</p>
+                                                                        <p className="text-xs text-gray-500">Click to view</p>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                            {viewUser.companyDetails.DeliveryPolicyDocument && (
+                                                                <a href={viewUser.companyDetails.DeliveryPolicyDocument} target="_blank" rel="noopener noreferrer" className="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-300 transition-all flex items-center gap-3 group">
+                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 group-hover:bg-purple-200">
+                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-xs font-black text-purple-600 uppercase">Delivery Policy</p>
+                                                                        <p className="text-xs text-gray-500">Click to view</p>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                            {viewUser.companyDetails.CompanyProfilePDF && (
+                                                                <a href={viewUser.companyDetails.CompanyProfilePDF} target="_blank" rel="noopener noreferrer" className="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-300 transition-all flex items-center gap-3 group">
+                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 group-hover:bg-purple-200">
+                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-xs font-black text-purple-600 uppercase">Company Profile</p>
+                                                                        <p className="text-xs text-gray-500">Click to view</p>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                            {viewUser.companyDetails.AuthorizedAgencyLetter && (
+                                                                <a href={viewUser.companyDetails.AuthorizedAgencyLetter} target="_blank" rel="noopener noreferrer" className="p-4 bg-purple-50 rounded-xl border border-purple-100 hover:border-purple-300 transition-all flex items-center gap-3 group">
+                                                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center text-purple-600 group-hover:bg-purple-200">
+                                                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                                        </svg>
+                                                                    </div>
+                                                                    <div className="flex-1">
+                                                                        <p className="text-xs font-black text-purple-600 uppercase">Agency Letter</p>
+                                                                        <p className="text-xs text-gray-500">Click to view</p>
+                                                                    </div>
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* CNIC Pictures */}
+                                                {viewUser.companyDetails.cnicPic && viewUser.companyDetails.cnicPic.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">CNIC Documents</p>
+                                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                                                            {viewUser.companyDetails.cnicPic.map((cnic, idx) => (
+                                                                <div key={idx} className="relative group">
+                                                                    <img src={cnic} alt={`CNIC ${idx + 1}`} className="w-full aspect-video rounded-xl object-cover border-2 border-gray-200 group-hover:border-red-400 transition-all shadow-md" />
+                                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-xl transition-all"></div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Authorized Contact Persons */}
+                                                {viewUser.companyDetails.AuthorizedContactPerson && viewUser.companyDetails.AuthorizedContactPerson.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Authorized Contact Persons</p>
+                                                        <div className="space-y-3">
+                                                            {viewUser.companyDetails.AuthorizedContactPerson.map((person, idx) => (
+                                                                <div key={idx} className="p-5 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border-2 border-orange-100 shadow-sm">
+                                                                    <div className="flex items-start justify-between mb-3">
+                                                                        <div>
+                                                                            <h4 className="text-base font-black text-gray-900 uppercase">{person.fullName || 'N/A'}</h4>
+                                                                            <p className="text-xs font-semibold text-orange-600 uppercase tracking-wider">{person.Designation || 'N/A'}</p>
+                                                                        </div>
+                                                                        <span className="px-3 py-1 bg-orange-200 text-orange-800 rounded-lg text-xs font-black">Contact #{idx + 1}</span>
+                                                                    </div>
+                                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                                        {person.email && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <svg className="w-4 h-4 text-orange-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                                                </svg>
+                                                                                <p className="text-xs font-bold text-gray-700">{person.email}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {person.phoneNumber && (
+                                                                            <div className="flex items-center gap-2">
+                                                                                <svg className="w-4 h-4 text-orange-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                                                </svg>
+                                                                                <p className="text-xs font-bold text-gray-700">{person.phoneNumber}</p>
+                                                                            </div>
+                                                                        )}
+                                                                        {person.OfficeAddress && (
+                                                                            <div className="flex items-start gap-2 md:col-span-2">
+                                                                                <svg className="w-4 h-4 text-orange-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                                                </svg>
+                                                                                <p className="text-xs font-bold text-gray-700">{person.OfficeAddress}</p>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+
+                                                {/* Authorization Declarations */}
+                                                {viewUser.companyDetails.AuthorizationDeclaration && viewUser.companyDetails.AuthorizationDeclaration.length > 0 && (
+                                                    <div>
+                                                        <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Authorization Declarations</p>
+                                                        <div className="space-y-2">
+                                                            {viewUser.companyDetails.AuthorizationDeclaration.map((declaration, idx) => (
+                                                                <div key={idx} className="p-4 bg-gray-50 rounded-xl border-l-4 border-gray-300 flex items-start gap-3">
+                                                                    <div className={`w-5 h-5 rounded-md flex items-center justify-center flex-shrink-0 mt-0.5 ${declaration.isTrue ? 'bg-green-500' : 'bg-gray-300'}`}>
+                                                                        {declaration.isTrue && (
+                                                                            <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                                                            </svg>
+                                                                        )}
+                                                                    </div>
+                                                                    <p className="text-xs font-semibold text-gray-700 leading-relaxed">{declaration.text || 'N/A'}</p>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </section>
+                                        )}
                                     </div>
                                 </div>
-
-                                {/* Status */}
-                                <div className="flex gap-2">
-                                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                                        viewUser.isVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
-                                    }`}>
-                                        {viewUser.isVerified ? 'Verified' : 'Unverified'}
-                                    </span>
-                                    <span className={`px-3 py-1 rounded-lg text-xs font-semibold ${
-                                        viewUser.isBlocked ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700'
-                                    }`}>
-                                        {viewUser.isBlocked ? 'Blocked' : 'Active'}
-                                    </span>
-                                    <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-xs font-semibold capitalize">
-                                        {viewUser.UserType}
-                                    </span>
-                                </div>
                             </div>
-                            <div className="p-6 border-t border-gray-200 bg-gray-50">
+
+                            {/* Footer */}
+                            <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
+                                <button
+                                    onClick={() => setIsViewOpen(false)}
+                                    className="flex-1 py-3 bg-gray-200 text-gray-700 rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-gray-300 transition-colors"
+                                >
+                                    Close
+                                </button>
                                 <button
                                     onClick={() => { setIsViewOpen(false); openModal(viewUser); }}
-                                    className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium"
+                                    className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold uppercase text-xs tracking-widest hover:bg-red-700 transition-colors shadow-lg shadow-red-100"
                                 >
                                     Edit User
                                 </button>

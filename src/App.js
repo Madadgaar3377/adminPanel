@@ -15,6 +15,7 @@ import BannersAdd from "./pages/BannersAdd";
 import AgentsList from "./pages/AgentsList";
 import AgentAssignments from "./pages/AgentAssignments";
 import AgentAdd from "./pages/AgentAdd";
+import AgentUpdate from "./pages/AgentUpdate";
 import UnverifiedAgents from "./pages/UnverifiedAgents";
 import Profile from "./pages/Profile";
 import Partners from "./pages/Partners";
@@ -26,6 +27,7 @@ import PropertyApplicationDetails from "./pages/PropertyApplicationDetails";
 import LoanAdd from "./pages/LoanAdd";
 import LoanList from "./pages/LoanList";
 import LoanEdit from "./pages/LoanEdit";
+import LoanView from "./pages/LoanView";
 import Notifications from "./pages/Notifications";
 
 function App() {
@@ -145,7 +147,7 @@ function App() {
           />
           <Route
             path="/agent/update/:id"
-            element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <AgentUpdate /> : <Navigate to="/login" />}
           />
           <Route
             path="/agent/unverified"
@@ -162,6 +164,14 @@ function App() {
           <Route
             path="/partners/all"
             element={isAuthenticated ? <Partners /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/partners"
+            element={isAuthenticated ? <Partners /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/partners/update/:id"
+            element={isAuthenticated ? <AgentUpdate /> : <Navigate to="/login" />}
           />
 
           {/* Property Routes */}
@@ -198,6 +208,10 @@ function App() {
           <Route
             path="/loan/add"
             element={isAuthenticated ? <LoanAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/loan/view/:id"
+            element={isAuthenticated ? <LoanView /> : <Navigate to="/login" />}
           />
           <Route
             path="/loan/edit/:id"

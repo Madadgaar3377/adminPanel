@@ -241,3 +241,84 @@
     @apply min-w-full;
   }
 }
+
+/* Rich Text Editor Content Display Styles */
+.prose {
+  @apply text-gray-700;
+}
+
+.prose h1 {
+  @apply text-3xl font-bold text-gray-900 mt-6 mb-4;
+}
+
+.prose h2 {
+  @apply text-2xl font-bold text-gray-900 mt-5 mb-3;
+}
+
+.prose h3 {
+  @apply text-xl font-bold text-gray-900 mt-4 mb-2;
+}
+
+.prose h4 {
+  @apply text-lg font-semibold text-gray-900 mt-3 mb-2;
+}
+
+.prose p {
+  @apply my-3 leading-relaxed;
+}
+
+.prose ul, .prose ol {
+  @apply my-4 pl-6;
+}
+
+.prose ul {
+  @apply list-disc;
+}
+
+.prose ol {
+  @apply list-decimal;
+}
+
+.prose li {
+  @apply my-2;
+}
+
+.prose a {
+  @apply text-red-600 underline hover:text-red-700;
+}
+
+.prose strong {
+  @apply font-bold text-gray-900;
+}
+
+.prose em {
+  @apply italic;
+}
+
+.prose blockquote {
+  @apply border-l-4 border-red-500 pl-4 my-4 italic text-gray-600;
+}
+
+.prose code {
+  @apply bg-gray-100 px-2 py-1 rounded text-sm font-mono;
+}
+
+.prose pre {
+  @apply bg-gray-100 p-4 rounded-lg overflow-x-auto my-4;
+}
+
+.prose img {
+  @apply rounded-lg my-4 max-w-full h-auto;
+}
+
+.prose table {
+  @apply w-full border-collapse my-4;
+}
+
+.prose th, .prose td {
+  @apply border border-gray-300 px-4 py-2;
+}
+
+.prose th {
+  @apply bg-gray-100 font-semibold text-left;
+}

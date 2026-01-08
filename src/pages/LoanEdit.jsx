@@ -1,6 +1,33 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
+import RichTextEditor from '../compontents/RichTextEditor';
+
+// Toast Notification Component
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    return (
+        <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-in slide-in-from-top`}>
+            {type === 'success' ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+            ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            )}
+            <span className="font-medium">{message}</span>
+            <button onClick={onClose} className="ml-2 hover:opacity-80 text-xl leading-none">&times;</button>
+        </div>
+    );
+};
 
 const LoanEdit = () => {
     const { id } = useParams();
@@ -8,8 +35,7 @@ const LoanEdit = () => {
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const [toast, setToast] = useState(null);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [uploadingDocument, setUploadingDocument] = useState(false);
     const [uploadError, setUploadError] = useState('');
@@ -17,6 +43,7 @@ const LoanEdit = () => {
     const [formData, setFormData] = useState({
         productName: '',
         bankName: '',
+        userId: '',
         planImage: '',
         majorCategory: '',
         subCategory: '',
@@ -42,11 +69,11 @@ const LoanEdit = () => {
 
     const totalSteps = 6;
 
-    useEffect(() => {
-        fetchLoan();
-    }, [id]);
+    const showToast = useCallback((message, type = 'success') => {
+        setToast({ message, type });
+    }, []);
 
-    const fetchLoan = async () => {
+    const fetchLoan = useCallback(async () => {
         try {
             const res = await fetch(`${ApiBaseUrl}/getAllLoans`);
             const data = await res.json();
@@ -56,6 +83,7 @@ const LoanEdit = () => {
                     setFormData({
                         productName: loan.productName || '',
                         bankName: loan.bankName || '',
+                        userId: loan.userId || '',
                         planImage: loan.planImage || '',
                         majorCategory: loan.majorCategory || '',
                         subCategory: loan.subCategory || '',
@@ -79,15 +107,19 @@ const LoanEdit = () => {
                         planDocument: loan.planDocument || ''
                     });
                 } else {
-                    setError('Loan plan not found');
+                    showToast('Loan plan not found', 'error');
                 }
             }
         } catch (err) {
-            setError('Failed to load loan data');
+            showToast('Failed to load loan data', 'error');
         } finally {
             setLoading(false);
         }
-    };
+    }, [id, showToast]);
+
+    useEffect(() => {
+        fetchLoan();
+    }, [fetchLoan]);
 
     const handleChange = (e) => {
         const { name, value } = e.target;
@@ -129,6 +161,18 @@ const LoanEdit = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showToast('Please select a valid image file', 'error');
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('Image size should not exceed 5MB', 'error');
+            return;
+        }
+
         setUploadingImage(true);
         setUploadError('');
 
@@ -145,11 +189,14 @@ const LoanEdit = () => {
 
             if (response.ok && data.success) {
                 setFormData(prev => ({ ...prev, planImage: data.url }));
+                showToast('Image uploaded successfully!', 'success');
             } else {
                 throw new Error(data.message || 'Upload failed');
             }
         } catch (err) {
-            setUploadError(err.message || 'Failed to upload image. Please try again.');
+            const errorMsg = err.message || 'Failed to upload image. Please try again.';
+            setUploadError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setUploadingImage(false);
         }
@@ -158,6 +205,19 @@ const LoanEdit = () => {
     const handleDocumentUpload = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
+
+        // Validate file type
+        const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+        if (!allowedTypes.includes(file.type)) {
+            showToast('Please select a valid document file (PDF, DOC, or DOCX)', 'error');
+            return;
+        }
+
+        // Validate file size (10MB)
+        if (file.size > 10 * 1024 * 1024) {
+            showToast('Document size should not exceed 10MB', 'error');
+            return;
+        }
 
         setUploadingDocument(true);
         setUploadError('');
@@ -175,73 +235,74 @@ const LoanEdit = () => {
 
             if (response.ok && data.success) {
                 setFormData(prev => ({ ...prev, planDocument: data.url }));
+                showToast('Document uploaded successfully!', 'success');
             } else {
                 throw new Error(data.message || 'Upload failed');
             }
         } catch (err) {
-            setUploadError(err.message || 'Failed to upload document. Please try again.');
+            const errorMsg = err.message || 'Failed to upload document. Please try again.';
+            setUploadError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setUploadingDocument(false);
         }
     };
 
     const validateStep = (step) => {
-        setError('');
-        
         switch (step) {
             case 1:
                 if (!formData.productName.trim()) {
-                    setError('Product Name is required');
+                    showToast('Product Name is required', 'error');
                     return false;
                 }
                 if (!formData.bankName.trim()) {
-                    setError('Bank Name is required');
+                    showToast('Bank Name is required', 'error');
                     return false;
                 }
                 break;
             case 2:
                 if (!formData.majorCategory) {
-                    setError('Major Category is required');
+                    showToast('Major Category is required', 'error');
                     return false;
                 }
                 if (!formData.financingType) {
-                    setError('Financing Type is required (Conventional or Islamic)');
+                    showToast('Financing Type is required (Conventional or Islamic)', 'error');
                     return false;
                 }
                 break;
             case 3:
                 if (!formData.minFinancingAmount || formData.minFinancingAmount <= 0) {
-                    setError('Min Financing Amount is required and must be greater than 0');
+                    showToast('Min Financing Amount is required and must be greater than 0', 'error');
                     return false;
                 }
                 if (!formData.maxFinancingAmount || formData.maxFinancingAmount <= 0) {
-                    setError('Max Financing Amount is required and must be greater than 0');
+                    showToast('Max Financing Amount is required and must be greater than 0', 'error');
                     return false;
                 }
                 if (parseFloat(formData.minFinancingAmount) >= parseFloat(formData.maxFinancingAmount)) {
-                    setError('Max Financing Amount must be greater than Min Financing Amount');
+                    showToast('Max Financing Amount must be greater than Min Financing Amount', 'error');
                     return false;
                 }
                 if (!formData.minTenure || formData.minTenure <= 0) {
-                    setError('Min Tenure is required and must be greater than 0');
+                    showToast('Min Tenure is required and must be greater than 0', 'error');
                     return false;
                 }
                 if (!formData.maxTenure || formData.maxTenure <= 0) {
-                    setError('Max Tenure is required and must be greater than 0');
+                    showToast('Max Tenure is required and must be greater than 0', 'error');
                     return false;
                 }
                 if (parseFloat(formData.minTenure) >= parseFloat(formData.maxTenure)) {
-                    setError('Max Tenure must be greater than Min Tenure');
+                    showToast('Max Tenure must be greater than Min Tenure', 'error');
                     return false;
                 }
                 break;
             case 4:
                 if (!formData.indicativeRate.trim()) {
-                    setError('Indicative Rate is required');
+                    showToast('Indicative Rate is required', 'error');
                     return false;
                 }
                 if (!formData.rateType) {
-                    setError('Rate Type is required (Fixed, Variable, or Floating)');
+                    showToast('Rate Type is required (Fixed, Variable, or Floating)', 'error');
                     return false;
                 }
                 break;
@@ -268,63 +329,137 @@ const LoanEdit = () => {
     };
 
     const handleSubmit = async (e) => {
-        e.preventDefault();
+        if (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+        
+        // Prevent submission if not on the last step
+        if (currentStep !== totalSteps) {
+            showToast('Please complete all steps before submitting', 'error');
+            return;
+        }
+        
+        // Prevent double submission
+        if (updating) {
+            return;
+        }
         
         // Final validation before submission
-        if (!formData.productName.trim() || !formData.bankName.trim()) {
-            setError('Product Name and Bank Name are required');
+        if (!formData.productName.trim()) {
+            showToast('Product Name is required', 'error');
+            setCurrentStep(1);
+            return;
+        }
+        if (!formData.bankName.trim()) {
+            showToast('Bank Name is required', 'error');
+            setCurrentStep(1);
             return;
         }
         if (!formData.majorCategory) {
-            setError('Major Category is required');
+            showToast('Major Category is required', 'error');
+            setCurrentStep(2);
             return;
         }
         if (!formData.financingType) {
-            setError('Financing Type is required');
+            showToast('Financing Type is required', 'error');
+            setCurrentStep(2);
             return;
         }
         if (!formData.minFinancingAmount || !formData.maxFinancingAmount) {
-            setError('Financing amounts are required');
+            showToast('Financing amounts are required', 'error');
+            setCurrentStep(3);
             return;
         }
         if (!formData.minTenure || !formData.maxTenure) {
-            setError('Tenure periods are required');
+            showToast('Tenure periods are required', 'error');
+            setCurrentStep(3);
             return;
         }
         if (!formData.indicativeRate.trim()) {
-            setError('Indicative Rate is required');
+            showToast('Indicative Rate is required', 'error');
+            setCurrentStep(4);
             return;
         }
         if (!formData.rateType) {
-            setError('Rate Type is required');
+            showToast('Rate Type is required', 'error');
+            setCurrentStep(4);
             return;
         }
         
         setUpdating(true);
-        setError('');
-        setSuccess('');
 
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            
+            // Format data properly for backend - convert empty strings to proper types
+            const payload = {
+                productName: formData.productName.trim(),
+                bankName: formData.bankName.trim(),
+                createdBy: formData.userId.trim() || undefined,
+                planImage: formData.planImage || undefined,
+                majorCategory: formData.majorCategory,
+                subCategory: formData.subCategory || undefined,
+                minFinancingAmount: Number(formData.minFinancingAmount),
+                maxFinancingAmount: Number(formData.maxFinancingAmount),
+                minTenure: Number(formData.minTenure),
+                maxTenure: Number(formData.maxTenure),
+                tenureUnit: formData.tenureUnit,
+                financingType: formData.financingType,
+                indicativeRate: formData.indicativeRate.trim(),
+                rateType: formData.rateType,
+                eligibility: {
+                    minAge: formData.eligibility.minAge ? Number(formData.eligibility.minAge) : undefined,
+                    maxAge: formData.eligibility.maxAge ? Number(formData.eligibility.maxAge) : undefined,
+                    minIncome: formData.eligibility.minIncome ? Number(formData.eligibility.minIncome) : undefined,
+                    employmentType: formData.eligibility.employmentType.length > 0 ? formData.eligibility.employmentType : undefined,
+                    requiredDocuments: formData.eligibility.requiredDocuments.length > 0 ? formData.eligibility.requiredDocuments : undefined,
+                },
+                targetAudience: formData.targetAudience.length > 0 ? formData.targetAudience : undefined,
+                description: formData.description.trim() || undefined,
+                planDocument: formData.planDocument || undefined,
+            };
+
+            // Remove undefined values to keep payload clean
+            Object.keys(payload).forEach(key => {
+                if (payload[key] === undefined) {
+                    delete payload[key];
+                }
+            });
+
+            // Clean eligibility object
+            if (payload.eligibility) {
+                Object.keys(payload.eligibility).forEach(key => {
+                    if (payload.eligibility[key] === undefined) {
+                        delete payload.eligibility[key];
+                    }
+                });
+                // Remove eligibility if empty
+                if (Object.keys(payload.eligibility).length === 0) {
+                    delete payload.eligibility;
+                }
+            }
+
+            // Backend expects { data: payload } format
             const response = await fetch(`${ApiBaseUrl}/updateLoan/${id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authData.token}`
                 },
-                body: JSON.stringify(formData)
+                body: JSON.stringify({ data: payload })
             });
 
             const data = await response.json();
 
             if (response.ok && data.success) {
-                setSuccess('Loan plan updated successfully!');
+                showToast('Loan plan updated successfully!');
                 setTimeout(() => navigate('/loan/all'), 2000);
             } else {
-                setError(data.message || 'Failed to update loan plan');
+                showToast(data.message || 'Failed to update loan plan', 'error');
             }
         } catch (err) {
-            setError('Network error. Please try again.');
+            showToast('Network error. Please try again.', 'error');
         } finally {
             setUpdating(false);
         }
@@ -367,6 +502,9 @@ const LoanEdit = () => {
 
     return (
         <div className="space-y-4 xs:space-y-6 md:space-y-8 animate-in fade-in duration-500">
+            {/* Toast Notification */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
             {/* Header */}
             <div className="bg-white p-4 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100">
                 <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-3 xs:gap-0">
@@ -382,18 +520,6 @@ const LoanEdit = () => {
                     </button>
                 </div>
             </div>
-
-            {/* Messages */}
-            {error && (
-                <div className="bg-red-50 border-l-4 border-red-600 p-3 xs:p-4 rounded-lg xs:rounded-xl animate-in slide-in-from-top duration-200">
-                    <p className="text-xs xs:text-sm text-red-700 font-bold">{error}</p>
-                </div>
-            )}
-            {success && (
-                <div className="bg-emerald-50 border-l-4 border-emerald-600 p-3 xs:p-4 rounded-lg xs:rounded-xl animate-in slide-in-from-top duration-200">
-                    <p className="text-xs xs:text-sm text-emerald-700 font-bold">{success}</p>
-                </div>
-            )}
 
             {/* Progress Indicator */}
             <div className="bg-white p-4 xs:p-6 rounded-[1.5rem] xs:rounded-[2rem] shadow-sm border border-gray-100">
@@ -426,7 +552,16 @@ const LoanEdit = () => {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="bg-white p-4 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100">
+            <form 
+                onSubmit={handleSubmit}
+                onKeyDown={(e) => {
+                    // Prevent form submission on Enter key press
+                    if (e.key === 'Enter' && e.target.type !== 'textarea') {
+                        e.preventDefault();
+                    }
+                }}
+                className="bg-white p-4 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100"
+            >
                 
                 {/* Step 1: Plan Identification */}
                 {currentStep === 1 && (
@@ -464,6 +599,18 @@ const LoanEdit = () => {
                             </div>
 
                             <div>
+                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">User ID (Optional)</label>
+                                <input
+                                    type="text"
+                                    name="userId"
+                                    value={formData.userId}
+                                    onChange={handleChange}
+                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                    placeholder="e.g., USER123 or user@example.com"
+                                />
+                            </div>
+
+                            <div>
                                 <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">Plan Image</label>
                                 <input
                                     type="file"
@@ -490,24 +637,39 @@ const LoanEdit = () => {
                                 )}
                                 
                                 {formData.planImage && (
-                                    <div className="mt-3 relative inline-block">
-                                        <div className="w-24 h-24 rounded-lg overflow-hidden border-2 border-gray-100 shadow-sm">
-                                            <img src={formData.planImage} alt="" className="w-full h-full object-cover" />
+                                    <div className="mt-4 relative w-full max-w-md">
+                                        <div className="w-full h-48 rounded-xl overflow-hidden border-2 border-gray-200 shadow-md">
+                                            <img 
+                                                src={formData.planImage} 
+                                                alt="Plan preview" 
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    e.target.onerror = null;
+                                                    e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="%23f3f4f6" width="400" height="300"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="18" fill="%23d1d5db">Image Error</text></svg>';
+                                                }}
+                                            />
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setFormData(prev => ({ ...prev, planImage: '' }))}
-                                            className="absolute -top-2 -right-2 w-6 h-6 bg-red-600 text-white rounded-full flex items-center justify-center shadow-lg hover:bg-red-700 active:scale-90"
+                                            className="absolute top-2 right-2 px-3 py-1.5 bg-red-600 text-white rounded-lg flex items-center gap-1.5 shadow-lg hover:bg-red-700 transition text-xs font-semibold"
                                         >
-                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M6 18L18 6M6 6l12 12" />
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                                             </svg>
+                                            Remove
                                         </button>
+                                        <div className="mt-2 text-center text-xs text-green-600 font-semibold flex items-center justify-center gap-1">
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                            </svg>
+                                            Current plan image
+                                        </div>
                                     </div>
                                 )}
                                 
-                                <p className="mt-2 text-[8px] xs:text-[9px] text-gray-400 font-bold">
-                                    JPG, PNG format. Max 5MB.
+                                <p className="mt-3 text-xs text-gray-500">
+                                    <span className="font-semibold">Recommended:</span> JPG or PNG format. Max 5MB. Optimal size: 1200x800px
                                 </p>
                             </div>
                         </div>
@@ -642,6 +804,7 @@ const LoanEdit = () => {
                                         required
                                         className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                     >
+                                        <option value="Days">Days</option>
                                         <option value="Months">Months</option>
                                         <option value="Years">Years</option>
                                     </select>
@@ -803,15 +966,18 @@ const LoanEdit = () => {
                             </div>
 
                             <div>
-                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">Description</label>
-                                <textarea
-                                    name="description"
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                    Description
+                                    <span className="text-xs font-normal text-gray-500 ml-2">(Format your text with the toolbar below)</span>
+                                </label>
+                                <RichTextEditor
                                     value={formData.description}
-                                    onChange={handleChange}
-                                    rows="4"
-                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none resize-none"
-                                    placeholder="Provide a detailed description of the loan plan, its features, benefits, and any special terms..."
+                                    onChange={(content) => setFormData(prev => ({ ...prev, description: content }))}
+                                    placeholder="Provide a detailed description of the loan plan. Use the toolbar above to format your text with headings, bold, italic, lists, links, and more..."
                                 />
+                                <p className="mt-2 text-xs text-gray-500">
+                                    💡 <span className="font-semibold">Tip:</span> Use the formatting toolbar to create professional, well-structured descriptions with headings, bullet points, and emphasis.
+                                </p>
                             </div>
 
                             <div>
@@ -882,7 +1048,8 @@ const LoanEdit = () => {
                         </button>
                     ) : (
                         <button
-                            type="submit"
+                            type="button"
+                            onClick={handleSubmit}
                             disabled={updating}
                             className={`tap-target flex-1 py-3 xs:py-3.5 px-4 bg-emerald-600 text-white rounded-xl xs:rounded-2xl font-black uppercase text-[10px] xs:text-xs tracking-wider xs:tracking-widest hover:bg-emerald-700 transition-all shadow-lg shadow-emerald-100 ${updating ? 'opacity-70 cursor-not-allowed' : 'active:scale-95'}`}
                         >

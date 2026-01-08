@@ -3,6 +3,32 @@ import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../compontents/Pagination';
 
+// Toast Notification Component
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 4000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+
+    return (
+        <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-in slide-in-from-top`}>
+            {type === 'success' ? (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+            ) : (
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            )}
+            <span className="font-medium">{message}</span>
+            <button onClick={onClose} className="ml-2 hover:opacity-80 text-xl leading-none">&times;</button>
+        </div>
+    );
+};
+
 const LoanList = () => {
     const [loans, setLoans] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -10,8 +36,13 @@ const LoanList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterCategory, setFilterCategory] = useState('All');
     const [currentPage, setCurrentPage] = useState(1);
+    const [toast, setToast] = useState(null);
     const itemsPerPage = 10;
     const navigate = useNavigate();
+
+    const showToast = (message, type = 'success') => {
+        setToast({ message, type });
+    };
 
     useEffect(() => {
         fetchLoans();
@@ -34,23 +65,28 @@ const LoanList = () => {
         }
     };
 
-    const handleDelete = async (planId) => {
-        if (!window.confirm("ARE YOU SURE YOU WANT TO DELETE THIS LOAN PLAN?")) return;
+    const handleDelete = async (loanId) => {
+        if (!window.confirm("Are you sure you want to delete this loan plan? This action cannot be undone.")) return;
+        
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/deleteLoan/${planId}`, {
+            const res = await fetch(`${ApiBaseUrl}/deleteLoan/${loanId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${authData.token}`,
                 }
             });
-            if (res.ok) {
-                setLoans(loans.filter(loan => loan.planId !== planId));
+            
+            const data = await res.json();
+            
+            if (res.ok && data.success) {
+                setLoans(loans.filter(loan => loan._id !== loanId));
+                showToast('Loan plan deleted successfully!');
             } else {
-                alert("Deletion failed.");
+                showToast(data.message || 'Failed to delete loan plan', 'error');
             }
         } catch (err) {
-            alert("Network error.");
+            showToast('Network error. Please try again.', 'error');
         }
     };
 
@@ -79,6 +115,9 @@ const LoanList = () => {
 
     return (
         <div className="space-y-4 xs:space-y-6 md:space-y-8 animate-in fade-in duration-500">
+            {/* Toast Notification */}
+            {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
+            
             {/* Header */}
             <div className="bg-white p-4 xs:p-6 md:p-8 rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 xs:gap-6">
                 <div>
@@ -144,87 +183,123 @@ const LoanList = () => {
             {/* Loans Grid */}
             <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6 md:gap-8">
                 {paginatedLoans.map((loan) => (
-                    <div key={loan._id} className="bg-white rounded-[1.5rem] xs:rounded-[2rem] md:rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 overflow-hidden flex flex-col group">
+                    <div key={loan._id} className="bg-white rounded-2xl shadow-sm hover:shadow-2xl transition-all duration-300 overflow-hidden flex flex-col group border border-gray-100">
                         {/* Image */}
-                        {loan.planImage && (
-                            <div className="h-32 xs:h-40 overflow-hidden">
-                                <img src={loan.planImage} alt={loan.productName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                            </div>
-                        )}
-                        
-                        {/* Header */}
-                        <div className="p-4 xs:p-6 md:p-8 flex-1 space-y-4 xs:space-y-6">
-                            <div className="flex justify-between items-start">
-                                <div className="w-12 h-12 xs:w-14 xs:h-14 rounded-xl xs:rounded-2xl bg-red-50 flex items-center justify-center text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                                    <svg className="w-6 h-6 xs:w-8 xs:h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        <div className="relative h-48 overflow-hidden bg-gradient-to-br from-red-50 to-orange-50">
+                            {loan.planImage ? (
+                                <img 
+                                    src={loan.planImage} 
+                                    alt={loan.productName} 
+                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" 
+                                    onError={(e) => {
+                                        e.target.onerror = null;
+                                        e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="%23f3f4f6" width="400" height="300"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="18" fill="%23d1d5db">No Image</text></svg>';
+                                    }}
+                                />
+                            ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                    <svg className="w-20 h-20 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                                     </svg>
                                 </div>
-                                {loan.isActive && (
-                                    <span className="px-2 xs:px-3 py-0.5 xs:py-1 bg-emerald-50 text-emerald-600 rounded-md xs:rounded-lg text-[7px] xs:text-[8px] font-black uppercase tracking-wider xs:tracking-widest border border-emerald-100">
+                            )}
+                            {/* Financing Type Badge on Image */}
+                            {loan.financingType && (
+                                <div className="absolute top-3 left-3">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold backdrop-blur-md ${
+                                        loan.financingType === 'Islamic' 
+                                            ? 'bg-green-500/90 text-white' 
+                                            : 'bg-blue-500/90 text-white'
+                                    }`}>
+                                        {loan.financingType}
+                                    </span>
+                                </div>
+                            )}
+                            {/* Active Badge on Image */}
+                            {loan.isActive && (
+                                <div className="absolute top-3 right-3">
+                                    <span className="px-3 py-1 bg-emerald-500 text-white rounded-full text-xs font-bold flex items-center gap-1 backdrop-blur-md">
+                                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+                                        </svg>
                                         Active
                                     </span>
-                                )}
-                            </div>
-
-                            <div className="space-y-1 xs:space-y-2">
-                                <h3 className="text-base xs:text-lg md:text-xl font-black text-gray-900 tracking-tighter uppercase truncate">{loan.productName || 'Unnamed Product'}</h3>
-                                <p className="text-[8px] xs:text-[9px] md:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">ID: {loan.planId}</p>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-3 xs:gap-4 py-3 xs:py-4 border-y border-gray-50">
-                                <div>
-                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Bank</p>
-                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.bankName || 'N/A'}</p>
                                 </div>
-                                <div className="text-right">
-                                    <p className="text-[7px] xs:text-[8px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest">Type</p>
-                                    <p className="text-[10px] xs:text-xs font-black text-gray-900 uppercase truncate">{loan.financingType || 'N/A'}</p>
+                            )}
+                        </div>
+                        
+                        {/* Content */}
+                        <div className="p-5 flex-1 space-y-4">
+                            {/* Header */}
+                            <div>
+                                <h3 className="text-lg font-bold text-gray-900 mb-1 line-clamp-1">{loan.productName || 'Unnamed Product'}</h3>
+                                <div className="flex items-center justify-between">
+                                    <p className="text-sm font-semibold text-red-600">{loan.bankName || 'N/A'}</p>
+                                    <p className="text-xs text-gray-400 font-mono">#{loan.planId}</p>
                                 </div>
                             </div>
 
-                            <div className="space-y-1.5 xs:space-y-2">
-                                <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
-                                    <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                    </svg>
-                                    <span className="truncate">{loan.majorCategory?.split('/')[0] || 'N/A'}</span>
+                            {/* Category Badge */}
+                            <div className="flex items-center gap-2">
+                                <svg className="w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                <span className="text-sm text-gray-600 truncate">{loan.majorCategory?.split('/')[0] || 'N/A'}</span>
+                            </div>
+
+                            {/* Key Details */}
+                            <div className="space-y-3 pt-3 border-t border-gray-100">
+                                {/* Financing Amount */}
+                                <div className="bg-gradient-to-r from-red-50 to-orange-50 p-3 rounded-lg">
+                                    <p className="text-xs text-gray-600 mb-1">Financing Amount</p>
+                                    <p className="text-sm font-bold text-red-700">
+                                        PKR {loan.minFinancingAmount?.toLocaleString() || '0'} - {loan.maxFinancingAmount?.toLocaleString() || '0'}
+                                    </p>
                                 </div>
-                                <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
-                                    <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span className="truncate">PKR {loan.minFinancingAmount?.toLocaleString() || '0'} - {loan.maxFinancingAmount?.toLocaleString() || '0'}</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
-                                    <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                    </svg>
-                                    <span className="truncate">Rate: {loan.indicativeRate || 'N/A'} ({loan.rateType || 'N/A'})</span>
-                                </div>
-                                <div className="flex items-center gap-1.5 xs:gap-2 text-[9px] xs:text-[10px] text-gray-500">
-                                    <svg className="w-3 h-3 xs:w-3.5 xs:h-3.5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                    <span className="truncate">{loan.minTenure || '0'}-{loan.maxTenure || '0'} {loan.tenureUnit || 'Months'}</span>
+
+                                {/* Rate & Tenure */}
+                                <div className="grid grid-cols-2 gap-2">
+                                    <div className="bg-blue-50 p-3 rounded-lg">
+                                        <p className="text-xs text-gray-600 mb-1">Rate</p>
+                                        <p className="text-sm font-bold text-blue-700 truncate">{loan.indicativeRate || 'N/A'}</p>
+                                        <p className="text-xs text-blue-600">{loan.rateType || 'N/A'}</p>
+                                    </div>
+                                    <div className="bg-green-50 p-3 rounded-lg">
+                                        <p className="text-xs text-gray-600 mb-1">Tenure</p>
+                                        <p className="text-sm font-bold text-green-700">{loan.minTenure || '0'}-{loan.maxTenure || '0'}</p>
+                                        <p className="text-xs text-green-600">{loan.tenureUnit || 'Months'}</p>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         {/* Actions */}
-                        <div className="px-4 xs:px-6 md:px-8 py-4 xs:py-5 md:py-6 bg-gray-50/50 border-t border-gray-50 flex gap-1.5 xs:gap-2">
+                        <div className="p-4 bg-gray-50/50 border-t border-gray-100 flex gap-2">
                             <button
-                                onClick={() => navigate(`/loan/edit/${loan.planId}`)}
-                                className="tap-target flex-1 py-2.5 xs:py-3 bg-gray-900 text-white rounded-lg xs:rounded-xl text-[8px] xs:text-[9px] font-black uppercase tracking-wider xs:tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-100 active:scale-95"
+                                onClick={() => navigate(`/loan/view/${loan.planId}`)}
+                                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-lg text-sm font-semibold hover:from-blue-700 hover:to-blue-800 transition-all transform hover:scale-105 active:scale-95 shadow-md flex items-center justify-center gap-2"
                             >
-                                Edit Plan
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View
                             </button>
                             <button
-                                onClick={() => handleDelete(loan.planId)}
-                                className="tap-target px-3 xs:px-4 py-2.5 xs:py-3 bg-white text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg xs:rounded-xl transition-all border border-gray-100 active:scale-95 shrink-0"
+                                onClick={() => navigate(`/loan/edit/${loan.planId}`)}
+                                className="flex-1 py-2.5 px-4 bg-gray-900 text-white rounded-lg text-sm font-semibold hover:bg-black transition-all transform hover:scale-105 active:scale-95 shadow-md flex items-center justify-center gap-2"
                             >
-                                <svg className="w-3.5 h-3.5 xs:w-4 xs:h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                </svg>
+                                Edit
+                            </button>
+                            <button
+                                onClick={() => handleDelete(loan._id)}
+                                className="p-2.5 bg-white text-red-600 hover:bg-red-50 rounded-lg transition-all border border-red-100 transform hover:scale-105 active:scale-95"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                 </svg>
                             </button>
                         </div>
