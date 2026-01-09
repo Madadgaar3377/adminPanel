@@ -2,6 +2,50 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
 
+// Toast Notification Component - Enhanced
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 5000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const styles = type === 'success' 
+        ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400' 
+        : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400';
+
+    return (
+        <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
+            <div className="flex-shrink-0">
+                {type === 'success' ? (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-sm leading-relaxed">{message}</p>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-all active:scale-95"
+                aria-label="Close notification"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 const PropertyAdd = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -11,7 +55,12 @@ const PropertyAdd = () => {
     const [uploadError, setUploadError] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [toast, setToast] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+    };
     const [isEditMode, setIsEditMode] = useState(false);
 
     // Main property type selection
@@ -187,8 +236,23 @@ const PropertyAdd = () => {
         const files = Array.from(e.target.files);
         if (files.length === 0) return;
 
+        // Validate file types and sizes
+        for (const file of files) {
+            if (!file.type.startsWith('image/')) {
+                showToast('⚠️ Please select only valid image files (JPG, PNG, GIF, etc.)', 'error');
+                e.target.value = null;
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast(`⚠️ Image "${file.name}" exceeds 5MB limit`, 'error');
+                e.target.value = null;
+                return;
+            }
+        }
+
         setUploadingImages(true);
         setUploadError('');
+        showToast(`Uploading ${files.length} image(s)...`, 'success');
 
         try {
             const uploadedUrls = [];
@@ -204,8 +268,8 @@ const PropertyAdd = () => {
 
                 const data = await response.json();
 
-                if (response.ok && data.success) {
-                    uploadedUrls.push(data.url);
+                if (response.ok && data.success && (data.url || data.imageUrl)) {
+                    uploadedUrls.push(data.url || data.imageUrl);
                 } else {
                     throw new Error(data.message || 'Upload failed');
                 }
@@ -223,8 +287,13 @@ const PropertyAdd = () => {
                 }));
             }
 
+            showToast(`✓ Successfully uploaded ${files.length} image(s)!`, 'success');
+
         } catch (err) {
-            setUploadError(err.message || 'Failed to upload images.');
+            const errorMsg = err.message || 'Failed to upload images. Please try again.';
+            setUploadError(errorMsg);
+            showToast(errorMsg, 'error');
+            e.target.value = null;
         } finally {
             setUploadingImages(false);
         }
@@ -397,7 +466,9 @@ const PropertyAdd = () => {
                 setError(data.message || 'Failed to load property');
             }
         } catch (err) {
-            setError('Network error. Failed to load property.');
+            const errorMsg = 'Network error. Failed to load property.';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setFetchingProperty(false);
         }
@@ -472,13 +543,19 @@ const PropertyAdd = () => {
             const responseData = await response.json();
 
             if (response.ok && responseData.success) {
-                setSuccess(`Property ${id ? 'updated' : 'created'} successfully!`);
+                const successMsg = `✓ Property ${id ? 'updated' : 'created'} successfully!`;
+                setSuccess(successMsg);
+                showToast(successMsg, 'success');
                 setTimeout(() => navigate('/property/all'), 2000);
             } else {
-                setError(responseData.message || 'Failed to save property');
+                const errorMsg = responseData.message || 'Failed to save property. Please try again.';
+                setError(errorMsg);
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
-            setError('Network error. Please try again.');
+            const errorMsg = err.message || 'Network error. Please try again.';
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setLoading(false);
         }
@@ -2414,6 +2491,15 @@ const PropertyAdd = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
         </div>
     );
 };

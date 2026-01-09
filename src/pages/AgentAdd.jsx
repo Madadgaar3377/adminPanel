@@ -2,6 +2,50 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
 
+// Toast Notification Component - Enhanced
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 5000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const styles = type === 'success' 
+        ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400' 
+        : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400';
+
+    return (
+        <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
+            <div className="flex-shrink-0">
+                {type === 'success' ? (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-sm leading-relaxed">{message}</p>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-all active:scale-95"
+                aria-label="Close notification"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 const AgentAdd = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -9,7 +53,12 @@ const AgentAdd = () => {
     const [fetching, setFetching] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState(null);
     const [showPassword, setShowPassword] = useState(false);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+    };
 
     const [form, setForm] = useState({
         name: "",
@@ -44,7 +93,9 @@ const AgentAdd = () => {
                 });
             }
         } catch (err) {
-            setError("Protocol failure: Unable to fetch target data.");
+            const errorMsg = err.message || "Protocol failure: Unable to fetch target data.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setFetching(false);
         }
@@ -54,6 +105,24 @@ const AgentAdd = () => {
         e.preventDefault();
         setLoading(true);
         setError(null);
+        
+        // Client-side validation
+        if (!form.name || !form.email || !form.phone) {
+            const errorMsg = "⚠️ Please fill in all required fields";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            setLoading(false);
+            return;
+        }
+
+        if (!id && !form.password) {
+            const errorMsg = "⚠️ Password is required for new agents";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            setLoading(false);
+            return;
+        }
+
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             // Backend endpoint for adding/updating users
@@ -76,13 +145,19 @@ const AgentAdd = () => {
 
             const result = await res.json();
             if (res.ok || result.success) {
-                setMessage(id ? "Agent profile overwritten." : "New agent commissioned.");
+                const successMsg = id ? "✓ Agent profile updated successfully!" : "✓ New agent created successfully!";
+                setMessage(successMsg);
+                showToast(successMsg, 'success');
                 setTimeout(() => navigate('/agent/all'), 1500);
             } else {
-                setError(result.message || "Operation rejected by backend.");
+                const errorMsg = result.message || "Operation failed. Please try again.";
+                setError(errorMsg);
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
-            setError("Broadcast failure: Network layer error.");
+            const errorMsg = err.message || "Network error. Please check your connection and try again.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setLoading(false);
         }
@@ -189,6 +264,15 @@ const AgentAdd = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
         </div>
     );
 };

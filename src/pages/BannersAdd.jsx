@@ -2,6 +2,50 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
 
+// Toast Notification Component - Enhanced
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 5000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const styles = type === 'success' 
+        ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400' 
+        : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400';
+
+    return (
+        <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
+            <div className="flex-shrink-0">
+                {type === 'success' ? (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-sm leading-relaxed">{message}</p>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-all active:scale-95"
+                aria-label="Close notification"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 const BannersAdd = () => {
     const { id } = useParams();
     const navigate = useNavigate();
@@ -10,6 +54,11 @@ const BannersAdd = () => {
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState(null);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+    };
 
     const [form, setForm] = useState({
         category: "Hero Slider",
@@ -39,7 +88,9 @@ const BannersAdd = () => {
                 });
             }
         } catch (err) {
-            setError("Failed to fetch asset data.");
+            const errorMsg = err.message || "Failed to fetch asset data.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setFetching(false);
         }
@@ -49,7 +100,22 @@ const BannersAdd = () => {
         const file = e.target.files[0];
         if (!file) return;
 
+        // Validate file type
+        if (!file.type.startsWith('image/')) {
+            showToast('⚠️ Please select a valid image file (JPG, PNG, GIF, etc.)', 'error');
+            e.target.value = null;
+            return;
+        }
+
+        // Validate file size (5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('⚠️ Image size should not exceed 5MB', 'error');
+            e.target.value = null;
+            return;
+        }
+
         setUploading(true);
+        showToast('Uploading banner image...', 'success');
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             const fd = new FormData();
@@ -61,11 +127,20 @@ const BannersAdd = () => {
                 body: fd,
             });
             const body = await res.json();
-            const url = body.imageUrl || body.url || body.data?.url || body.data;
-            setForm(f => ({ ...f, image: url }));
-            setMessage("Asset uploaded successfully.");
+            
+            if (res.ok && body.success) {
+                const url = body.imageUrl || body.url || body.data?.url || body.data;
+                setForm(f => ({ ...f, image: url }));
+                setMessage("Asset uploaded successfully.");
+                showToast('✓ Banner image uploaded successfully!', 'success');
+            } else {
+                throw new Error(body.message || 'Upload failed');
+            }
         } catch (err) {
-            setError("Asset upload protocol failed.");
+            const errorMsg = err.message || "Asset upload failed. Please try again.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            e.target.value = null;
         } finally {
             setUploading(false);
         }
@@ -73,6 +148,15 @@ const BannersAdd = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        // Client-side validation
+        if (!form.image) {
+            const errorMsg = "⚠️ Please upload a banner image";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
+            return;
+        }
+
         setLoading(true);
         setError(null);
         try {
@@ -91,14 +175,20 @@ const BannersAdd = () => {
             });
 
             if (res.ok) {
-                setMessage(id ? "Asset override successful." : "New asset deployed.");
+                const successMsg = id ? "✓ Banner updated successfully!" : "✓ New banner created successfully!";
+                setMessage(successMsg);
+                showToast(successMsg, 'success');
                 setTimeout(() => navigate('/banner/all'), 1500);
             } else {
                 const data = await res.json();
-                setError(data.message || "Operation failed.");
+                const errorMsg = data.message || "Operation failed. Please try again.";
+                setError(errorMsg);
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
-            setError("Server communication failure.");
+            const errorMsg = err.message || "Network error. Please check your connection and try again.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setLoading(false);
         }
@@ -205,6 +295,15 @@ const BannersAdd = () => {
                     </button>
                 </div>
             </form>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
         </div>
     );
 };

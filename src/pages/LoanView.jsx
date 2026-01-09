@@ -105,35 +105,139 @@ const LoanView = () => {
                 </div>
             </div>
 
-            {/* Plan Image */}
-            <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
-                {loan.planImage ? (
-                    <div className="relative">
-                        <img 
-                            src={loan.planImage} 
-                            alt={loan.productName} 
-                            className="w-full h-96 object-cover"
-                            onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.parentElement.innerHTML = '<div class="w-full h-96 bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center"><svg class="w-32 h-32 text-red-200" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg></div>';
-                            }}
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-6">
-                            <p className="text-white font-semibold text-lg">{loan.productName}</p>
-                            <p className="text-white/80 text-sm">{loan.bankName}</p>
-                        </div>
-                    </div>
-                ) : (
-                    <div className="w-full h-96 bg-gradient-to-br from-red-50 to-orange-50 flex items-center justify-center">
-                        <div className="text-center">
-                            <svg className="w-32 h-32 text-red-200 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+            {/* Documents & Media Section */}
+            {(loan.planImage || loan.planDocument) && (
+                <div className="bg-white rounded-[2.5rem] shadow-sm p-8">
+                    <h2 className="text-2xl font-black text-gray-900 mb-6 flex items-center gap-3 uppercase tracking-tight">
+                        <div className="w-12 h-12 bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-purple-200">
+                            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <p className="text-gray-400 font-medium">No plan image available</p>
+                        </div>
+                        Documents & Media
+                    </h2>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* Plan Image Card */}
+                        {loan.planImage && (
+                            <div className="group relative bg-gradient-to-br from-blue-50 to-indigo-50 rounded-3xl overflow-hidden border-2 border-blue-200 hover:border-blue-400 transition-all duration-300 hover:shadow-2xl hover:shadow-blue-200">
+                                <div className="p-5 border-b-2 border-blue-200/50 bg-white/50 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Plan Image</h3>
+                                                <p className="text-xs text-gray-500 font-semibold">Featured Visual</p>
+                                            </div>
+                                        </div>
+                                        <span className="px-3 py-1 bg-blue-600 text-white rounded-full text-xs font-black uppercase">Image</span>
+                                    </div>
+                                </div>
+                                <div className="relative aspect-video">
+                                    <img 
+                                        src={loan.planImage} 
+                                        alt={loan.productName} 
+                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                                        onError={(e) => {
+                                            e.target.onerror = null;
+                                            e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="%23dbeafe" width="400" height="300"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="18" fill="%233b82f6">Image Not Available</text></svg>';
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
+                                        <div className="p-6 w-full">
+                                            <p className="text-white font-bold text-lg mb-1">{loan.productName}</p>
+                                            <p className="text-white/90 text-sm">{loan.bankName}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="p-4 bg-white/70 backdrop-blur-sm">
+                                    <a
+                                        href={loan.planImage}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-all font-bold text-sm uppercase tracking-wider shadow-lg shadow-blue-200 hover:shadow-xl active:scale-95"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        Open Full Image
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Plan Document Card */}
+                        {loan.planDocument && (
+                            <div className="group relative bg-gradient-to-br from-emerald-50 to-green-50 rounded-3xl overflow-hidden border-2 border-emerald-200 hover:border-emerald-400 transition-all duration-300 hover:shadow-2xl hover:shadow-emerald-200">
+                                <div className="p-5 border-b-2 border-emerald-200/50 bg-white/50 backdrop-blur-sm">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-wide">Plan Document</h3>
+                                                <p className="text-xs text-gray-500 font-semibold">Official Documentation</p>
+                                            </div>
+                                        </div>
+                                        <span className="px-3 py-1 bg-emerald-600 text-white rounded-full text-xs font-black uppercase">PDF</span>
+                                    </div>
+                                </div>
+                                <div className="p-12 flex flex-col items-center justify-center min-h-[300px]">
+                                    <div className="w-32 h-32 bg-gradient-to-br from-emerald-100 to-green-100 rounded-3xl flex items-center justify-center mb-6 shadow-xl shadow-emerald-200 group-hover:scale-110 transition-transform duration-500">
+                                        <svg className="w-16 h-16 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    <p className="text-gray-700 font-bold text-lg mb-2 text-center">Loan Plan Document</p>
+                                    <p className="text-gray-500 text-sm text-center mb-6">View complete plan details and terms</p>
+                                </div>
+                                <div className="p-4 bg-white/70 backdrop-blur-sm">
+                                    <a
+                                        href={loan.planDocument}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="flex items-center justify-center gap-2 w-full py-3 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-sm uppercase tracking-wider shadow-lg shadow-emerald-200 hover:shadow-xl active:scale-95"
+                                    >
+                                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Download Document
+                                    </a>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="mt-6 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border-2 border-gray-200">
+                        <div className="flex items-center justify-between flex-wrap gap-4">
+                            <div className="flex items-center gap-3">
+                                <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                <span className="text-sm font-bold text-gray-600">
+                                    {loan.planImage && loan.planDocument ? '2 files uploaded' : '1 file uploaded'}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                {loan.planImage && (
+                                    <span className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg text-xs font-bold">Image</span>
+                                )}
+                                {loan.planDocument && (
+                                    <span className="px-3 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-xs font-bold">Document</span>
+                                )}
+                            </div>
                         </div>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
 
             {/* Basic Information */}
             <div className="bg-white rounded-2xl shadow-sm p-6">
@@ -294,28 +398,6 @@ const LoanView = () => {
                 </div>
             )}
 
-            {/* Plan Document */}
-            {loan.planDocument && (
-                <div className="bg-white rounded-2xl shadow-sm p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-                        <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                        </svg>
-                        Plan Document
-                    </h2>
-                    <a
-                        href={loan.planDocument}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 px-5 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
-                    >
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        Download Plan Document
-                    </a>
-                </div>
-            )}
 
             {/* Timestamps */}
             <div className="bg-gray-50 rounded-2xl p-6">

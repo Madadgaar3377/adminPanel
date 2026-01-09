@@ -10,6 +10,15 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
         }
     }, [value]);
 
+    useEffect(() => {
+        // Set default paragraph separator to br for better line break handling
+        try {
+            document.execCommand('defaultParagraphSeparator', false, 'br');
+        } catch (e) {
+            console.log('Could not set default paragraph separator:', e);
+        }
+    }, []);
+
     const handleInput = useCallback(() => {
         if (editorRef.current && onChange) {
             isUpdatingRef.current = true;
@@ -19,6 +28,45 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
             }, 0);
         }
     }, [onChange]);
+
+    const handleKeyDown = useCallback((e) => {
+        // Handle Enter key to ensure proper line breaks
+        if (e.key === 'Enter') {
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+            
+            const range = selection.getRangeAt(0);
+            const currentNode = range.startContainer;
+            
+            // If we're not in a specific formatting block (like h1, h2, list, etc.)
+            if (currentNode.nodeType === Node.TEXT_NODE || currentNode.nodeName === 'DIV') {
+                e.preventDefault();
+                
+                // Insert line break
+                const br = document.createElement('br');
+                range.deleteContents();
+                range.insertNode(br);
+                
+                // Check if we need a second br (when at end of line)
+                const nextNode = br.nextSibling;
+                if (!nextNode || nextNode.nodeName === 'BR') {
+                    const br2 = document.createElement('br');
+                    br.parentNode.insertBefore(br2, br.nextSibling);
+                    range.setStartAfter(br);
+                    range.setEndAfter(br);
+                } else {
+                    range.setStartAfter(br);
+                    range.setEndAfter(br);
+                }
+                
+                selection.removeAllRanges();
+                selection.addRange(range);
+                
+                handleInput();
+            }
+            // For Shift+Enter, allow default behavior (single line break)
+        }
+    }, [handleInput]);
 
     const execCommand = useCallback((command, value = null) => {
         document.execCommand(command, false, value);
@@ -121,6 +169,18 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
                     line-height: 1.6;
                     color: #374151;
                     outline: none;
+                    white-space: pre-wrap;
+                    word-wrap: break-word;
+                }
+                
+                .rte-editor p {
+                    margin: 8px 0;
+                }
+                
+                .rte-editor br {
+                    display: block;
+                    margin: 4px 0;
+                    content: "";
                 }
                 
                 .rte-editor:empty:before {
@@ -199,6 +259,9 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
                     <button type="button" className="rte-btn" onClick={() => execCommand('insertOrderedList')} title="Numbered List">
                         1. List
                     </button>
+                    <button type="button" className="rte-btn" onClick={() => execCommand('insertLineBreak')} title="Line Break (Shift+Enter)">
+                        ↵ Break
+                    </button>
                 </div>
                 
                 <div className="rte-separator"></div>
@@ -259,6 +322,7 @@ const RichTextEditor = ({ value, onChange, placeholder = "Enter description..." 
                 className="rte-editor"
                 contentEditable
                 onInput={handleInput}
+                onKeyDown={handleKeyDown}
                 data-placeholder={placeholder}
                 suppressContentEditableWarning
             />

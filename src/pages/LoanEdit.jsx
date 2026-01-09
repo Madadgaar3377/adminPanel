@@ -141,6 +141,26 @@ const LoanEdit = () => {
 
     const handleChange = (e) => {
         const { name, value } = e.target;
+        
+        // Validate tenure values when Days is selected
+        if ((name === 'minTenure' || name === 'maxTenure') && formData.tenureUnit === 'Days') {
+            const numValue = parseInt(value);
+            if (numValue && (numValue < 1 || numValue > 365)) {
+                showToast('⚠️ For Days tenure, value must be between 1-365', 'error');
+                return;
+            }
+        }
+        
+        // Validate when changing tenure unit to Days
+        if (name === 'tenureUnit' && value === 'Days') {
+            const minTenure = parseInt(formData.minTenure);
+            const maxTenure = parseInt(formData.maxTenure);
+            if ((minTenure && (minTenure < 1 || minTenure > 365)) || 
+                (maxTenure && (maxTenure < 1 || maxTenure > 365))) {
+                showToast('⚠️ For Days tenure, values must be between 1-365. Please adjust tenure values.', 'error');
+            }
+        }
+        
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
@@ -322,6 +342,17 @@ const LoanEdit = () => {
                     showToast('Max Tenure must be greater than Min Tenure', 'error');
                     return false;
                 }
+                // Validate Days tenure range (1-365)
+                if (formData.tenureUnit === 'Days') {
+                    if (formData.minTenure < 1 || formData.minTenure > 365) {
+                        showToast('⚠️ For Days tenure, Min Tenure must be between 1-365', 'error');
+                        return false;
+                    }
+                    if (formData.maxTenure < 1 || formData.maxTenure > 365) {
+                        showToast('⚠️ For Days tenure, Max Tenure must be between 1-365', 'error');
+                        return false;
+                    }
+                }
                 break;
             case 4:
                 if (!formData.indicativeRate.trim()) {
@@ -480,13 +511,40 @@ const LoanEdit = () => {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                showToast('Loan plan updated successfully!');
+                showToast('✓ Loan plan updated successfully!', 'success');
                 setTimeout(() => navigate('/loan/all'), 2000);
             } else {
-                showToast(data.message || 'Failed to update loan plan', 'error');
+                // Parse backend validation errors
+                let errorMessage = data.message || 'Failed to update loan plan';
+                
+                // Check for MongoDB validation errors
+                if (errorMessage.includes('validation failed')) {
+                    // Extract specific field errors
+                    if (errorMessage.includes('tenureUnit')) {
+                        if (errorMessage.includes('Days')) {
+                            errorMessage = '⚠️ Backend Error: "Days" is not enabled in the backend schema. Please restart the backend server or use "Months" or "Years" instead.';
+                            setCurrentStep(3); // Go back to financing step
+                        } else {
+                            errorMessage = '⚠️ Tenure Unit validation failed. Please select a valid option (Months or Years).';
+                            setCurrentStep(3);
+                        }
+                    } else if (errorMessage.includes('minTenure') || errorMessage.includes('maxTenure')) {
+                        errorMessage = '⚠️ Tenure values are invalid. Please check the min/max tenure fields.';
+                        setCurrentStep(3);
+                    } else if (errorMessage.includes('minFinancingAmount') || errorMessage.includes('maxFinancingAmount')) {
+                        errorMessage = '⚠️ Financing amount validation failed. Please check the values.';
+                        setCurrentStep(3);
+                    } else {
+                        // Generic validation error with details
+                        errorMessage = `⚠️ Validation Error: ${errorMessage}`;
+                    }
+                }
+                
+                showToast(errorMessage, 'error');
             }
         } catch (err) {
-            showToast('Network error. Please try again.', 'error');
+            const errorMsg = err.message || 'Network error. Please check your connection and try again.';
+            showToast(errorMsg, 'error');
         } finally {
             setUpdating(false);
         }
@@ -852,6 +910,17 @@ const LoanEdit = () => {
                                     </select>
                                 </div>
                             </div>
+                            
+                            {formData.tenureUnit === 'Days' && (
+                                <div className="mt-3 p-3 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-start gap-2">
+                                    <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-xs text-blue-800 font-bold">
+                                        <span className="font-black">Note:</span> When using Days as tenure unit, values must be between <span className="font-black">1-365 days</span> only.
+                                    </p>
+                                </div>
+                            )}
                         </div>
                     </div>
                 )}

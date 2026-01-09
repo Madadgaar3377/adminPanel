@@ -3,6 +3,50 @@ import ApiBaseUrl from '../constants/apiUrl';
 import Navbar from '../compontents/Navbar';
 import { useNavigate } from 'react-router-dom';
 
+// Toast Notification Component - Enhanced
+const Toast = ({ message, type, onClose }) => {
+    useEffect(() => {
+        const timer = setTimeout(onClose, 5000);
+        return () => clearTimeout(timer);
+    }, [onClose]);
+
+    const styles = type === 'success' 
+        ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400' 
+        : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400';
+
+    return (
+        <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
+            <div className="flex-shrink-0">
+                {type === 'success' ? (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-sm leading-relaxed">{message}</p>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-all active:scale-95"
+                aria-label="Close notification"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+            </button>
+        </div>
+    );
+};
+
 const defaultPlan = {
     planName: "",
     installmentPrice: 0,
@@ -32,7 +76,12 @@ const InstallmentsAdd = () => {
     const [uploading, setUploading] = useState(false);
     const [message, setMessage] = useState(null);
     const [error, setError] = useState(null);
+    const [toast, setToast] = useState(null);
     const [localImages, setLocalImages] = useState([]);
+
+    const showToast = (message, type) => {
+        setToast({ message, type });
+    };
 
     const [form, setForm] = useState({
         userId: "",
@@ -179,7 +228,23 @@ const InstallmentsAdd = () => {
     // --- Image Handling ---
     const handleFilesChange = (e) => {
         const files = Array.from(e.target.files || []);
+        
+        // Validate file types and sizes
+        for (const file of files) {
+            if (!file.type.startsWith('image/')) {
+                showToast('⚠️ Please select only valid image files (JPG, PNG, GIF, etc.)', 'error');
+                e.target.value = null;
+                return;
+            }
+            if (file.size > 5 * 1024 * 1024) {
+                showToast(`⚠️ Image "${file.name}" exceeds 5MB limit`, 'error');
+                e.target.value = null;
+                return;
+            }
+        }
+        
         setLocalImages(prev => [...prev, ...files]);
+        showToast(`${files.length} image(s) selected. Click "Upload Images" to proceed.`, 'success');
     };
 
     const uploadSingleFile = async (file) => {
@@ -196,8 +261,12 @@ const InstallmentsAdd = () => {
     };
 
     const handleUploadAll = async () => {
-        if (!localImages.length) return;
+        if (!localImages.length) {
+            showToast('⚠️ Please select images first', 'error');
+            return;
+        }
         setUploading(true);
+        showToast(`Uploading ${localImages.length} image(s)...`, 'success');
         try {
             const urls = [];
             for (const file of localImages) {
@@ -207,8 +276,11 @@ const InstallmentsAdd = () => {
             setForm(f => ({ ...f, productImages: [...f.productImages, ...urls] }));
             setLocalImages([]);
             setMessage("Images uploaded.");
+            showToast(`✓ Successfully uploaded ${urls.length} image(s)!`, 'success');
         } catch (err) {
-            setError("Upload failed.");
+            const errorMsg = err.message || "Upload failed. Please try again.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setUploading(false);
         }
@@ -236,13 +308,19 @@ const InstallmentsAdd = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setMessage("Plan created successfully!");
+                const successMsg = "✓ Installment plan created successfully!";
+                setMessage(successMsg);
+                showToast(successMsg, 'success');
                 setTimeout(() => navigate('/'), 1500);
             } else {
-                setError(data.message || "Failed to create plan.");
+                const errorMsg = data.message || "Failed to create plan. Please try again.";
+                setError(errorMsg);
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
-            setError("Server error.");
+            const errorMsg = err.message || "Server error. Please check your connection and try again.";
+            setError(errorMsg);
+            showToast(errorMsg, 'error');
         } finally {
             setLoading(false);
         }
@@ -524,6 +602,15 @@ const InstallmentsAdd = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Toast Notification */}
+            {toast && (
+                <Toast 
+                    message={toast.message} 
+                    type={toast.type} 
+                    onClose={() => setToast(null)} 
+                />
+            )}
         </div>
     );
 };

@@ -285,14 +285,21 @@ const Partners = () => {
                                     <div className="px-8 py-6 bg-gray-50/50 border-t border-gray-100 flex gap-3">
                                         <button
                                             onClick={() => setSelectedPartner(partner)}
-                                            className="flex-1 py-4 bg-white border border-gray-200 text-gray-900 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95"
+                                            className="flex-1 py-4 bg-white border border-gray-200 text-gray-900 rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-gray-50 transition-all active:scale-95 flex items-center justify-center gap-2"
                                         >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
                                             View Dossier
                                         </button>
                                         <button
                                             onClick={() => navigate(`/partners/update/${partner._id}`)}
-                                            className="flex-1 py-4 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200 active:scale-95"
+                                            className="flex-1 py-4 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg shadow-gray-200 active:scale-95 flex items-center justify-center gap-2"
                                         >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
                                             Edit Protocol
                                         </button>
                                     </div>
@@ -587,6 +594,37 @@ const Partners = () => {
                                         )}
                                     </section>
 
+                                    {/* Status & Verification Block */}
+                                    <section className="space-y-6">
+                                        <h4 className="text-[11px] font-black text-red-600 uppercase tracking-[0.2em] px-2 border-l-4 border-red-600">Status & Verification</h4>
+                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Active Status</p>
+                                                <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedPartner.isActive !== false ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
+                                                    {selectedPartner.isActive !== false ? '✓ Active' : '✗ Inactive'}
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Blocked</p>
+                                                <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedPartner.isBlocked ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700'}`}>
+                                                    {selectedPartner.isBlocked ? '✗ Blocked' : '✓ Clear'}
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Verified</p>
+                                                <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedPartner.isVerified ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                    {selectedPartner.isVerified ? '✓ Verified' : 'Pending'}
+                                                </div>
+                                            </div>
+                                            <div className="p-4 bg-gray-50 rounded-2xl border border-gray-100 text-center">
+                                                <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Email Verify</p>
+                                                <div className={`inline-block px-3 py-1 rounded-lg text-[9px] font-black uppercase ${selectedPartner.emailVerify ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-700'}`}>
+                                                    {selectedPartner.emailVerify ? '✓ Verified' : 'Pending'}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </section>
+
                                     {/* Communication Block */}
                                     <section className="space-y-6">
                                         <h4 className="text-[11px] font-black text-red-600 uppercase tracking-[0.2em] px-2 border-l-4 border-red-600">Communication & Location</h4>
@@ -596,25 +634,196 @@ const Partners = () => {
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
                                                 </div>
                                                 <div className="flex-1 overflow-hidden">
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Digital Corridor</p>
-                                                    <p className="text-[11px] font-bold text-gray-900 truncate uppercase">{selectedPartner.email}</p>
+                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Email</p>
+                                                    <p className="text-[11px] font-bold text-gray-900 truncate">{selectedPartner.email}</p>
                                                 </div>
                                             </div>
                                             <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex items-center gap-4">
-                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-gray-50">
+                                                <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-blue-600 shadow-sm border border-gray-50">
                                                     <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
                                                 </div>
                                                 <div className="flex-1">
-                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Mobile Line</p>
-                                                    <p className="text-sm font-bold text-gray-900">{selectedPartner.phoneNumber || selectedPartner.WhatsappNumber || 'N/A'}</p>
+                                                    <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Phone Number</p>
+                                                    <p className="text-sm font-bold text-gray-900">{selectedPartner.phoneNumber || 'N/A'}</p>
                                                 </div>
                                             </div>
+                                            {selectedPartner.WhatsappNumber && selectedPartner.WhatsappNumber !== selectedPartner.phoneNumber && (
+                                                <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 flex items-center gap-4">
+                                                    <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center text-emerald-600 shadow-sm border border-gray-50">
+                                                        <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.890-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">WhatsApp</p>
+                                                        <p className="text-sm font-bold text-gray-900">{selectedPartner.WhatsappNumber}</p>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 col-span-full">
-                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Command HQ (Physical Address)</p>
-                                                <p className="text-sm font-bold text-gray-900 uppercase tracking-tight leading-relaxed">{selectedPartner.Address || 'NO_ADDRESS_REGISTERED'}</p>
+                                                <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Physical Address</p>
+                                                <p className="text-sm font-bold text-gray-900 leading-relaxed">{selectedPartner.Address || 'NO_ADDRESS_REGISTERED'}</p>
                                             </div>
                                         </div>
                                     </section>
+
+                                    {/* Company Details Block */}
+                                    {selectedPartner.companyDetails && (
+                                        <section className="space-y-6">
+                                            <h4 className="text-[11px] font-black text-red-600 uppercase tracking-[0.2em] px-2 border-l-4 border-red-600">Company Information</h4>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {selectedPartner.companyDetails.RegisteredCompanyName && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Registered Company Name</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.RegisteredCompanyName}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.PartnerType && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Partner Type</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.PartnerType}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.SECPRegistrationNumber && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">SECP Registration Number</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.SECPRegistrationNumber}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.NTN && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">NTN</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.NTN}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.STRN && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">STRN</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.STRN}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.AuthorizationReference && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Authorization Reference</p>
+                                                        <p className="text-sm font-bold text-gray-900 tracking-tight">{selectedPartner.companyDetails.AuthorizationReference}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.HeadOfficeAddress && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50 col-span-full">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Head Office Address</p>
+                                                        <p className="text-sm font-bold text-gray-900 leading-relaxed">{selectedPartner.companyDetails.HeadOfficeAddress}</p>
+                                                    </div>
+                                                )}
+                                                {selectedPartner.companyDetails.OfficialWebsite && (
+                                                    <div className="p-5 bg-gray-50 rounded-2xl border border-gray-100/50">
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1">Official Website</p>
+                                                        <a href={selectedPartner.companyDetails.OfficialWebsite} target="_blank" rel="noopener noreferrer" className="text-sm font-bold text-red-600 hover:text-red-800 underline break-all">{selectedPartner.companyDetails.OfficialWebsite}</a>
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {/* Commission Details */}
+                                            {(selectedPartner.companyDetails.CommissionType || selectedPartner.companyDetails.CommissionPercentage) && (
+                                                <div className="mt-4 p-6 bg-gradient-to-r from-emerald-50 to-green-50 rounded-2xl border-2 border-emerald-200">
+                                                    <p className="text-[10px] font-black text-emerald-900 uppercase tracking-widest mb-4">Commission Structure</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                                        {selectedPartner.companyDetails.CommissionType && (
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Type</p>
+                                                                <p className="text-sm font-bold text-emerald-900">{selectedPartner.companyDetails.CommissionType}</p>
+                                                            </div>
+                                                        )}
+                                                        {selectedPartner.companyDetails.CommissionPercentage && (
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Percentage</p>
+                                                                <p className="text-sm font-bold text-emerald-900">{selectedPartner.companyDetails.CommissionPercentage}%</p>
+                                                            </div>
+                                                        )}
+                                                        {selectedPartner.companyDetails.CommissionLock && (
+                                                            <div>
+                                                                <p className="text-[8px] font-black text-emerald-600 uppercase tracking-widest mb-1">Lock Status</p>
+                                                                <p className="text-sm font-bold text-emerald-900">{selectedPartner.companyDetails.CommissionLock}</p>
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Documents */}
+                                            {(selectedPartner.companyDetails.SECPRegistrationCertificate || selectedPartner.companyDetails.DeliveryPolicyDocument || selectedPartner.companyDetails.CompanyProfilePDF || selectedPartner.companyDetails.AuthorizedAgencyLetter) && (
+                                                <div className="mt-4 space-y-3">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Company Documents</p>
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {selectedPartner.companyDetails.SECPRegistrationCertificate && (
+                                                            <a href={selectedPartner.companyDetails.SECPRegistrationCertificate} target="_blank" rel="noopener noreferrer" className="p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-3 hover:bg-blue-100 transition-colors group">
+                                                                <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                <span className="text-[10px] font-black text-blue-900 uppercase tracking-wide">SECP Certificate</span>
+                                                            </a>
+                                                        )}
+                                                        {selectedPartner.companyDetails.DeliveryPolicyDocument && (
+                                                            <a href={selectedPartner.companyDetails.DeliveryPolicyDocument} target="_blank" rel="noopener noreferrer" className="p-4 bg-purple-50 border-2 border-purple-200 rounded-xl flex items-center gap-3 hover:bg-purple-100 transition-colors group">
+                                                                <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                <span className="text-[10px] font-black text-purple-900 uppercase tracking-wide">Delivery Policy</span>
+                                                            </a>
+                                                        )}
+                                                        {selectedPartner.companyDetails.CompanyProfilePDF && (
+                                                            <a href={selectedPartner.companyDetails.CompanyProfilePDF} target="_blank" rel="noopener noreferrer" className="p-4 bg-indigo-50 border-2 border-indigo-200 rounded-xl flex items-center gap-3 hover:bg-indigo-100 transition-colors group">
+                                                                <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                <span className="text-[10px] font-black text-indigo-900 uppercase tracking-wide">Company Profile</span>
+                                                            </a>
+                                                        )}
+                                                        {selectedPartner.companyDetails.AuthorizedAgencyLetter && (
+                                                            <a href={selectedPartner.companyDetails.AuthorizedAgencyLetter} target="_blank" rel="noopener noreferrer" className="p-4 bg-rose-50 border-2 border-rose-200 rounded-xl flex items-center gap-3 hover:bg-rose-100 transition-colors group">
+                                                                <svg className="w-5 h-5 text-rose-600" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                                                                <span className="text-[10px] font-black text-rose-900 uppercase tracking-wide">Agency Letter</span>
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Authorized Contact Persons */}
+                                            {selectedPartner.companyDetails.AuthorizedContactPerson && selectedPartner.companyDetails.AuthorizedContactPerson.length > 0 && (
+                                                <div className="mt-4 space-y-3">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Authorized Contact Persons</p>
+                                                    {selectedPartner.companyDetails.AuthorizedContactPerson.map((person, idx) => (
+                                                        <div key={idx} className="p-5 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl border border-gray-200">
+                                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                {person.fullName && (
+                                                                    <div>
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Full Name</p>
+                                                                        <p className="text-sm font-bold text-gray-900">{person.fullName}</p>
+                                                                    </div>
+                                                                )}
+                                                                {person.Designation && (
+                                                                    <div>
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Designation</p>
+                                                                        <p className="text-sm font-bold text-gray-900">{person.Designation}</p>
+                                                                    </div>
+                                                                )}
+                                                                {person.phoneNumber && (
+                                                                    <div>
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Phone</p>
+                                                                        <p className="text-sm font-bold text-gray-900">{person.phoneNumber}</p>
+                                                                    </div>
+                                                                )}
+                                                                {person.email && (
+                                                                    <div>
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Email</p>
+                                                                        <p className="text-sm font-bold text-gray-900">{person.email}</p>
+                                                                    </div>
+                                                                )}
+                                                                {person.OfficeAddress && (
+                                                                    <div className="col-span-full">
+                                                                        <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-1">Office Address</p>
+                                                                        <p className="text-sm font-bold text-gray-900">{person.OfficeAddress}</p>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </section>
+                                    )}
 
                                     {/* Financial & Security Block */}
                                     <section className="space-y-6">

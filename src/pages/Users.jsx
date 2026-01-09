@@ -333,8 +333,8 @@ const Users = () => {
                                             ) : (
                                                 <div className="w-full aspect-square rounded-2xl bg-gray-100 flex items-center justify-center border-2 border-dashed border-gray-200">
                                                     <p className="text-sm font-semibold text-gray-400">No image</p>
-                                                </div>
-                                            )}
+                                    </div>
+                                    )}
                                         </div>
                                         
                                         <div>
@@ -522,12 +522,12 @@ const Users = () => {
                                                         <div className="p-4 bg-blue-50 rounded-xl border-2 border-blue-100">
                                                             <label className="text-xs font-black text-blue-600 uppercase tracking-wider">Partner Type</label>
                                                             <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.companyDetails.PartnerType}</p>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                    </div>
+                                )}
+                            </div>
 
                                                 {/* Registration & Tax Info */}
-                                                <div>
+                                    <div>
                                                     <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Registration & Tax Information</p>
                                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                         {viewUser.companyDetails.SECPRegistrationNumber && (
@@ -573,11 +573,11 @@ const Users = () => {
                                                             </a>
                                                         </div>
                                                     )}
-                                                </div>
+                                    </div>
 
                                                 {/* Commission Info */}
                                                 {(viewUser.companyDetails.CommissionType || viewUser.companyDetails.CommissionLock) && (
-                                                    <div>
+                                    <div>
                                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Commission Details</p>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                             {viewUser.companyDetails.CommissionType && (
@@ -593,12 +593,12 @@ const Users = () => {
                                                                 </div>
                                                             )}
                                                         </div>
-                                                    </div>
+                                    </div>
                                                 )}
 
                                                 {/* Documents */}
                                                 {(viewUser.companyDetails.SECPRegistrationCertificate || viewUser.companyDetails.DeliveryPolicyDocument || viewUser.companyDetails.CompanyProfilePDF || viewUser.companyDetails.AuthorizedAgencyLetter) && (
-                                                    <div>
+                                    <div>
                                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Company Documents</p>
                                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                                             {viewUser.companyDetails.SECPRegistrationCertificate && (
@@ -654,12 +654,12 @@ const Users = () => {
                                                                 </a>
                                                             )}
                                                         </div>
-                                                    </div>
+                            </div>
                                                 )}
 
                                                 {/* CNIC Pictures */}
                                                 {viewUser.companyDetails.cnicPic && viewUser.companyDetails.cnicPic.length > 0 && (
-                                                    <div>
+                                    <div>
                                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">CNIC Documents</p>
                                                         <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                                             {viewUser.companyDetails.cnicPic.map((cnic, idx) => (
@@ -669,7 +669,7 @@ const Users = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                    </div>
+                        </div>
                                                 )}
 
                                                 {/* Authorized Contact Persons */}
@@ -680,7 +680,7 @@ const Users = () => {
                                                             {viewUser.companyDetails.AuthorizedContactPerson.map((person, idx) => (
                                                                 <div key={idx} className="p-5 bg-gradient-to-r from-orange-50 to-red-50 rounded-2xl border-2 border-orange-100 shadow-sm">
                                                                     <div className="flex items-start justify-between mb-3">
-                                                                        <div>
+                                <div>
                                                                             <h4 className="text-base font-black text-gray-900 uppercase">{person.fullName || 'N/A'}</h4>
                                                                             <p className="text-xs font-semibold text-orange-600 uppercase tracking-wider">{person.Designation || 'N/A'}</p>
                                                                         </div>
@@ -716,12 +716,12 @@ const Users = () => {
                                                                 </div>
                                                             ))}
                                                         </div>
-                                                    </div>
+                                    </div>
                                                 )}
 
                                                 {/* Authorization Declarations */}
                                                 {viewUser.companyDetails.AuthorizationDeclaration && viewUser.companyDetails.AuthorizationDeclaration.length > 0 && (
-                                                    <div>
+                                    <div>
                                                         <p className="text-xs font-black text-gray-400 uppercase tracking-widest mb-3">Authorization Declarations</p>
                                                         <div className="space-y-2">
                                                             {viewUser.companyDetails.AuthorizationDeclaration.map((declaration, idx) => (
@@ -742,8 +742,8 @@ const Users = () => {
                                             </section>
                                         )}
                                     </div>
+                                    </div>
                                 </div>
-                            </div>
 
                             {/* Footer */}
                             <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
