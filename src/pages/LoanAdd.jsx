@@ -3,28 +3,46 @@ import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 import RichTextEditor from '../compontents/RichTextEditor';
 
-// Toast Notification Component
+// Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
     useEffect(() => {
-        const timer = setTimeout(onClose, 4000);
+        const timer = setTimeout(onClose, 5000);
         return () => clearTimeout(timer);
     }, [onClose]);
 
-    const bgColor = type === 'success' ? 'bg-green-500' : 'bg-red-500';
+    const styles = type === 'success' 
+        ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-emerald-400' 
+        : 'bg-gradient-to-r from-red-500 to-rose-600 border-red-400';
 
     return (
-        <div className={`fixed top-4 right-4 ${bgColor} text-white px-6 py-3 rounded-lg shadow-lg z-50 flex items-center gap-3 animate-in slide-in-from-top`}>
-            {type === 'success' ? (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
+            <div className="flex-shrink-0">
+                {type === 'success' ? (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </div>
+                ) : (
+                    <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
+                        <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </div>
+                )}
+            </div>
+            <div className="flex-1">
+                <p className="font-bold text-sm leading-relaxed">{message}</p>
+            </div>
+            <button 
+                onClick={onClose} 
+                className="flex-shrink-0 w-8 h-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-all active:scale-95"
+                aria-label="Close notification"
+            >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
-            ) : (
-                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-            )}
-            <span className="font-medium">{message}</span>
-            <button onClick={onClose} className="ml-2 hover:opacity-80 text-xl leading-none">&times;</button>
+            </button>
         </div>
     );
 };
@@ -120,18 +138,21 @@ const LoanAdd = () => {
 
         // Validate file type
         if (!file.type.startsWith('image/')) {
-            showToast('Please select a valid image file', 'error');
+            showToast('⚠️ Please select a valid image file (JPG, PNG, GIF, etc.)', 'error');
+            e.target.value = null; // Clear the file input
             return;
         }
 
         // Validate file size (5MB)
         if (file.size > 5 * 1024 * 1024) {
-            showToast('Image size should not exceed 5MB', 'error');
+            showToast('⚠️ Image size should not exceed 5MB', 'error');
+            e.target.value = null; // Clear the file input
             return;
         }
 
         setUploadingImage(true);
         setUploadError('');
+        showToast('Uploading image...', 'success');
 
         try {
             const formDataUpload = new FormData();
@@ -144,16 +165,18 @@ const LoanAdd = () => {
 
             const data = await response.json();
 
-            if (response.ok && data.success) {
-                setFormData(prev => ({ ...prev, planImage: data.url }));
-                showToast('Image uploaded successfully!', 'success');
+            if (response.ok && data.success && (data.url || data.imageUrl)) {
+                const imageUrl = data.url || data.imageUrl;
+                setFormData(prev => ({ ...prev, planImage: imageUrl }));
+                showToast('✓ Image uploaded successfully!', 'success');
             } else {
-                throw new Error(data.message || 'Upload failed');
+                throw new Error(data.message || 'Upload failed. Please try again.');
             }
         } catch (err) {
-            const errorMsg = err.message || 'Failed to upload image. Please try again.';
+            const errorMsg = err.message || 'Failed to upload image. Please check your connection and try again.';
             setUploadError(errorMsg);
             showToast(errorMsg, 'error');
+            e.target.value = null; // Clear the file input on error
         } finally {
             setUploadingImage(false);
         }
@@ -167,39 +190,43 @@ const LoanAdd = () => {
         const allowedTypes = ['application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
         if (!allowedTypes.includes(file.type)) {
             showToast('Please select a valid document file (PDF, DOC, or DOCX)', 'error');
+            e.target.value = null; // Clear the file input
             return;
         }
 
-        // Validate file size (10MB)
-        if (file.size > 10 * 1024 * 1024) {
-            showToast('Document size should not exceed 10MB', 'error');
+        // Validate file size (5MB as per backend)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast('File size is too large. Please upload a file less than 5MB', 'error');
+            e.target.value = null; // Clear the file input
             return;
         }
 
         setUploadingDocument(true);
         setUploadError('');
+        showToast('Uploading document...', 'success');
 
         try {
             const formDataUpload = new FormData();
-            formDataUpload.append('image', file);
+            formDataUpload.append('document', file);
 
-            const response = await fetch(`${ApiBaseUrl}/upload-image`, {
+            const response = await fetch(`${ApiBaseUrl}/upload-document`, {
                 method: 'POST',
                 body: formDataUpload
             });
 
             const data = await response.json();
 
-            if (response.ok && data.success) {
+            if (response.ok && data.success && data.url) {
                 setFormData(prev => ({ ...prev, planDocument: data.url }));
-                showToast('Document uploaded successfully!', 'success');
+                showToast('✓ Document uploaded successfully!', 'success');
             } else {
-                throw new Error(data.message || 'Upload failed');
+                throw new Error(data.message || 'Upload failed. Please try again.');
             }
         } catch (err) {
-            const errorMsg = err.message || 'Failed to upload document. Please try again.';
+            const errorMsg = err.message || 'Failed to upload document. Please check your connection and try again.';
             setUploadError(errorMsg);
             showToast(errorMsg, 'error');
+            e.target.value = null; // Clear the file input on error
         } finally {
             setUploadingDocument(false);
         }
@@ -570,60 +597,75 @@ const LoanAdd = () => {
                                     accept="image/*"
                                     onChange={handleImageUpload}
                                     disabled={uploadingImage}
-                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-dashed border-gray-200 focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-dashed border-gray-200 focus:border-red-600 hover:border-red-400 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 file:cursor-pointer"
                                 />
                                 
                                 {uploadingImage && (
-                                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
-                                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-3">
+                                        <svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span className="font-bold">Uploading...</span>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-black text-blue-900 uppercase tracking-wide">Uploading Image...</p>
+                                            <p className="text-xs text-blue-600 mt-0.5">Please wait while we upload your image</p>
+                                        </div>
                                     </div>
                                 )}
 
                                 {uploadError && (
-                                    <div className="mt-3 p-2 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600 font-bold">
+                                    <div className="mt-3 p-3 bg-red-50 border-2 border-red-200 rounded-xl text-xs text-red-600 font-bold flex items-center gap-2">
+                                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
                                         {uploadError}
                                     </div>
                                 )}
                                 
-                                {formData.planImage && (
-                                    <div className="mt-4 relative w-full max-w-md">
-                                        <div className="w-full h-48 rounded-xl overflow-hidden border-2 border-gray-200 shadow-md">
+                                {formData.planImage && !uploadingImage && (
+                                    <div className="mt-4 p-3 bg-gradient-to-br from-gray-50 to-gray-100 border-2 border-gray-200 rounded-xl shadow-sm">
+                                        <div className="relative group">
                                             <img 
                                                 src={formData.planImage} 
                                                 alt="Plan preview" 
-                                                className="w-full h-full object-cover"
+                                                className="w-full h-56 object-cover rounded-lg border-2 border-gray-300 shadow-md"
                                                 onError={(e) => {
                                                     e.target.onerror = null;
                                                     e.target.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="%23f3f4f6" width="400" height="300"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" font-family="Arial" font-size="18" fill="%23d1d5db">Image Error</text></svg>';
                                                 }}
                                             />
+                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 rounded-lg transition-all"></div>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, planImage: '' }))}
-                                            className="absolute top-2 right-2 px-3 py-1.5 bg-red-600 text-white rounded-lg flex items-center gap-1.5 shadow-lg hover:bg-red-700 transition text-xs font-semibold"
-                                        >
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                                            </svg>
-                                            Remove
-                                        </button>
-                                        <div className="mt-2 text-center text-xs text-green-600 font-semibold flex items-center justify-center gap-1">
-                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Image uploaded successfully
+                                        <div className="mt-3 flex items-center justify-between gap-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                                    <svg className="w-4 h-4 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                </div>
+                                                <span className="text-xs font-black text-emerald-900 uppercase tracking-wide">Image Uploaded</span>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, planImage: '' }))}
+                                                className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-bold text-xs uppercase tracking-wide transition-all active:scale-95"
+                                            >
+                                                Remove
+                                            </button>
                                         </div>
                                     </div>
                                 )}
                                 
-                                <p className="mt-3 text-xs text-gray-500">
-                                    <span className="font-semibold">Recommended:</span> JPG or PNG format. Max 5MB. Optimal size: 1200x800px
-                                </p>
+                                <div className="mt-3 flex items-start gap-2">
+                                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-[8px] xs:text-[9px] text-gray-500 font-bold leading-relaxed">
+                                        <span className="text-gray-700">Accepted formats:</span> JPG, PNG, GIF, WebP • 
+                                        <span className="text-gray-700"> Max size:</span> 5MB • 
+                                        <span className="text-gray-700"> Optimal:</span> 1200x800px
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -765,6 +807,7 @@ const LoanAdd = () => {
                             </div>
                         </div>
                     </div>
+                    
                 )}
 
                 {/* Step 4: Rate Information */}
@@ -940,40 +983,78 @@ const LoanAdd = () => {
                                     accept=".pdf,.doc,.docx"
                                     onChange={handleDocumentUpload}
                                     disabled={uploadingDocument}
-                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-dashed border-gray-200 focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-dashed border-gray-200 focus:border-red-600 hover:border-red-400 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 file:cursor-pointer"
                                 />
                                 
                                 {uploadingDocument && (
-                                    <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
-                                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                    <div className="mt-4 p-4 bg-blue-50 border-2 border-blue-200 rounded-xl flex items-center gap-3">
+                                        <svg className="animate-spin h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24">
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                         </svg>
-                                        <span className="font-bold">Uploading document...</span>
-                                    </div>
-                                )}
-                                
-                                {formData.planDocument && (
-                                    <div className="mt-3 p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-                                        <div className="flex items-center gap-2">
-                                            <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            <span className="text-xs font-bold text-emerald-700">Document uploaded successfully</span>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-black text-blue-900 uppercase tracking-wide">Uploading Document...</p>
+                                            <p className="text-xs text-blue-600 mt-0.5">Please wait while we upload your file</p>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setFormData(prev => ({ ...prev, planDocument: '' }))}
-                                            className="text-emerald-600 hover:text-emerald-800 font-bold text-xs"
-                                        >
-                                            Remove
-                                        </button>
                                     </div>
                                 )}
                                 
-                                <p className="mt-2 text-[8px] xs:text-[9px] text-gray-400 font-bold">
-                                    PDF or Word document. Max 10MB.
-                                </p>
+                                {formData.planDocument && !uploadingDocument && (
+                                    <div className="mt-4 p-4 bg-gradient-to-r from-emerald-50 to-green-50 border-2 border-emerald-200 rounded-xl shadow-sm">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div className="flex items-start gap-3 flex-1">
+                                                <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                    </svg>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <svg className="w-4 h-4 text-emerald-600 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        <span className="text-sm font-black text-emerald-900 uppercase tracking-wide">Document Uploaded</span>
+                                                    </div>
+                                                    <p className="text-xs text-emerald-700 font-semibold">File ready for submission</p>
+                                                    <a 
+                                                        href={formData.planDocument} 
+                                                        target="_blank" 
+                                                        rel="noopener noreferrer"
+                                                        className="text-xs text-emerald-600 hover:text-emerald-800 font-bold underline mt-1 inline-block"
+                                                    >
+                                                        View Document →
+                                                    </a>
+                                                </div>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setFormData(prev => ({ ...prev, planDocument: '' }))}
+                                                className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-bold text-xs uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
+                                            >
+                                                Remove
+                                            </button>
+                                        </div>
+                                    </div>
+                                )}
+                                
+                                {uploadError && (
+                                    <div className="mt-3 p-3 bg-red-50 border-2 border-red-200 rounded-xl text-xs text-red-600 font-bold flex items-center gap-2">
+                                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        {uploadError}
+                                    </div>
+                                )}
+                                
+                                <div className="mt-3 flex items-start gap-2">
+                                    <svg className="w-4 h-4 text-gray-400 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                    <p className="text-[8px] xs:text-[9px] text-gray-500 font-bold leading-relaxed">
+                                        <span className="text-gray-700">Accepted formats:</span> PDF, DOC, DOCX • 
+                                        <span className="text-gray-700"> Max size:</span> 5MB
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     </div>
