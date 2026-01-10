@@ -28,12 +28,12 @@ const PropertyApplicationDetails = () => {
             if (data.success) {
                 const found = data.applications.find(app => app.applicationId === id);
                 if (found) setApplication(found);
-                else setError("Application protocol not found in registry.");
+                else setError("Application not found.");
             } else {
                 setError(data.message);
             }
         } catch (err) {
-            setError("Connectivity error: Unable to synch with property vault.");
+            setError("Failed to load application details.");
         } finally {
             setLoading(false);
         }
@@ -53,14 +53,14 @@ const PropertyApplicationDetails = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setMessage(`PROTOCOL STATUS OVERRIDE: ${newStatus.toUpperCase()}`);
+                setMessage(`Status updated to: ${newStatus}`);
                 setApplication({ ...application, status: newStatus });
                 setTimeout(() => setMessage(null), 3000);
             } else {
                 setError(data.message);
             }
         } catch (err) {
-            setError("Update broadcast failed.");
+            setError("Failed to update status.");
         } finally {
             setUpdating(false);
         }
@@ -69,27 +69,27 @@ const PropertyApplicationDetails = () => {
     if (loading) return (
         <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
             <div className="w-12 h-12 border-4 border-gray-100 border-t-red-600 rounded-full animate-spin"></div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Synching Acquisition Profile...</p>
+            <p className="text-sm text-gray-500">Loading application details...</p>
         </div>
     );
 
-    if (error) return <div className="p-20 text-center font-black text-red-600 uppercase tracking-widest bg-white rounded-3xl border border-red-50 shadow-xl">{error}</div>;
-    if (!application) return <div className="p-20 text-center font-black text-gray-400 uppercase tracking-widest">No active protocol detected.</div>;
+    if (error) return <div className="p-20 text-center text-red-600 bg-white rounded-2xl border border-red-200">{error}</div>;
+    if (!application) return <div className="p-20 text-center text-gray-500">Application not found.</div>;
 
     const applicant = application.commonForm?.[0] || {};
     const property = application.propertyDetails?.[0] || {};
 
     return (
-        <div className="max-w-6xl mx-auto space-y-8 pb-20 animate-in fade-in duration-700">
+        <div className="max-w-6xl mx-auto space-y-6 pb-20">
             {/* Header */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => navigate(-1)} className="p-3 bg-gray-50 text-gray-400 hover:text-gray-900 rounded-2xl transition-all">
-                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M15 19l-7-7 7-7" /></svg>
+            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-3">
+                    <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-50 rounded-lg transition-all text-gray-400">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
                     </button>
                     <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Acquisition Profile</h1>
-                        <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">ID: {application.applicationId}</p>
+                        <h1 className="text-2xl font-bold text-gray-900">Property Application</h1>
+                        <p className="text-sm text-gray-500 mt-1">ID: {application.applicationId}</p>
                     </div>
                 </div>
                 <div className="flex gap-3">
@@ -97,92 +97,101 @@ const PropertyApplicationDetails = () => {
                         value={application.status}
                         disabled={updating}
                         onChange={(e) => handleStatusUpdate(e.target.value)}
-                        className="px-8 py-4 bg-gray-900 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest outline-none shadow-xl shadow-gray-200 cursor-pointer hover:bg-black transition-all appearance-none"
+                        className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium outline-none cursor-pointer hover:bg-red-700 transition-all"
                     >
-                        <option value="pending">PENDING</option>
-                        <option value="In_Progress">IN PROGRESS</option>
-                        <option value="approved">APPROVE</option>
-                        <option value="rejected">REJECT</option>
-                        <option value="cancelled">CANCEL</option>
+                        <option value="pending">Pending</option>
+                        <option value="In_Progress">In Progress</option>
+                        <option value="approved">Approved</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
             </div>
 
-            {message && <div className="p-4 bg-emerald-50 border-2 border-emerald-100 text-emerald-600 rounded-2xl font-black uppercase text-[10px] tracking-widest text-center animate-bounce">{message}</div>}
+            {message && <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm text-center">{message}</div>}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Applicant Info */}
-                <div className="lg:col-span-2 space-y-8">
-                    <section className="bg-white rounded-[3rem] p-10 border border-gray-100 shadow-sm space-y-10">
+                <div className="lg:col-span-2 space-y-6">
+                    <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
                         <div>
-                            <SectionTitle theme="red">Applicant Identification</SectionTitle>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mt-8">
-                                <InfoItem label="Full Legal Name" value={applicant.name} />
-                                <InfoItem label="Secure Mobile Line" value={applicant.number} />
-                                <InfoItem label="Email Protocol" value={applicant.email} />
-                                <InfoItem label="CNIC / Residency ID" value={applicant.cnic} />
-                                <InfoItem label="City Sector" value={applicant.city} />
-                                <InfoItem label="Regional Area" value={applicant.area} />
-                                <InfoItem label="Reference Code" value={applicant.reference} />
-                                <InfoItem label="WhatsApp Protocol" value={applicant.whatsApp} />
+                            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                Applicant Information
+                            </h2>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <InfoItem label="Name" value={applicant.name} />
+                                <InfoItem label="Phone" value={applicant.number} />
+                                <InfoItem label="Email" value={applicant.email} />
+                                <InfoItem label="CNIC" value={applicant.cnic} />
+                                <InfoItem label="City" value={applicant.city} />
+                                <InfoItem label="Area" value={applicant.area} />
+                                <InfoItem label="Reference" value={applicant.reference} />
+                                <InfoItem label="WhatsApp" value={applicant.whatsApp} />
                             </div>
                         </div>
 
-                        <div className="pt-10 border-t border-gray-50">
-                            <SectionTitle theme="gray">Internal Narrative</SectionTitle>
-                            <p className="mt-6 text-xs font-bold text-gray-400 italic leading-relaxed bg-gray-50 p-6 rounded-2xl border border-gray-100">
-                                "{application.applicationNote || "No additional override notes provided by the applicant."}"
-                            </p>
-                        </div>
+                        {application.applicationNote && (
+                            <div className="pt-6 border-t border-gray-100">
+                                <h2 className="text-lg font-bold text-gray-900 mb-3">Notes</h2>
+                                <p className="text-gray-600 text-sm leading-relaxed bg-gray-50 p-4 rounded-lg border border-gray-200">
+                                    {application.applicationNote}
+                                </p>
+                            </div>
+                        )}
                     </section>
                 </div>
 
-                {/* Property Detail Sidebar */}
-                <div className="space-y-8">
-                    <div className="bg-white rounded-[3rem] border border-gray-100 shadow-xl overflow-hidden">
-                        <div className="bg-red-600 p-8 text-white">
-                            <p className="text-[10px] font-black uppercase tracking-widest opacity-80">Target Asset</p>
-                            <h3 className="text-2xl font-black uppercase tracking-tighter mt-1">{property.adTitle || property.name || 'N/A'}</h3>
+                {/* Property Details */}
+                <div className="space-y-6">
+                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+                        <div className="bg-red-600 p-5 text-white">
+                            <p className="text-xs text-white/80 mb-1">Property</p>
+                            <h3 className="text-xl font-bold">{property.adTitle || property.name || 'N/A'}</h3>
                         </div>
-                        <div className="p-8 space-y-6">
-                            <div className="space-y-4">
-                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Asset Value</span>
-                                    <span className="text-sm font-black text-gray-900 tracking-tight">RS. {property.price?.toLocaleString()}</span>
+                        <div className="p-5 space-y-4">
+                            <div className="space-y-3">
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-500">Price</span>
+                                    <span className="text-sm font-semibold text-gray-900">RS. {property.price?.toLocaleString()}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Property Type</span>
-                                    <span className="text-sm font-black text-gray-900 tracking-tight">{property.typeOfProperty}</span>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-500">Type</span>
+                                    <span className="text-sm font-semibold text-gray-900">{property.typeOfProperty}</span>
                                 </div>
-                                <div className="flex justify-between items-center py-2 border-b border-gray-50">
-                                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Purpose</span>
-                                    <span className="text-sm font-black text-gray-900 tracking-tight">{property.purpose}</span>
+                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                    <span className="text-sm text-gray-500">Purpose</span>
+                                    <span className="text-sm font-semibold text-gray-900">{property.purpose}</span>
                                 </div>
-                                <div className="pt-4">
-                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Location Profile</p>
-                                    <p className="text-[11px] font-black text-gray-900 leading-relaxed uppercase">{property.address}</p>
-                                </div>
+                                {property.address && (
+                                    <div className="pt-2">
+                                        <p className="text-xs text-gray-500 mb-2">Location</p>
+                                        <p className="text-sm text-gray-900">{property.address}</p>
+                                    </div>
+                                )}
                             </div>
 
                             <button
                                 onClick={() => navigate(`/property/edit/${property.propertyId}`)}
-                                className="w-full py-4 bg-gray-900 text-white rounded-2xl text-[9px] font-black uppercase tracking-widest hover:bg-black transition-all shadow-lg"
+                                className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black transition-all"
                             >
-                                View Asset Details
+                                View Property Details
                             </button>
                         </div>
                     </div>
 
-                    <div className="bg-gray-900 rounded-[2.5rem] p-8 text-white space-y-4">
-                        <h4 className="text-[10px] font-black text-red-600 uppercase tracking-widest">Deployment Context</h4>
-                        <div className="space-y-3">
+                    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 space-y-3">
+                        <h4 className="text-sm font-bold text-gray-900">Additional Information</h4>
+                        <div className="space-y-2">
                             <div className="flex justify-between items-center">
-                                <span className="text-[9px] font-bold text-gray-500 uppercase">Assigned Agent</span>
-                                <span className="text-[9px] font-black text-white uppercase">{application.assigenAgent || "UNASSIGNED"}</span>
+                                <span className="text-xs text-gray-500">Assigned Agent</span>
+                                <span className="text-xs font-medium text-gray-900">{application.assigenAgent || "Not Assigned"}</span>
                             </div>
                             <div className="flex justify-between items-center">
-                                <span className="text-[9px] font-bold text-gray-500 uppercase">Applied date</span>
-                                <span className="text-[9px] font-black text-white uppercase">{new Date(application.appliedAt).toLocaleDateString()}</span>
+                                <span className="text-xs text-gray-500">Applied Date</span>
+                                <span className="text-xs font-medium text-gray-900">{new Date(application.appliedAt).toLocaleDateString()}</span>
                             </div>
                         </div>
                     </div>
@@ -192,17 +201,11 @@ const PropertyApplicationDetails = () => {
     );
 };
 
-const SectionTitle = ({ children, theme }) => (
-    <h2 className={`text-xl font-black uppercase tracking-tight pl-4 border-l-8 ${theme === 'red' ? 'border-red-600' : 'border-gray-200'}`}>
-        {children}
-    </h2>
-);
-
 const InfoItem = ({ label, value }) => (
-    <div className="space-y-2">
-        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest ml-1">{label}</p>
-        <div className="px-5 py-4 bg-gray-50 rounded-2xl border border-transparent font-bold text-xs text-gray-900">
-            {value || "NOT PROVIDED"}
+    <div>
+        <label className="block text-sm text-gray-500 mb-1">{label}</label>
+        <div className="px-4 py-3 bg-gray-50 rounded-lg border border-gray-200 font-medium text-sm text-gray-900">
+            {value || "N/A"}
         </div>
     </div>
 );

@@ -28,6 +28,7 @@ import LoanAdd from "./pages/LoanAdd";
 import LoanList from "./pages/LoanList";
 import LoanEdit from "./pages/LoanEdit";
 import LoanView from "./pages/LoanView";
+import InstallmentView from "./pages/InstallmentView";
 import Notifications from "./pages/Notifications";
 
 function App() {
@@ -108,6 +109,10 @@ function App() {
           <Route
             path="/installments/edit/:id"
             element={isAuthenticated ? <InstallmentsEdit /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/installments/view/:id"
+            element={isAuthenticated ? <InstallmentView /> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/all-applications"
