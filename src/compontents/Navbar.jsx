@@ -56,8 +56,8 @@ const Navbar = ({ onLogout }) => {
             title: 'Installments',
             items: [
                 { label: 'Add Installment', href: '/installments/add' },
-                { label: 'Manage All', href: '/installments/all' },
-                { label: 'Update Installment', href: '/installments/update' },
+                { label: 'View  All', href: '/installments/all' },
+                { label: 'Edit Installment', href: '/installments/update' },
                 { label: 'Applications', href: '/installments/all-applications' },
             ]
         },

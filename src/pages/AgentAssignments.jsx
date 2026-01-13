@@ -89,97 +89,135 @@ const AgentAssignments = () => {
     });
 
     if (loading && assignments.length === 0) return (
-        <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-            <div className="w-12 h-12 border-4 border-gray-100 border-t-red-600 rounded-full animate-spin"></div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Synching Agent Protocols...</p>
+        <div className="flex flex-col items-center justify-center min-h-[60vh] bg-gradient-to-br from-gray-50 to-white space-y-4">
+            <div className="relative">
+                <div className="w-16 h-16 border-4 border-red-100 rounded-full"></div>
+                <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin absolute top-0"></div>
+            </div>
+            <p className="text-sm font-medium text-gray-600">Loading agent assignments...</p>
         </div>
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header Section */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
-                <div>
-                    <div className="flex items-center gap-4">
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Agent Assignments</h1>
-                        <span className="px-3 py-1 bg-red-100 text-red-600 rounded-lg text-[10px] font-black uppercase tracking-widest border border-red-200">
-                            {filtered.length} Active
-                        </span>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            {/* Modern Header - v2.0.5 */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                
+                <div className="relative flex items-center gap-3">
+                    <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                        <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+                        </svg>
                     </div>
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Operational Field Deployment Ledger</p>
-                </div>
-                <div className="flex gap-2">
-                    {['all', 'pending', 'in_progress', 'completed'].map(s => (
-                        <button
-                            key={s}
-                            onClick={() => setStatusFilter(s)}
-                            className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all ${statusFilter === s ? 'bg-gray-900 text-white shadow-lg shadow-gray-200' : 'bg-gray-50 text-gray-400 hover:bg-gray-100'}`}
-                        >
-                            {s.replace('_', ' ')}
-                        </button>
-                    ))}
+                    <div>
+                        <h1 className="text-3xl font-black text-white tracking-tight">Agent Assignments</h1>
+                        <p className="text-red-100 text-sm font-medium mt-0.5">View and manage agent assignments • v2.0.5</p>
+                    </div>
                 </div>
             </div>
 
-            {/* Search Shell */}
-            <div className="relative">
-                <input
-                    type="text"
-                    placeholder="SEARCH BY AGENT ID, APP ID, OR CITY..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-[2rem] text-[11px] font-black uppercase tracking-widest outline-none transition-all shadow-sm focus:border-red-600 focus:ring-4 focus:ring-red-50/50"
-                />
-                <svg className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
+            {/* Filters & Search - v2.0.5 */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6">
+                <div className="flex flex-col lg:flex-row gap-6">
+                    <div className="flex-1">
+                        <label className="text-xs font-bold text-gray-700 mb-3 block uppercase tracking-wide flex items-center gap-2">
+                            <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            Filter by Status
+                        </label>
+                        <div className="flex flex-wrap gap-2">
+                            {['all', 'pending', 'in_progress', 'completed'].map(s => (
+                                <button
+                                    key={s}
+                                    onClick={() => setStatusFilter(s)}
+                                    className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 capitalize ${
+                                        statusFilter === s 
+                                            ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105' 
+                                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+                                    }`}
+                                >
+                                    {s.replace('_', ' ')}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="lg:w-1/3">
+                        <label className="text-xs font-bold text-gray-700 mb-3 block uppercase tracking-wide flex items-center gap-2">
+                            <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                            Search
+                        </label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search by agent, app ID, or city..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-10 pr-4 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:bg-white outline-none transition-all font-medium"
+                            />
+                            <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+                <div className="mt-4 bg-gradient-to-r from-red-50 to-rose-50 px-4 py-2 rounded-xl border border-red-200 inline-flex items-center gap-2">
+                    <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    <span className="text-sm font-bold text-red-700">{filtered.length} Assignments Found</span>
+                </div>
             </div>
 
-            {/* Table Container */}
-            <div className="bg-white rounded-[2.5rem] border border-gray-100 shadow-xl overflow-hidden">
+            {/* Table Container - v2.0.5 */}
+            <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-gray-50/50">
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Target & Application</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Agent Credentials</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Deployment Meta</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status Matrix</th>
-                                <th className="px-8 py-6 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Operational Logic</th>
+                            <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                                <th className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-wider">Application</th>
+                                <th className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-wider">Agent</th>
+                                <th className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-wider">Details</th>
+                                <th className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-wider">Status</th>
+                                <th className="px-6 py-4 text-xs font-black text-gray-700 uppercase tracking-wider text-right">Actions</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-50">
+                        <tbody className="divide-y divide-gray-100">
                             {filtered.map((item) => (
-                                <tr key={item._id} className="hover:bg-gray-50/50 transition-colors group">
-                                    <td className="px-8 py-6">
+                                <tr key={item._id} className="hover:bg-gradient-to-r hover:from-red-50/50 hover:to-rose-50/50 transition-all duration-300">
+                                    <td className="px-6 py-4">
                                         <div>
-                                            <p className="text-sm font-black text-gray-900 uppercase tracking-tight">{item.category || 'N/A'}</p>
-                                            <p className="text-[9px] font-bold text-red-600 uppercase tracking-widest">ID: {item.applicationId || 'NO_LINK'}</p>
+                                            <p className="text-sm font-bold text-gray-900">{item.category || 'N/A'}</p>
+                                            <p className="text-xs text-gray-500 font-medium">ID: {item.applicationId || 'N/A'}</p>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6">
+                                    <td className="px-6 py-4">
                                         <div>
-                                            <p className="text-xs font-black text-gray-900 tracking-tight uppercase">Agent: {item.agentId}</p>
-                                            <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">User: {item.userId}</p>
+                                            <p className="text-sm font-bold text-gray-900">{item.agentId}</p>
+                                            <p className="text-xs text-gray-500 font-medium">User: {item.userId}</p>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6">
+                                    <td className="px-6 py-4">
                                         <div>
-                                            <p className="text-[10px] font-black text-gray-900 uppercase">{item.city || 'GLOBAL'}</p>
-                                            <p className="text-[8px] font-bold text-gray-400 uppercase tracking-widest">{item.assigenAt ? new Date(item.assigenAt).toLocaleDateString() : 'N/A'}</p>
+                                            <p className="text-sm font-bold text-gray-900">{item.city || 'N/A'}</p>
+                                            <p className="text-xs text-gray-500 font-medium">{item.assigenAt ? new Date(item.assigenAt).toLocaleDateString() : 'N/A'}</p>
                                         </div>
                                     </td>
-                                    <td className="px-8 py-6">
-                                        <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${getStatusStyle(item.status)}`}>
-                                            {item.status}
+                                    <td className="px-6 py-4">
+                                        <span className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm border capitalize ${getStatusStyle(item.status)}`}>
+                                            {item.status.replace('_', ' ')}
                                         </span>
                                     </td>
-                                    <td className="px-8 py-6 text-right">
+                                    <td className="px-6 py-4 text-right">
                                         <div className="flex justify-end gap-2">
                                             <select
                                                 onChange={(e) => handleUpdateStatus(item._id, e.target.value)}
                                                 value={item.status}
-                                                className="bg-gray-50 px-3 py-2 rounded-xl text-[9px] font-black uppercase outline-none focus:border-red-600 border border-transparent transition-all"
+                                                className="bg-gradient-to-br from-gray-100 to-gray-200 px-4 py-2 rounded-xl text-sm font-bold capitalize outline-none focus:border-red-500 border-2 border-transparent transition-all"
                                             >
                                                 <option value="pending">PENDING</option>
                                                 <option value="in_progress">IN PROGRESS</option>

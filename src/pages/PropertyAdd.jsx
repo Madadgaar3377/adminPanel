@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
+import cities from '../constants/cities';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -74,47 +75,99 @@ const PropertyAdd = () => {
         tehsil: '',
         area: '',
         street: '',
+        address: '',
         locationGPS: '',
+        latitude: '',
+        longitude: '',
         projectType: 'Residential',
+        projectSubType: '',
         developmentType: '',
         infrastructureStatus: '',
         projectStage: '',
         expectedCompletionDate: '',
+        possessionDate: '',
         utilities: {
             electricity: false,
             water: false,
             gas: false,
             internet: false,
             sewage: false,
+            telephoneLine: false,
         },
         amenities: {
+            // Infrastructure & Utilities
+            undergroundElectricity: false,
+            waterSupply: false,
+            sewerageSystem: false,
+            drainageSystem: false,
+            backupPower: false,
+            // Religious & Community Facilities
+            mosque: false,
+            communityCenter: false,
+            // Education, Health & Commercial
+            school: false,
+            medicalFacility: false,
+            commercialZone: false,
+            // Recreational & Outdoor
+            parks: false,
+            playground: false,
+            garden: false,
+            swimmingPool: false,
+            clubhouse: false,
+            joggingTrack: false,
+            sportsCourts: false,
+            waterFeatures: false,
+            petPark: false,
+            // Residential Interior Spaces
+            servantQuarters: false,
+            drawingRoom: false,
+            diningRoom: false,
+            studyRoom: false,
+            prayerRoom: false,
+            lounge: false,
+            storeRoom: false,
+            laundryRoom: false,
+            gym: false,
+            steamRoom: false,
+            // Building & Property Features
+            parking: false,
+            balcony: false,
+            terrace: false,
+            elevator: false,
+            receptionArea: false,
+            meetingRoom: false,
+            publicTransportAccess: false,
+            commonAreaWifi: false,
+            // Security & Building Systems
             security: false,
             cctv: false,
             fireSafety: false,
-            parks: false,
-            playground: false,
-            clubhouse: false,
-            gym: false,
-            swimmingPool: false,
-            mosque: false,
-            school: false,
-            medical: false,
-            parking: false,
+            airConditioning: false,
+            // Commercial / Miscellaneous
+            brandingSpace: false,
+            retailShops: false,
+            loadingUnloadingArea: false,
+            cafeteria: false,
+            laundryService: false,
+            // Utilities (Existing + Extended)
             evCharging: false,
             wasteManagement: false,
-            elevator: false,
         },
         description: '',
         highlights: ['', '', ''],
         totalLandArea: '',
+        landAreaUnit: 'sqft',
         propertyTypesAvailable: [],
         totalUnits: '',
         typicalUnitSizes: '',
         nearbyLandmarks: '',
         remarks: '',
+        developerBuilder: '',
+        units: [],
         transaction: {
             type: 'Sale',
             price: '',
+            priceRange: '',
             advanceAmount: '',
             monthlyRent: '',
             contractDuration: '',
@@ -123,9 +176,14 @@ const PropertyAdd = () => {
             monthlyInstallment: '',
             tenure: '',
             totalPayable: '',
+            interestRate: '',
+            additionalCharges: '',
+            discountsOffers: '',
             additionalInfo: '',
         },
         images: [],
+        video: '',
+        documents: [],
         contact: {
             name: '',
             email: '',
@@ -134,7 +192,10 @@ const PropertyAdd = () => {
             cnic: '',
             city: '',
             area: '',
+            companyName: '',
+            designation: '',
         },
+        declarationAccepted: false,
     });
 
     // Individual property form data
@@ -348,67 +409,69 @@ const PropertyAdd = () => {
                         tehsil: property.commonForm.tehsil || '',
                         area: property.commonForm.area || '',
                         street: property.commonForm.street || '',
+                        address: property.commonForm.address || '',
                         locationGPS: property.commonForm.locationGPS || '',
+                        latitude: property.commonForm.latitude || '',
+                        longitude: property.commonForm.longitude || '',
                         projectType: property.commonForm.projectType || 'Residential',
+                        projectSubType: property.commonForm.projectSubType || '',
                         developmentType: property.commonForm.developmentType || '',
                         infrastructureStatus: property.commonForm.infrastructureStatus || '',
                         projectStage: property.commonForm.projectStage || '',
                         expectedCompletionDate: property.commonForm.expectedCompletionDate || '',
+                        possessionDate: property.commonForm.possessionDate || '',
                         utilities: property.commonForm.utilities || {
                             electricity: false,
                             water: false,
                             gas: false,
                             internet: false,
                             sewage: false,
+                            telephoneLine: false,
                         },
-                        amenities: property.commonForm.amenities || {
-                            security: false,
-                            cctv: false,
-                            fireSafety: false,
-                            parks: false,
-                            playground: false,
-                            clubhouse: false,
-                            gym: false,
-                            swimmingPool: false,
-                            mosque: false,
-                            school: false,
-                            medical: false,
-                            parking: false,
-                            evCharging: false,
-                            wasteManagement: false,
-                            elevator: false,
-                        },
+                        amenities: property.commonForm.amenities || projectData.amenities,
                         description: property.commonForm.description || '',
                         highlights: property.commonForm.highlights || ['', '', ''],
                         totalLandArea: property.commonForm.totalLandArea || '',
+                        landAreaUnit: property.commonForm.landAreaUnit || 'sqft',
                         propertyTypesAvailable: property.commonForm.propertyTypesAvailable || [],
                         totalUnits: property.commonForm.totalUnits || '',
                         typicalUnitSizes: property.commonForm.typicalUnitSizes || '',
                         nearbyLandmarks: property.commonForm.nearbyLandmarks || '',
                         remarks: property.commonForm.remarks || '',
-                        transaction: property.commonForm.transaction || {
-                            type: 'Sale',
-                            price: '',
-                            advanceAmount: '',
-                            monthlyRent: '',
-                            contractDuration: '',
-                            bookingAmount: '',
-                            downPayment: '',
-                            monthlyInstallment: '',
-                            tenure: '',
-                            totalPayable: '',
-                            additionalInfo: '',
+                        developerBuilder: property.commonForm.developerBuilder || '',
+                        units: property.commonForm.units || [],
+                        transaction: {
+                            type: property.commonForm.transaction?.type || 'Sale',
+                            price: property.commonForm.transaction?.price || '',
+                            priceRange: property.commonForm.transaction?.priceRange || '',
+                            advanceAmount: property.commonForm.transaction?.advanceAmount || '',
+                            monthlyRent: property.commonForm.transaction?.monthlyRent || '',
+                            contractDuration: property.commonForm.transaction?.contractDuration || '',
+                            bookingAmount: property.commonForm.transaction?.bookingAmount || '',
+                            downPayment: property.commonForm.transaction?.downPayment || '',
+                            monthlyInstallment: property.commonForm.transaction?.monthlyInstallment || '',
+                            tenure: property.commonForm.transaction?.tenure || '',
+                            totalPayable: property.commonForm.transaction?.totalPayable || '',
+                            interestRate: property.commonForm.transaction?.interestRate || '',
+                            additionalCharges: property.commonForm.transaction?.additionalCharges || '',
+                            discountsOffers: property.commonForm.transaction?.discountsOffers || '',
+                            additionalInfo: property.commonForm.transaction?.additionalInfo || '',
                         },
                         images: property.commonForm.images || [],
-                        contact: property.commonForm.contact || {
-                            name: '',
-                            email: '',
-                            number: '',
-                            whatsapp: '',
-                            cnic: '',
-                            city: '',
-                            area: '',
+                        video: property.commonForm.video || '',
+                        documents: property.commonForm.documents || [],
+                        contact: {
+                            name: property.commonForm.contact?.name || '',
+                            email: property.commonForm.contact?.email || '',
+                            number: property.commonForm.contact?.number || '',
+                            whatsapp: property.commonForm.contact?.whatsapp || '',
+                            cnic: property.commonForm.contact?.cnic || '',
+                            city: property.commonForm.contact?.city || '',
+                            area: property.commonForm.contact?.area || '',
+                            companyName: property.commonForm.contact?.companyName || '',
+                            designation: property.commonForm.contact?.designation || '',
                         },
+                        declarationAccepted: property.commonForm.declarationAccepted || false,
                     });
                 } else if (property.individualProperty) {
                     // Individual property type
@@ -952,15 +1015,11 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select City</option>
-                                            <option value="Karachi">Karachi</option>
-                                            <option value="Lahore">Lahore</option>
-                                            <option value="Islamabad">Islamabad</option>
-                                            <option value="Peshawar">Peshawar</option>
-                                            <option value="Quetta">Quetta</option>
-                                            <option value="Rawalpindi">Rawalpindi</option>
-                                            <option value="Faisalabad">Faisalabad</option>
-                                            <option value="Multan">Multan</option>
-                                            <option value="Other">Other</option>
+                                            {cities.map((city) => (
+                                                <option key={city.value} value={city.value}>
+                                                    {city.title}
+                                                </option>
+                                            ))}
                                         </select>
                         </div>
 
@@ -1010,9 +1069,22 @@ const PropertyAdd = () => {
                                             onChange={(e) => handleProjectChange('street', e.target.value)}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-        </div>
+                                    </div>
 
-                <div>
+                                    <div className="sm:col-span-2">
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Full Address
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.address}
+                                            onChange={(e) => handleProjectChange('address', e.target.value)}
+                                            placeholder="Complete address"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             GPS Location (Optional)
                                         </label>
@@ -1023,7 +1095,33 @@ const PropertyAdd = () => {
                                             placeholder="e.g., 24.8607,67.0011"
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
-                </div>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Latitude
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.latitude}
+                                            onChange={(e) => handleProjectChange('latitude', e.target.value)}
+                                            placeholder="e.g., 24.8607"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Longitude
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.longitude}
+                                            onChange={(e) => handleProjectChange('longitude', e.target.value)}
+                                            placeholder="e.g., 67.0011"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -1038,10 +1136,27 @@ const PropertyAdd = () => {
                                             <option value="Residential">Residential</option>
                                             <option value="Commercial">Commercial</option>
                                             <option value="Industrial">Industrial</option>
-                                            <option value="Semi-Commercial">Semi-Commercial</option>
-                                            <option value="Semi-Industrial">Semi-Industrial</option>
+                                            <option value="Retail">Retail</option>
+                                            <option value="Mixed-Use">Mixed-Use</option>
+                                            <option value="Hospitality">Hospitality</option>
+                                            <option value="Healthcare">Healthcare</option>
+                                            <option value="Educational">Educational</option>
+                                            <option value="Special Purpose">Special Purpose</option>
                                             <option value="Other">Other</option>
                                         </select>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Project Sub-Type
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.projectSubType}
+                                            onChange={(e) => handleProjectChange('projectSubType', e.target.value)}
+                                            placeholder="e.g., Luxury Apartments, Gated Community"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
                                     </div>
 
                                     <div>
@@ -1083,9 +1198,14 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select Stage</option>
-                                            <option value="Planning">Planning</option>
-                                            <option value="Under Construction">Under Construction</option>
+                                            <option value="Planning Stage">Planning Stage</option>
+                                            <option value="Pre-Launch">Pre-Launch</option>
+                                            <option value="Launch Stage">Launch Stage</option>
+                                            <option value="Construction Stage">Construction Stage</option>
+                                            <option value="Near Completion">Near Completion</option>
                                             <option value="Completed">Completed</option>
+                                            <option value="Handover / Operational">Handover / Operational</option>
+                                            <option value="On Hold / Delayed">On Hold / Delayed</option>
                                         </select>
                                     </div>
 
@@ -1101,6 +1221,19 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
                                     </div>
+
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Possession Date
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.possessionDate}
+                                            onChange={(e) => handleProjectChange('possessionDate', e.target.value)}
+                                            placeholder="e.g., Mar 2026"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
                                 </div>
 
                                 {/* Utilities Checkboxes */}
@@ -1109,7 +1242,7 @@ const PropertyAdd = () => {
                                         Utility Connections Provided
                                     </label>
                                     <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
-                                        {['electricity', 'water', 'gas', 'internet', 'sewage'].map(utility => (
+                                        {['electricity', 'water', 'gas', 'internet', 'sewage', 'telephoneLine'].map(utility => (
                                             <label key={utility} className="flex items-center gap-2 cursor-pointer group">
                                                 <input
                                                     type="checkbox"
@@ -1118,12 +1251,12 @@ const PropertyAdd = () => {
                                                     className="w-4 h-4 text-red-600 bg-white border-gray-300 rounded focus:ring-red-500"
                                                 />
                                                 <span className="text-xs font-bold text-gray-600 group-hover:text-gray-900 capitalize">
-                                                    {utility}
+                                                    {utility === 'telephoneLine' ? 'Telephone Line' : utility}
                                                 </span>
                                             </label>
-                    ))}
-                </div>
-            </div>
+                                        ))}
+                                    </div>
+                                </div>
 
                                 {/* Images */}
                                 <div>
@@ -1214,15 +1347,62 @@ const PropertyAdd = () => {
                                     ))}
                                 </div>
 
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Total Land / Built-up Area
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.totalLandArea}
+                                            onChange={(e) => handleProjectChange('totalLandArea', e.target.value)}
+                                            placeholder="e.g., 50, 100"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Land Area Unit
+                                        </label>
+                                        <select
+                                            value={projectData.landAreaUnit}
+                                            onChange={(e) => handleProjectChange('landAreaUnit', e.target.value)}
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        >
+                                            <option value="sqft">Square Feet (sqft)</option>
+                                            <option value="sqm">Square Meters (sqm)</option>
+                                            <option value="sqyd">Square Yards (sqyd)</option>
+                                            <option value="marla">Marla</option>
+                                            <option value="kanal">Kanal</option>
+                                            <option value="acre">Acre</option>
+                                            <option value="hectare">Hectare</option>
+                                        </select>
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                        Total Land / Built-up Area
+                                        Developer / Builder Name
                                     </label>
                                     <input
                                         type="text"
-                                        value={projectData.totalLandArea}
-                                        onChange={(e) => handleProjectChange('totalLandArea', e.target.value)}
-                                        placeholder="e.g., 50 acres, 100 kanals"
+                                        value={projectData.developerBuilder}
+                                        onChange={(e) => handleProjectChange('developerBuilder', e.target.value)}
+                                        placeholder="Name of developer or builder"
+                                        className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                        Video URL (Optional)
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={projectData.video}
+                                        onChange={(e) => handleProjectChange('video', e.target.value)}
+                                        placeholder="https://youtube.com/..."
                                         className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                     />
                                 </div>
@@ -1367,16 +1547,30 @@ const PropertyAdd = () => {
                                 </div>
 
                                 {projectData.transaction.type === 'Sale' && (
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Price (PKR)
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={projectData.transaction.price}
-                                            onChange={(e) => handleProjectChange('transaction', e.target.value, 'price')}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
+                                        <div>
+                                            <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                                Price (PKR)
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={projectData.transaction.price}
+                                                onChange={(e) => handleProjectChange('transaction', e.target.value, 'price')}
+                                                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                                Price Range
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={projectData.transaction.priceRange}
+                                                onChange={(e) => handleProjectChange('transaction', e.target.value, 'priceRange')}
+                                                placeholder="e.g., 50 Lac - 1 Crore"
+                                                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                            />
+                                        </div>
                                     </div>
                                 )}
 
@@ -1482,6 +1676,46 @@ const PropertyAdd = () => {
                                     </div>
                                 )}
 
+                                {/* Common transaction fields */}
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 xs:gap-6">
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Interest Rate
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.transaction.interestRate}
+                                            onChange={(e) => handleProjectChange('transaction', e.target.value, 'interestRate')}
+                                            placeholder="e.g., 12% p.a."
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Additional Charges
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.transaction.additionalCharges}
+                                            onChange={(e) => handleProjectChange('transaction', e.target.value, 'additionalCharges')}
+                                            placeholder="e.g., Registration: 2%"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Discounts / Offers
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.transaction.discountsOffers}
+                                            onChange={(e) => handleProjectChange('transaction', e.target.value, 'discountsOffers')}
+                                            placeholder="e.g., 10% off for early buyers"
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+                                </div>
+
                                 <div>
                                     <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                         Additional Information
@@ -1572,7 +1806,7 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
                                     </div>
-                                    <div className="sm:col-span-2">
+                                    <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             Area
                                         </label>
@@ -1580,6 +1814,28 @@ const PropertyAdd = () => {
                                             type="text"
                                             value={projectData.contact.area}
                                             onChange={(e) => handleProjectChange('contact', e.target.value, 'area')}
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Company Name
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.contact.companyName}
+                                            onChange={(e) => handleProjectChange('contact', e.target.value, 'companyName')}
+                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                            Designation
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={projectData.contact.designation}
+                                            onChange={(e) => handleProjectChange('contact', e.target.value, 'designation')}
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         />
                                     </div>
@@ -1694,15 +1950,11 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select City</option>
-                                            <option value="Karachi">Karachi</option>
-                                            <option value="Lahore">Lahore</option>
-                                            <option value="Islamabad">Islamabad</option>
-                                            <option value="Peshawar">Peshawar</option>
-                                            <option value="Quetta">Quetta</option>
-                                            <option value="Rawalpindi">Rawalpindi</option>
-                                            <option value="Faisalabad">Faisalabad</option>
-                                            <option value="Multan">Multan</option>
-                                            <option value="Other">Other</option>
+                                            {cities.map((city) => (
+                                                <option key={city.value} value={city.value}>
+                                                    {city.title}
+                                                </option>
+                                            ))}
                                         </select>
                                     </div>
 

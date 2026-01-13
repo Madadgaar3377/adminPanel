@@ -17,19 +17,19 @@ const Toast = ({ message, type, onClose }) => {
     return (
         <div className={`fixed top-20 right-6 ${styles} text-white px-6 py-4 rounded-2xl shadow-2xl z-[9999] flex items-center gap-4 animate-in slide-in-from-top-4 duration-300 border-2 min-w-[320px] max-w-md`}>
             <div className="flex-shrink-0">
-                {type === 'success' ? (
+            {type === 'success' ? (
                     <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
+                </svg>
                     </div>
-                ) : (
+            ) : (
                     <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center backdrop-blur-sm">
                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-                        </svg>
+                </svg>
                     </div>
-                )}
+            )}
             </div>
             <div className="flex-1">
                 <p className="font-bold text-sm leading-relaxed">{message}</p>
@@ -388,7 +388,7 @@ const LoanEdit = () => {
 
     const handleSubmit = async (e) => {
         if (e) {
-            e.preventDefault();
+        e.preventDefault();
             e.stopPropagation();
         }
         
@@ -749,14 +749,14 @@ const LoanEdit = () => {
                                                     </svg>
                                                 </div>
                                                 <span className="text-xs font-black text-emerald-900 uppercase tracking-wide">Image Uploaded</span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, planImage: '' }))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, planImage: '' }))}
                                                 className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-bold text-xs uppercase tracking-wide transition-all active:scale-95"
-                                            >
-                                                Remove
-                                            </button>
+                                        >
+                                            Remove
+                                        </button>
                                         </div>
                                     </div>
                                 )}
@@ -769,7 +769,7 @@ const LoanEdit = () => {
                                         <span className="text-gray-700">Accepted formats:</span> JPG, PNG, GIF, WebP • 
                                         <span className="text-gray-700"> Max size:</span> 5MB • 
                                         <span className="text-gray-700"> Optimal:</span> 1200x800px
-                                    </p>
+                                </p>
                                 </div>
                             </div>
                         </div>
@@ -1121,7 +1121,7 @@ const LoanEdit = () => {
                                                 <div className="w-12 h-12 bg-emerald-100 rounded-xl flex items-center justify-center flex-shrink-0">
                                                     <svg className="w-6 h-6 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                                    </svg>
+                                            </svg>
                                                 </div>
                                                 <div className="flex-1 min-w-0">
                                                     <div className="flex items-center gap-2 mb-1">
@@ -1140,14 +1140,14 @@ const LoanEdit = () => {
                                                         View Document →
                                                     </a>
                                                 </div>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setFormData(prev => ({ ...prev, planDocument: '' }))}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setFormData(prev => ({ ...prev, planDocument: '' }))}
                                                 className="px-3 py-2 bg-red-100 text-red-700 hover:bg-red-200 rounded-lg font-bold text-xs uppercase tracking-wide transition-all active:scale-95 flex-shrink-0"
-                                            >
-                                                Remove
-                                            </button>
+                                        >
+                                            Remove
+                                        </button>
                                         </div>
                                     </div>
                                 )}
@@ -1168,7 +1168,7 @@ const LoanEdit = () => {
                                     <p className="text-[8px] xs:text-[9px] text-gray-500 font-bold leading-relaxed">
                                         <span className="text-gray-700">Accepted formats:</span> PDF, DOC, DOCX • 
                                         <span className="text-gray-700"> Max size:</span> 5MB
-                                    </p>
+                                </p>
                                 </div>
                             </div>
                         </div>

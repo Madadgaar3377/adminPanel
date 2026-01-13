@@ -179,104 +179,154 @@ const Partners = () => {
     );
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-500">
-            {/* Header Section */}
-            <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
-                <div>
-                    <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Partners</h1>
-                    <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em] mt-1">Collaboration Ledger & Ecosystem</p>
-                </div>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            {/* Modern Header - v2.0.5 */}
+            <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                
+                <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                            <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 className="text-3xl font-black text-white tracking-tight">Partners</h1>
+                            <p className="text-red-100 text-sm font-medium mt-0.5">Collaboration Ledger & Ecosystem • v2.0.5</p>
+                        </div>
+                    </div>
 
-                <div className="flex bg-gray-50 p-1.5 rounded-[1.5rem] border border-gray-100">
-                    <button
-                        onClick={() => setActiveTab('list')}
-                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'list' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                        All Partners
-                    </button>
-                    <button
-                        onClick={() => { setActiveTab('add'); setError(null); setSuccessMessage(null); }}
-                        className={`px-8 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'add' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                    >
-                        + Add Partner
-                    </button>
+                    <div className="flex bg-white/10 backdrop-blur-sm p-1.5 rounded-2xl border-2 border-white/20">
+                        <button
+                            onClick={() => setActiveTab('list')}
+                            className={`px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 ${
+                                activeTab === 'list' 
+                                    ? 'bg-white text-red-600 shadow-lg' 
+                                    : 'text-white/80 hover:text-white'
+                            }`}
+                        >
+                            All Partners
+                        </button>
+                        <button
+                            onClick={() => { setActiveTab('add'); setError(null); setSuccessMessage(null); }}
+                            className={`px-6 py-3 rounded-xl text-sm font-bold transition-all duration-300 flex items-center gap-2 ${
+                                activeTab === 'add' 
+                                    ? 'bg-white text-red-600 shadow-lg' 
+                                    : 'text-white/80 hover:text-white'
+                            }`}
+                        >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Partner
+                        </button>
+                    </div>
                 </div>
             </div>
 
-            {/* Content Area */}
+            {/* Content Area - v2.0.5 */}
             {activeTab === 'list' ? (
-                <div className="space-y-8">
+                <div className="space-y-6">
                     {/* Error Message */}
                     {error && (
-                        <div className="p-4 bg-red-50 border-2 border-red-100 text-red-600 rounded-2xl font-black uppercase text-[10px] tracking-widest text-center">
-                            {error}
+                        <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 p-5 rounded-xl shadow-sm flex items-center gap-3">
+                            <div className="w-10 h-10 bg-red-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            </div>
+                            <p className="text-red-700 font-bold text-sm">{error}</p>
                         </div>
                     )}
 
-                    {/* Search Shell */}
-                    <div className="relative">
-                        <input
-                            type="text"
-                            placeholder="SEARCH BY NAME, ID, EMAIL OR PHONE..."
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-14 pr-6 py-5 bg-white border border-gray-100 rounded-[2rem] text-[11px] font-black uppercase tracking-widest outline-none transition-all shadow-sm focus:border-red-600 focus:ring-4 focus:ring-red-50/50"
-                        />
-                        <svg className="absolute left-6 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                        </svg>
+                    {/* Search Shell - v2.0.5 */}
+                    <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6">
+                        <div className="relative">
+                            <input
+                                type="text"
+                                placeholder="Search by name, ID, email or phone..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="w-full pl-12 pr-6 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:border-red-500 focus:bg-white outline-none transition-all font-medium"
+                            />
+                            <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </div>
                     </div>
 
                     {loading ? (
                         <div className="flex flex-col items-center justify-center min-h-[40vh] space-y-4">
-                            <div className="w-12 h-12 border-4 border-gray-100 border-t-red-600 rounded-full animate-spin"></div>
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.3em]">Querying Database...</p>
+                            <div className="relative">
+                                <div className="w-16 h-16 border-4 border-red-100 rounded-full"></div>
+                                <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin absolute top-0"></div>
+                            </div>
+                            <p className="text-sm font-medium text-gray-600">Loading partners...</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {filtered.length > 0 ? filtered.map((partner) => (
-                                <div key={partner._id} className="bg-white rounded-[2.5rem] border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-500 flex flex-col group overflow-hidden">
-                                    <div className="p-8 flex-1 space-y-6">
+                                <div key={partner._id} className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 flex flex-col group overflow-hidden hover:scale-105">
+                                    <div className="p-6 flex-1 space-y-4">
                                         <div className="flex justify-between items-start">
-                                            <div className="w-14 h-14 rounded-2xl bg-gray-50 overflow-hidden flex items-center justify-center text-gray-300 group-hover:bg-red-50 group-hover:text-red-600 transition-colors">
+                                            <div className="w-16 h-16 rounded-xl bg-gradient-to-br from-red-500 to-rose-600 overflow-hidden flex items-center justify-center text-white shadow-lg">
                                                 {partner.profilePic ? (
                                                     <img src={partner.profilePic} alt={partner.name} className="w-full h-full object-cover" />
                                                 ) : (
-                                                    <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-9 h-9" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                                     </svg>
                                                 )}
                                             </div>
-                                            <div className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest border ${partner.isActive !== false ? 'border-emerald-100 bg-emerald-50 text-emerald-600' : 'border-red-100 bg-red-50 text-red-600'}`}>
-                                                {partner.isActive !== false ? 'ACTIVE PARTNER' : 'INACTIVE'}
+                                            <div className={`px-3 py-1.5 rounded-xl text-xs font-bold shadow-sm border ${
+                                                partner.isActive !== false 
+                                                    ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border-green-200' 
+                                                    : 'bg-gradient-to-r from-red-100 to-rose-100 text-red-700 border-red-200'
+                                            }`}>
+                                                {partner.isActive !== false ? '✓ Active' : '✗ Inactive'}
                                             </div>
                                         </div>
 
-                                        <div className="space-y-1">
-                                            <h3 className="text-xl font-black text-gray-900 tracking-tighter uppercase truncate">{partner.name || "UNNAMED_ENTITY"}</h3>
-                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">ID: {partner.userId || partner._id?.slice(-6)}</p>
+                                        <div>
+                                            <h3 className="text-lg font-black text-gray-900 truncate">{partner.name || "Unnamed Entity"}</h3>
+                                            <p className="text-xs text-gray-500 mt-0.5 font-bold">ID: {partner.userId || partner._id?.slice(-6)}</p>
                                             {partner.userAccess && partner.userAccess.length > 0 && (
-                                                <div className="flex items-center gap-1 mt-2">
-                                                    <span className="text-[8px] font-black text-red-600 uppercase tracking-widest">
+                                                <div className="mt-2">
+                                                    <span className="px-3 py-1 bg-gradient-to-r from-red-50 to-rose-50 text-red-600 rounded-lg text-xs font-bold border border-red-200">
                                                         {partner.userAccess.length} Access Area{partner.userAccess.length > 1 ? 's' : ''}
                                                     </span>
                                                 </div>
                                             )}
                                         </div>
 
-                                        <div className="space-y-4">
+                                        <div className="space-y-3">
                                             <div className="flex items-center gap-3 text-gray-600">
-                                                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                                                <p className="text-[10px] font-bold uppercase truncate">{partner.email || 'NO_EMAIL'}</p>
+                                                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-xs font-bold text-gray-700 truncate">{partner.email || 'No email'}</p>
                                             </div>
                                             <div className="flex items-center gap-3 text-gray-600">
-                                                <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                                                <p className="text-[10px] font-bold uppercase">{partner.phoneNumber || partner.WhatsappNumber || 'NO_CONTACT'}</p>
+                                                <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                    <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                                    </svg>
+                                                </div>
+                                                <p className="text-xs font-bold text-gray-700">{partner.phoneNumber || partner.WhatsappNumber || 'No contact'}</p>
                                             </div>
                                             {partner.Address && (
                                                 <div className="flex items-center gap-3 text-gray-600">
-                                                    <svg className="w-4 h-4 text-red-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                                                    <p className="text-[10px] font-bold uppercase truncate">{partner.Address}</p>
+                                                    <div className="w-8 h-8 bg-red-50 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                        <svg className="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        </svg>
+                                                    </div>
+                                                    <p className="text-xs font-bold text-gray-700 truncate">{partner.Address}</p>
                                                 </div>
                                             )}
                                         </div>

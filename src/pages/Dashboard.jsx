@@ -45,10 +45,13 @@ const Dashboard = () => {
 
     if (loading && !stats) {
         return (
-            <div className="flex items-center justify-center min-h-screen">
+            <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-gray-200 border-t-red-600 rounded-full animate-spin mx-auto mb-4"></div>
-                    <p className="text-sm text-gray-500">Loading dashboard...</p>
+                    <div className="relative">
+                        <div className="w-16 h-16 border-4 border-red-100 rounded-full mx-auto"></div>
+                        <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin absolute top-0 left-1/2 -translate-x-1/2"></div>
+                    </div>
+                    <p className="mt-4 text-sm font-medium text-gray-600">Loading dashboard...</p>
                 </div>
             </div>
         );
@@ -56,26 +59,30 @@ const Dashboard = () => {
 
     if (error) {
         return (
-            <div className="max-w-md mx-auto my-20 p-8 bg-white rounded-lg border border-red-200 shadow-sm text-center">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4 text-red-600">
-                    <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                    </svg>
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center p-6">
+                <div className="max-w-md w-full bg-white rounded-3xl border-2 border-red-100 shadow-2xl p-10 text-center">
+                    <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-red-200 rounded-3xl flex items-center justify-center mx-auto mb-6">
+                        <svg className="w-10 h-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-3">Error Loading Dashboard</h2>
+                    <p className="text-gray-600 font-medium mb-8">{error}</p>
+                    <button
+                        onClick={fetchDashboardData}
+                        className="px-8 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all duration-300 font-bold shadow-lg active:scale-95"
+                    >
+                        Retry
+                    </button>
                 </div>
-                <h2 className="text-xl font-bold text-gray-900 mb-2">Error Loading Dashboard</h2>
-                <p className="text-sm text-gray-600 mb-6">{error}</p>
-                <button
-                    onClick={fetchDashboardData}
-                    className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors text-sm font-medium"
-                >
-                    Retry
-                </button>
             </div>
         );
     }
 
     const cardData = [
         { label: 'Total Users', val: stats?.totalUsers || 0, theme: 'blue', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>, target: '/users' },
+        { label: 'Properties', val: stats?.totalProperties || 0, theme: 'purple', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" /></svg>, target: '/property/all' },
+        { label: 'Loan Plans', val: stats?.totalLoanPlans || 0, theme: 'indigo', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" /></svg>, target: '/loan/all' },
         { label: 'Applications', val: stats?.totalApplications || 0, theme: 'green', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, target: '/notifications' },
         { label: 'Installments', val: stats?.totalInstallmentPlans || 0, theme: 'red', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>, target: '/installments/all' },
         { label: 'Market Offers', val: stats?.totalOffers || 0, theme: 'yellow', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>, target: '/banner/all' },
@@ -84,6 +91,8 @@ const Dashboard = () => {
     const getThemeColors = (theme) => {
         const themes = {
             blue: { bg: 'bg-blue-50', text: 'text-blue-600', border: 'border-blue-100' },
+            purple: { bg: 'bg-purple-50', text: 'text-purple-600', border: 'border-purple-100' },
+            indigo: { bg: 'bg-indigo-50', text: 'text-indigo-600', border: 'border-indigo-100' },
             green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100' },
             red: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100' },
             yellow: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' }
@@ -92,58 +101,80 @@ const Dashboard = () => {
     };
 
     return (
-        <div className="p-6">
-            <div className="max-w-7xl mx-auto space-y-6">
-                {/* Header */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-                        <p className="text-sm text-gray-500 mt-1">Welcome back, here's your overview</p>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+                {/* Modern Header - v2.0.5 */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    
+                    <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                        <div>
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
+                                    <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                    </svg>
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl font-black text-white tracking-tight">Dashboard</h1>
+                                    <p className="text-red-100 text-sm font-medium mt-0.5">Welcome back, here's your overview • v2.0.5</p>
+                                </div>
+                            </div>
+                        </div>
+                        <button
+                            onClick={fetchDashboardData}
+                            disabled={loading}
+                            className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 font-bold active:scale-95"
+                        >
+                            <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                            Refresh
+                        </button>
                     </div>
-                    <button
-                        onClick={fetchDashboardData}
-                        disabled={loading}
-                        className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors disabled:opacity-50 flex items-center gap-2 text-sm font-medium"
-                    >
-                        <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                        </svg>
-                        Refresh
-                    </button>
                 </div>
 
-                {/* Stats Cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Modern Stats Cards - v2.0.5 */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                     {cardData.map((card, idx) => {
                         const colors = getThemeColors(card.theme);
+                        const gradients = {
+                            blue: 'from-blue-500 to-blue-600',
+                            purple: 'from-purple-500 to-purple-600',
+                            indigo: 'from-indigo-500 to-indigo-600',
+                            green: 'from-green-500 to-green-600',
+                            red: 'from-red-500 to-red-600',
+                            yellow: 'from-amber-500 to-amber-600'
+                        };
                         return (
                             <Link
                                 key={idx}
                                 to={card.target}
-                                className="bg-white rounded-lg border border-gray-200 shadow-sm hover:shadow-md transition-shadow p-6"
+                                className="group bg-white rounded-2xl border-2 border-gray-100 hover:border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 p-6 hover:-translate-y-1"
                             >
-                                <div className="flex items-start justify-between mb-4">
-                                    <div className={`w-12 h-12 ${colors.bg} rounded-lg flex items-center justify-center`}>
-                                        {card.icon({ className: `w-6 h-6 ${colors.text}` })}
+                                <div className="flex items-start justify-between mb-6">
+                                    <div className={`w-14 h-14 bg-gradient-to-br ${gradients[card.theme]} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                                        {card.icon({ className: `w-7 h-7 text-white` })}
                                     </div>
                                 </div>
                                 <div>
-                                    <p className="text-3xl font-bold text-gray-900 mb-1">{card.val}</p>
-                                    <p className="text-sm text-gray-600">{card.label}</p>
+                                    <p className="text-4xl font-black text-gray-900 mb-2">{card.val}</p>
+                                    <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">{card.label}</p>
                                 </div>
                             </Link>
                         );
                     })}
                 </div>
 
-                {/* Charts Section */}
+                {/* Modern Charts Section - v2.0.5 */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Bar Chart */}
-                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                        <div className="flex justify-between items-center mb-6">
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+                        <div className="flex justify-between items-center mb-8">
                             <div>
-                                <h3 className="text-lg font-semibold text-gray-900">Overview</h3>
-                                <p className="text-sm text-gray-500 mt-0.5">System statistics</p>
+                                <h3 className="text-2xl font-black text-gray-900">Overview</h3>
+                                <p className="text-sm font-medium text-gray-500 mt-1">System statistics</p>
                             </div>
                         </div>
 
@@ -175,10 +206,10 @@ const Dashboard = () => {
                     </div>
 
                     {/* Progress Bars */}
-                    <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6">
-                        <div className="mb-6">
-                            <h3 className="text-lg font-semibold text-gray-900">Distribution</h3>
-                            <p className="text-sm text-gray-500 mt-0.5">Resource breakdown</p>
+                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+                        <div className="mb-8">
+                            <h3 className="text-2xl font-black text-gray-900">Distribution</h3>
+                            <p className="text-sm font-medium text-gray-500 mt-1">Resource breakdown</p>
                         </div>
 
                         <div className="space-y-6">
@@ -186,11 +217,11 @@ const Dashboard = () => {
                                 const colors = getThemeColors(item.theme);
                                 return (
                                     <div key={i}>
-                                        <div className="flex justify-between items-center mb-2">
-                                            <span className="text-sm font-medium text-gray-700">{item.label}</span>
-                                            <span className="text-sm font-semibold text-gray-900">{item.val}</span>
+                                        <div className="flex justify-between items-center mb-3">
+                                            <span className="text-sm font-bold text-gray-700 uppercase tracking-wider">{item.label}</span>
+                                            <span className="text-lg font-black text-gray-900">{item.val}</span>
                                         </div>
-                                        <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                        <div className="h-3 bg-gray-100 rounded-full overflow-hidden">
                                             <div
                                                 className={`h-full rounded-full transition-all duration-500 ${colors.bg.replace('50', '500')}`}
                                                 style={{ width: `${(item.val / Math.max(stats.totalUsers, 1)) * 100}%` }}
@@ -201,9 +232,9 @@ const Dashboard = () => {
                             })}
                         </div>
 
-                        <div className="mt-6 pt-4 border-t border-gray-100 flex justify-between items-center text-xs text-gray-500">
-                            <span>Last updated: {new Date().toLocaleTimeString()}</span>
-                            <span className="text-red-600 font-medium">Live</span>
+                        <div className="mt-8 pt-6 border-t-2 border-gray-100 flex justify-between items-center">
+                            <span className="text-sm font-medium text-gray-500">Last updated: {new Date().toLocaleTimeString()}</span>
+                            <span className="px-3 py-1 bg-green-100 text-green-700 font-bold text-xs rounded-full uppercase tracking-wider">Live</span>
                         </div>
                     </div>
                 </div>

@@ -29,27 +29,30 @@ const InstallmentView = () => {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-4">
-                <div className="w-12 h-12 border-4 border-gray-100 border-t-red-600 rounded-full animate-spin"></div>
-                <p className="text-sm text-gray-500">Loading installment details...</p>
+            <div className="flex flex-col items-center justify-center min-h-[60vh] bg-gradient-to-br from-gray-50 to-white space-y-4">
+                <div className="relative">
+                    <div className="w-16 h-16 border-4 border-red-100 rounded-full"></div>
+                    <div className="w-16 h-16 border-4 border-red-600 border-t-transparent rounded-full animate-spin absolute top-0"></div>
+                </div>
+                <p className="text-sm font-medium text-gray-600">Loading installment details...</p>
             </div>
         );
     }
 
     if (!installment) {
         return (
-            <div className="max-w-4xl mx-auto p-6">
-                <div className="bg-white rounded-2xl shadow-sm p-12 text-center">
-                    <div className="w-20 h-20 bg-red-50 rounded-full flex items-center justify-center mx-auto mb-4">
+            <div className="min-h-screen bg-gradient-to-br from-gray-50 to-white flex items-center justify-center p-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-2xl p-12 text-center max-w-md">
+                    <div className="w-20 h-20 bg-gradient-to-br from-red-100 to-rose-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <svg className="w-10 h-10 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                         </svg>
                     </div>
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Installment Plan Not Found</h2>
-                    <p className="text-gray-500 mb-6">The installment plan you're looking for doesn't exist.</p>
+                    <h2 className="text-2xl font-black text-gray-900 mb-2">Installment Plan Not Found</h2>
+                    <p className="text-gray-600 mb-6 font-medium">The installment plan you're looking for doesn't exist.</p>
                     <button
                         onClick={() => navigate('/installments/all')}
-                        className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition"
+                        className="px-6 py-3 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all duration-300 font-bold shadow-lg shadow-red-200 active:scale-95"
                     >
                         Back to Installment List
                     </button>
@@ -59,44 +62,52 @@ const InstallmentView = () => {
     }
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20">
-            {/* Header */}
-            <div className="bg-white rounded-2xl shadow-sm p-6">
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                    <div>
-                        <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-1">{installment.productName}</h1>
-                        <div className="flex items-center gap-3 flex-wrap">
-                            <p className="text-sm text-gray-500">ID: {installment.installmentPlanId || installment._id}</p>
-                            {installment.status && (
-                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium ${
-                                    installment.status === 'approved' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'
-                                }`}>
-                                    {installment.status}
-                                </span>
-                            )}
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50 px-4 sm:px-6 lg:px-8 py-8">
+            <div className="max-w-5xl mx-auto space-y-6 pb-20">
+                {/* Modern Header - v2.0.5 */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    
+                    <div className="relative">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h1 className="text-3xl font-black text-white tracking-tight mb-2">{installment.productName}</h1>
+                                <div className="flex items-center gap-3 flex-wrap">
+                                    <p className="text-red-100 text-sm font-medium">ID: {installment.installmentPlanId || installment._id}</p>
+                                    {installment.status && (
+                                        <span className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-bold shadow-lg border ${
+                                            installment.status === 'approved' 
+                                                ? 'bg-gradient-to-r from-green-500 to-emerald-600 text-white border-green-400' 
+                                                : 'bg-gradient-to-r from-orange-500 to-amber-600 text-white border-orange-400'
+                                        }`}>
+                                            {installment.status === 'approved' ? '✓ Approved' : '⏳ Pending'}
+                                        </span>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => navigate(`/installments/edit/${installment._id}`)}
+                                    className="px-6 py-3 bg-white text-red-600 rounded-xl hover:bg-red-50 transition-all duration-300 flex items-center gap-2 font-bold shadow-lg active:scale-95"
+                                >
+                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button
+                                    onClick={() => navigate('/installments/all')}
+                                    className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 transition-all duration-300 font-bold active:scale-95"
+                                >
+                                    Back
+                                </button>
+                            </div>
                         </div>
                     </div>
-                    <div className="flex gap-2">
-                        <button
-                            onClick={() => navigate(`/installments/edit/${installment._id}`)}
-                            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition flex items-center gap-2 text-sm font-medium"
-                        >
-                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                            </svg>
-                            Edit
-                        </button>
-                        <button
-                            onClick={() => navigate('/installments/all')}
-                            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition text-sm font-medium"
-                        >
-                            Back
-                        </button>
-                    </div>
                 </div>
-            </div>
 
-            {/* Images Gallery */}
+                {/* Images Gallery */}
             {installment.productImages && installment.productImages.length > 0 && (
                 <div className="bg-white rounded-2xl shadow-sm p-6">
                     <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
@@ -298,6 +309,7 @@ const InstallmentView = () => {
                         </div>
                     )}
                 </div>
+            </div>
             </div>
         </div>
     );
