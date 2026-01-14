@@ -675,6 +675,59 @@ const PropertyView = () => {
                 </div>
             )}
 
+            {/* Project Documents */}
+            {data?.documents && data.documents.length > 0 && (
+                <div className="bg-white/80 backdrop-blur-sm rounded-2xl border border-gray-200 shadow-lg p-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-10 h-10 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                            <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-black text-gray-900 uppercase tracking-tight">
+                                Project Documents
+                            </h3>
+                            <p className="text-xs text-gray-500 font-medium mt-0.5">
+                                {data.documents.length} document{data.documents.length !== 1 ? 's' : ''} available
+                            </p>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {data.documents.map((doc, idx) => (
+                            <div key={idx} className="bg-gradient-to-br from-gray-50 to-white border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 hover:shadow-md transition-all group">
+                                <div className="flex items-start gap-3">
+                                    <div className="w-12 h-12 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <svg className="w-6 h-6 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <h4 className="text-sm font-black text-gray-900 mb-1 truncate">
+                                            {doc.title}
+                                        </h4>
+                                        <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mb-2">
+                                            {doc.type}
+                                        </p>
+                                        <a
+                                            href={doc.fileUrl}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex items-center gap-2 px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all active:scale-95"
+                                        >
+                                            <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                            Download
+                                        </a>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
+
             {/* Timestamps */}
             <div className="bg-gray-50 rounded-2xl p-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">

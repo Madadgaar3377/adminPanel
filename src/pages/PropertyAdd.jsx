@@ -54,11 +54,17 @@ const PropertyAdd = () => {
     const [loading, setLoading] = useState(false);
     const [fetchingProperty, setFetchingProperty] = useState(false);
     const [uploadingImages, setUploadingImages] = useState(false);
+    const [uploadingDocument, setUploadingDocument] = useState(false);
     const [uploadError, setUploadError] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
     const [toast, setToast] = useState(null);
     const [currentStep, setCurrentStep] = useState(1);
+    const [documentForm, setDocumentForm] = useState({
+        title: '',
+        type: '',
+        file: null
+    });
 
     const showToast = (message, type) => {
         setToast({ message, type });
@@ -282,6 +288,7 @@ const PropertyAdd = () => {
             additionalInfo: '',
         },
         images: [],
+        documents: [],
         contact: {
             name: '',
             email: '',
@@ -372,6 +379,87 @@ const PropertyAdd = () => {
                 images: prev.images.filter((_, i) => i !== index)
             }));
         }
+    };
+
+    // Handle document upload
+    const handleDocumentUpload = async (e) => {
+        e.preventDefault();
+        
+        if (!documentForm.title || !documentForm.type || !documentForm.file) {
+            showToast('⚠️ Please fill in all document fields and select a file', 'error');
+            return;
+        }
+
+        // Validate file size (5MB limit for documents)
+        if (documentForm.file.size > 5 * 1024 * 1024) {
+            showToast('⚠️ Document file size exceeds 5MB limit', 'error');
+            return;
+        }
+
+        setUploadingDocument(true);
+        setUploadError('');
+
+        try {
+            const formData = new FormData();
+            formData.append('document', documentForm.file);
+
+            const response = await fetch(`${ApiBaseUrl}/upload-document`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.success && (data.url || data.documentUrl || data.fileUrl)) {
+                const documentData = {
+                    title: documentForm.title,
+                    type: documentForm.type,
+                    fileUrl: data.url || data.documentUrl || data.fileUrl
+                };
+
+                if (propertyType === 'Project') {
+                    setProjectData(prev => ({
+                        ...prev,
+                        documents: [...prev.documents, documentData]
+                    }));
+                } else {
+                    setIndividualData(prev => ({
+                        ...prev,
+                        documents: [...prev.documents, documentData]
+                    }));
+                }
+
+                // Reset form
+                setDocumentForm({ title: '', type: '', file: null });
+                document.getElementById('documentFileInput').value = '';
+                
+                showToast('✓ Document uploaded successfully!', 'success');
+            } else {
+                throw new Error(data.message || 'Upload failed');
+            }
+        } catch (err) {
+            const errorMsg = err.message || 'Failed to upload document. Please try again.';
+            setUploadError(errorMsg);
+            showToast(errorMsg, 'error');
+        } finally {
+            setUploadingDocument(false);
+        }
+    };
+
+    // Remove document
+    const removeDocument = (index) => {
+        if (propertyType === 'Project') {
+            setProjectData(prev => ({
+                ...prev,
+                documents: prev.documents.filter((_, i) => i !== index)
+            }));
+        } else {
+            setIndividualData(prev => ({
+                ...prev,
+                documents: prev.documents.filter((_, i) => i !== index)
+            }));
+        }
+        showToast('Document removed', 'success');
     };
 
     const fetchProperty = useCallback(async () => {
@@ -506,6 +594,7 @@ const PropertyAdd = () => {
                             additionalInfo: '',
                         },
                         images: property.individualProperty.images || [],
+                        documents: property.individualProperty.documents || [],
                         contact: property.individualProperty.contact || {
                             name: '',
                             email: '',
@@ -1417,14 +1506,14 @@ const PropertyAdd = () => {
                                         value={projectData.totalLandArea}
                                         onChange={(e) => handleProjectChange('totalLandArea', e.target.value)}
                                             placeholder="e.g., 50, 100"
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-                                    </div>
+                                        className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                    />
+                                </div>
 
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                <div>
+                                    <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
                                             Land Area Unit
-                                        </label>
+                                    </label>
                                         <select
                                             value={projectData.landAreaUnit}
                                             onChange={(e) => handleProjectChange('landAreaUnit', e.target.value)}
@@ -1464,6 +1553,162 @@ const PropertyAdd = () => {
                                         rows="3"
                                         className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none resize-none"
                                     />
+                                </div>
+
+                                {/* Project Documents */}
+                                <div className="pt-6 border-t-2 border-gray-200">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                <div>
+                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                                                Project Documents
+                                            </h4>
+                                            <p className="text-[10px] text-gray-500 font-medium">
+                                                Upload brochures, plans, NOCs, etc.
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Document Upload Form */}
+                                    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border-2 border-gray-200 p-5 mb-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Document Title *
+                                    </label>
+                                                <input
+                                                    type="text"
+                                                    value={documentForm.title}
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, title: e.target.value }))}
+                                                    placeholder="e.g., Project Brochure 2024"
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none"
+                                    />
+                                </div>
+                                            <div>
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Document Type *
+                                                </label>
+                                                <select
+                                                    value={documentForm.type}
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, type: e.target.value }))}
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none"
+                                                >
+                                                    <option value="">Select Type</option>
+                                                    <option value="Brochures / Project Booklets">Brochures / Project Booklets</option>
+                                                    <option value="Pricing & Availability List">Pricing & Availability List</option>
+                                                    <option value="No Objection Certificates (NOCs)">No Objection Certificates (NOCs)</option>
+                                                    <option value="Development / Building Plan Approval">Development / Building Plan Approval</option>
+                                                    <option value="Installment Plan / Payment Schedule">Installment Plan / Payment Schedule</option>
+                                                    <option value="Master Layout Plan">Master Layout Plan</option>
+                                                    <option value="Floor Plans / Unit Plans">Floor Plans / Unit Plans</option>
+                                                    <option value="Agreement Drafts (Sample Sale or Booking)">Agreement Drafts (Sample Sale or Booking)</option>
+                                                    <option value="Terms & Conditions for Booking / Sale">Terms & Conditions for Booking / Sale</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Select File * (PDF, DOC, DOCX - Max 5MB)
+                                                </label>
+                                                <input
+                                                    id="documentFileInput"
+                                                    type="file"
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, file: e.target.files[0] }))}
+                                                    disabled={uploadingDocument}
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-dashed border-gray-300 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDocumentUpload}
+                                                    disabled={uploadingDocument || !documentForm.title || !documentForm.type || !documentForm.file}
+                                                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:from-indigo-700 hover:to-indigo-800 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 flex items-center gap-2 whitespace-nowrap"
+                                                >
+                                                    {uploadingDocument ? (
+                                                        <>
+                                                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Uploading...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                            </svg>
+                                                            Upload
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Uploaded Documents List */}
+                                    {projectData.documents.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-black text-gray-700 uppercase tracking-wider mb-3">
+                                                Uploaded Documents ({projectData.documents.length})
+                                            </p>
+                                            {projectData.documents.map((doc, idx) => (
+                                                <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-all group">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h5 className="text-sm font-black text-gray-900 truncate">{doc.title}</h5>
+                                                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mt-1">
+                                                                {doc.type}
+                                                            </p>
+                                                            <a 
+                                                                href={doc.fileUrl} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="text-[10px] text-gray-500 hover:text-indigo-600 font-medium truncate block mt-1"
+                                                            >
+                                                                View Document →
+                                                            </a>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDocument(idx)}
+                                                            className="w-8 h-8 bg-red-100 hover:bg-red-600 text-red-600 hover:text-white rounded-lg flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
+                                                            title="Remove Document"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {projectData.documents.length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                No Documents Uploaded Yet
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
@@ -1546,38 +1791,38 @@ const PropertyAdd = () => {
                                                                 <option value="Retail / Shop / Showroom">Retail / Shop / Showroom</option>
                                                                 <option value="Warehouse / Industrial Unit">Warehouse / Industrial Unit</option>
                                                             </select>
-                                                        </div>
+                                </div>
 
-                                                        <div>
+                                    <div>
                                                             <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                 Number of Units
-                                                            </label>
-                                                <input
-                                                                type="number"
+                                        </label>
+                                        <input
+                                            type="number"
                                                                 value={unit.numberOfUnits}
                                                                 onChange={(e) => handleUnitChange(index, 'numberOfUnits', e.target.value)}
                                                                 placeholder="e.g., 50"
                                                                 className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                            />
-                                                        </div>
+                                        />
+                                    </div>
 
-                                                        <div>
+                                    <div>
                                                             <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                 Unit Size
-                                            </label>
-                                                            <input
-                                                                type="text"
+                                        </label>
+                                        <input
+                                            type="text"
                                                                 value={unit.unitSize}
                                                                 onChange={(e) => handleUnitChange(index, 'unitSize', e.target.value)}
                                                                 placeholder="e.g., 1200"
                                                                 className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                            />
-                                                        </div>
+                                        />
+                                    </div>
 
                                                         <div>
                                                             <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                 Unit Size Unit
-                                                            </label>
+                                        </label>
                                                             <select
                                                                 value={unit.unitSizeUnit}
                                                                 onChange={(e) => handleUnitChange(index, 'unitSizeUnit', e.target.value)}
@@ -1589,8 +1834,8 @@ const PropertyAdd = () => {
                                                                 <option value="marla">Marla</option>
                                                                 <option value="kanal">Kanal</option>
                                                             </select>
-                                    </div>
                                 </div>
+                            </div>
 
                                                     {/* Transaction Details */}
                                                     <div className="mt-6 pt-6 border-t-2 border-gray-100">
@@ -1602,29 +1847,29 @@ const PropertyAdd = () => {
                                                         </h5>
                                                         
                                                         <div className="space-y-4">
-                                    <div>
+                                <div>
                                                                 <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                     Transaction Type
-                                                                </label>
-                                                                <select
+                                    </label>
+                                    <select
                                                                     value={unit.transaction.type}
                                                                     onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'type')}
                                                                     className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                >
-                                                                    <option value="Sale">For Sale</option>
-                                                                    <option value="Rent">For Rent</option>
-                                                                    <option value="Installment">For Installment</option>
-                                                                </select>
-                                                            </div>
+                                    >
+                                        <option value="Sale">For Sale</option>
+                                        <option value="Rent">For Rent</option>
+                                        <option value="Installment">For Installment</option>
+                                    </select>
+                                </div>
 
                                                             {unit.transaction.type === 'Sale' && (
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                                    <div>
+                                    <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                             Price (PKR) *
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                        </label>
+                                        <input
+                                            type="number"
                                                                             value={unit.transaction.price}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'price')}
                                                                             placeholder="e.g., 15000000"
@@ -1643,95 +1888,95 @@ const PropertyAdd = () => {
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
                                                                         />
                                                                     </div>
-                                                                </div>
-                                                            )}
+                                    </div>
+                                )}
 
                                                             {unit.transaction.type === 'Rent' && (
                                                                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                                                    <div>
+                                        <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Advance Amount
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                                Advance Amount
+                                            </label>
+                                            <input
+                                                type="number"
                                                                             value={unit.transaction.advanceAmount}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'advanceAmount')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
+                                            />
+                                        </div>
+                                        <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Monthly Rent
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                                Monthly Rent
+                                            </label>
+                                            <input
+                                                type="number"
                                                                             value={unit.transaction.monthlyRent}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'monthlyRent')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
+                                            />
+                                        </div>
+                                        <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Contract Duration
-                                                                        </label>
-                                                                        <input
-                                                                            type="text"
+                                                Contract Duration
+                                            </label>
+                                            <input
+                                                type="text"
                                                                             value={unit.transaction.contractDuration}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'contractDuration')}
-                                                                            placeholder="e.g., 1 year"
+                                                placeholder="e.g., 1 year"
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                </div>
-                                                            )}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                                             {unit.transaction.type === 'Installment' && (
                                                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                                                    <div>
+                                            <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Booking Amount
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                                    Booking Amount
+                                                </label>
+                                                <input
+                                                    type="number"
                                                                             value={unit.transaction.bookingAmount}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'bookingAmount')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
+                                                />
+                                            </div>
+                                            <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Down Payment
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                                    Down Payment
+                                                </label>
+                                                <input
+                                                    type="number"
                                                                             value={unit.transaction.downPayment}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'downPayment')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
+                                                />
+                                            </div>
+                                            <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Monthly Installment
-                                                                        </label>
-                                                                        <input
-                                                                            type="number"
+                                                    Monthly Installment
+                                                </label>
+                                                <input
+                                                    type="number"
                                                                             value={unit.transaction.monthlyInstallment}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'monthlyInstallment')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
-                                                                    <div>
+                                                />
+                                            </div>
+                                            <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Tenure
-                                                                        </label>
-                                                                        <input
-                                                                            type="text"
+                                                    Tenure
+                                                </label>
+                                                <input
+                                                    type="text"
                                                                             value={unit.transaction.tenure}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'tenure')}
-                                                                            placeholder="e.g., 3 years"
+                                                    placeholder="e.g., 3 years"
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
+                                                />
+                                            </div>
                                                                     <div className="sm:col-span-2">
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                             Total Payable
@@ -1742,7 +1987,7 @@ const PropertyAdd = () => {
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'totalPayable')}
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
                                                                         />
-                                                                    </div>
+                                        </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -1762,9 +2007,9 @@ const PropertyAdd = () => {
                                         <div>
                                             <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                 Total Approx. Units
-                                        </label>
-                                        <input
-                                            type="number"
+                                            </label>
+                                            <input
+                                                type="number"
                                             value={projectData.totalUnits}
                                             onChange={(e) => handleProjectChange('totalUnits', e.target.value)}
                                                 placeholder="e.g., 200"
@@ -1784,9 +2029,9 @@ const PropertyAdd = () => {
                                         />
                                         </div>
                                     </div>
-                                </div>
-                            </div>
-                        )}
+                                        </div>
+                                    </div>
+                                )}
 
                         {/* Amenities Tab for Project */}
                         {activeTab === 'amenities' && (
@@ -1821,7 +2066,7 @@ const PropertyAdd = () => {
                                                 <span className="text-xs font-bold text-gray-700 group-hover:text-red-600 transition-colors">
                                                     {amenity.label}
                                             </span>
-                                        </label>
+                                    </label>
                                     ))}
                                     </div>
                                 </div>
@@ -2987,7 +3232,7 @@ const PropertyAdd = () => {
                         {activeTab === 'contact' && (
                             <div className="space-y-4 xs:space-y-6">
                                 <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
-                                    Contact Information
+                                    Contact Information & Documents
                                 </h3>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
@@ -3062,6 +3307,162 @@ const PropertyAdd = () => {
                                             <option value="Email">Email</option>
                                         </select>
                                     </div>
+                                </div>
+
+                                {/* Property Documents */}
+                                <div className="pt-6 border-t-2 border-gray-200">
+                                    <div className="flex items-center gap-3 mb-4">
+                                        <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-indigo-600 rounded-xl flex items-center justify-center">
+                                            <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                            </svg>
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider">
+                                                Property Documents
+                                            </h4>
+                                            <p className="text-[10px] text-gray-500 font-medium">
+                                                Upload relevant documents
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    {/* Document Upload Form */}
+                                    <div className="bg-gradient-to-br from-gray-50 to-white rounded-2xl border-2 border-gray-200 p-5 mb-4">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
+                                            <div>
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Document Title *
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={documentForm.title}
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, title: e.target.value }))}
+                                                    placeholder="e.g., Ownership Documents"
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Document Type *
+                                                </label>
+                                                <select
+                                                    value={documentForm.type}
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, type: e.target.value }))}
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none"
+                                                >
+                                                    <option value="">Select Type</option>
+                                                    <option value="Brochures / Project Booklets">Brochures / Project Booklets</option>
+                                                    <option value="Pricing & Availability List">Pricing & Availability List</option>
+                                                    <option value="No Objection Certificates (NOCs)">No Objection Certificates (NOCs)</option>
+                                                    <option value="Development / Building Plan Approval">Development / Building Plan Approval</option>
+                                                    <option value="Installment Plan / Payment Schedule">Installment Plan / Payment Schedule</option>
+                                                    <option value="Master Layout Plan">Master Layout Plan</option>
+                                                    <option value="Floor Plans / Unit Plans">Floor Plans / Unit Plans</option>
+                                                    <option value="Agreement Drafts (Sample Sale or Booking)">Agreement Drafts (Sample Sale or Booking)</option>
+                                                    <option value="Terms & Conditions for Booking / Sale">Terms & Conditions for Booking / Sale</option>
+                                                    <option value="Other">Other</option>
+                                                </select>
+                                            </div>
+                                        </div>
+                                        <div className="flex gap-3">
+                                            <div className="flex-1">
+                                                <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
+                                                    Select File * (PDF, DOC, DOCX - Max 5MB)
+                                                </label>
+                                                <input
+                                                    id="documentFileInput"
+                                                    type="file"
+                                                    accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                                                    onChange={(e) => setDocumentForm(prev => ({ ...prev, file: e.target.files[0] }))}
+                                                    disabled={uploadingDocument}
+                                                    className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-dashed border-gray-300 focus:border-indigo-600 rounded-lg text-xs font-bold transition-all outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                                                />
+                                            </div>
+                                            <div className="flex items-end">
+                                                <button
+                                                    type="button"
+                                                    onClick={handleDocumentUpload}
+                                                    disabled={uploadingDocument || !documentForm.title || !documentForm.type || !documentForm.file}
+                                                    className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-indigo-700 text-white rounded-xl font-bold text-xs uppercase tracking-wider hover:from-indigo-700 hover:to-indigo-800 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 flex items-center gap-2 whitespace-nowrap"
+                                                >
+                                                    {uploadingDocument ? (
+                                                        <>
+                                                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                                                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                                            </svg>
+                                                            Uploading...
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                                            </svg>
+                                                            Upload
+                                                        </>
+                                                    )}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* Uploaded Documents List */}
+                                    {individualData.documents.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-xs font-black text-gray-700 uppercase tracking-wider mb-3">
+                                                Uploaded Documents ({individualData.documents.length})
+                                            </p>
+                                            {individualData.documents.map((doc, idx) => (
+                                                <div key={idx} className="bg-white border-2 border-gray-200 rounded-xl p-4 hover:border-indigo-300 transition-all group">
+                                                    <div className="flex items-start gap-3">
+                                                        <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                            </svg>
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <h5 className="text-sm font-black text-gray-900 truncate">{doc.title}</h5>
+                                                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-wider mt-1">
+                                                                {doc.type}
+                                                            </p>
+                                                            <a 
+                                                                href={doc.fileUrl} 
+                                                                target="_blank" 
+                                                                rel="noopener noreferrer"
+                                                                className="text-[10px] text-gray-500 hover:text-indigo-600 font-medium truncate block mt-1"
+                                                            >
+                                                                View Document →
+                                                            </a>
+                                                        </div>
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => removeDocument(idx)}
+                                                            className="w-8 h-8 bg-red-100 hover:bg-red-600 text-red-600 hover:text-white rounded-lg flex items-center justify-center transition-all active:scale-95 flex-shrink-0"
+                                                            title="Remove Document"
+                                                        >
+                                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                            </svg>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {individualData.documents.length === 0 && (
+                                        <div className="text-center py-8 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                            <div className="w-12 h-12 bg-gray-100 rounded-xl flex items-center justify-center mx-auto mb-3">
+                                                <svg className="w-6 h-6 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                                No Documents Uploaded Yet
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         )}
