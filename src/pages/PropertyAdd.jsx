@@ -71,6 +71,12 @@ const PropertyAdd = () => {
     };
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // User search for auto-fill contact
+    const [searchUserId, setSearchUserId] = useState('');
+    const [userFound, setUserFound] = useState(null);
+    const [allUsers, setAllUsers] = useState([]);
+    const [loadingUsers, setLoadingUsers] = useState(false);
+
     // Main property type selection
     const [propertyType, setPropertyType] = useState('Project'); // 'Project' or 'Individual'
 
@@ -620,11 +626,96 @@ const PropertyAdd = () => {
     }, [id]);
 
     // Fetch property data for edit mode
+    // Fetch all users on component mount
+    useEffect(() => {
+        const fetchAllUsers = async () => {
+            setLoadingUsers(true);
+            try {
+                const authData = JSON.parse(localStorage.getItem('adminAuth'));
+                const res = await fetch(`${ApiBaseUrl}/getAllUsers`, {
+                    headers: {
+                        Authorization: `Bearer ${authData.token}`
+                    }
+                });
+                const data = await res.json();
+                
+                if (data.success && data.users) {
+                    setAllUsers(data.users);
+                } else {
+                    console.error('Failed to fetch users:', data.message);
+                }
+            } catch (err) {
+                console.error('Error fetching users:', err);
+            } finally {
+                setLoadingUsers(false);
+            }
+        };
+
+        fetchAllUsers();
+    }, []);
+
     useEffect(() => {
         if (id) {
             fetchProperty();
         }
     }, [id, fetchProperty]);
+
+    // Search user from loaded users list
+    const handleSearchUser = () => {
+        if (!searchUserId.trim()) {
+            showToast('Please enter a User ID', 'error');
+            return;
+        }
+
+        setUserFound(null);
+
+        // Search for user in the loaded users array
+        const foundUser = allUsers.find(user => 
+            user.userId && user.userId.toLowerCase() === searchUserId.toLowerCase()
+        );
+        
+        if (foundUser) {
+            setUserFound(foundUser);
+            
+            // Auto-fill contact information
+            const contactData = {
+                name: foundUser.name || '',
+                email: foundUser.email || '',
+                number: foundUser.phoneNumber || '',
+                whatsapp: foundUser.WhatsappNumber || '',
+                cnic: foundUser.cnicNumber || '',
+                city: foundUser.Address || '',
+                area: foundUser.Address || '',
+                companyName: projectData.contact.companyName || '', // Keep existing if any
+                designation: projectData.contact.designation || '', // Keep existing if any
+            };
+
+            if (propertyType === 'Project') {
+                setProjectData(prev => ({
+                    ...prev,
+                    contact: contactData
+                }));
+            } else {
+                const individualContactData = {
+                    name: foundUser.name || '',
+                    email: foundUser.email || '',
+                    number: foundUser.phoneNumber || '',
+                    whatsapp: foundUser.WhatsappNumber || '',
+                    cnic: foundUser.cnicNumber || '',
+                    city: foundUser.Address || '',
+                    area: foundUser.Address || '',
+                };
+                setIndividualData(prev => ({
+                    ...prev,
+                    contact: individualContactData
+                }));
+            }
+
+            showToast('User found! Contact fields auto-filled.', 'success');
+        } else {
+            showToast('User not found. Please check the User ID.', 'error');
+        }
+    };
 
     const handleProjectChange = (field, value, nested = null) => {
         if (nested) {
@@ -725,12 +816,44 @@ const PropertyAdd = () => {
         setSuccess('');
 
         try {
+            // Validate required fields for Project type
+            if (propertyType === 'Project') {
+                if (!projectData.city) {
+                    showToast('Please select a City', 'error');
+                    setLoading(false);
+                    return;
+                }
+                if (!projectData.projectStage) {
+                    showToast('Please select a Project Stage', 'error');
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             
+            // Helper function to clean empty enum values
+            const cleanEnumFields = (data) => {
+                if (!data) return data;
+                
+                const cleaned = { ...data };
+                
+                // Remove empty string enum fields to prevent validation errors
+                const enumFields = ['city', 'projectStage', 'projectType', 'landAreaUnit'];
+                
+                enumFields.forEach(field => {
+                    if (cleaned[field] === '') {
+                        delete cleaned[field];
+                    }
+                });
+                
+                return cleaned;
+            };
+            
              // Prepare the data object to match backend expectations
-            const propertyData = {
+            let propertyData = {
                 type: propertyType,
-                project: propertyType === 'Project' ? projectData : undefined,
+                project: propertyType === 'Project' ? cleanEnumFields(projectData) : undefined,
                 individualProperty: propertyType === 'Individual' ? individualData : undefined,
             };
 
@@ -738,6 +861,11 @@ const PropertyAdd = () => {
             const payload = {
                 data: propertyData
             };
+
+            // Add userId if user was found via search
+            if (userFound && userFound.userId) {
+                payload.userId = userFound.userId;
+            }
 
             const url = id ? `${ApiBaseUrl}/updateProperty/${id}` : `${ApiBaseUrl}/createProperty`;
             const method = id ? 'PUT' : 'POST';
@@ -1162,61 +1290,14 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select City</option>
-                                            {cities.map((city) => (
-                                                <option key={city.value} value={city.value}>
-                                                    {city.title}
-                                                </option>
-                                            ))}
+                                            <option value="Karachi">Karachi</option>
+                                            <option value="Lahore">Lahore</option>
+                                            <option value="Islamabad">Islamabad</option>
+                                            <option value="Peshawar">Peshawar</option>
+                                            <option value="Quetta">Quetta</option>
+                                            <option value="Other">Other</option>
                                         </select>
                         </div>
-
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            District
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.district}
-                                            onChange={(e) => handleProjectChange('district', e.target.value)}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-                    </div>
-
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Tehsil / Town
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.tehsil}
-                                            onChange={(e) => handleProjectChange('tehsil', e.target.value)}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-                        </div>
-
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Area / Neighborhood / Sector
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.area}
-                                            onChange={(e) => handleProjectChange('area', e.target.value)}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-                    </div>
-
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Street / Block / Locality
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.street}
-                                            onChange={(e) => handleProjectChange('street', e.target.value)}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-        </div>
 
                                     <div className="sm:col-span-2">
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
@@ -1295,20 +1376,7 @@ const PropertyAdd = () => {
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Type of Development
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.developmentType}
-                                            onChange={(e) => handleProjectChange('developmentType', e.target.value)}
-                                            placeholder="e.g., Gated Community, Mixed Use"
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Infrastructure Status
+                                            Infrastructure Status & Development Type
                                         </label>
                                         <select
                                             value={projectData.infrastructureStatus}
@@ -1319,16 +1387,23 @@ const PropertyAdd = () => {
                                             <option value="Developed">Developed</option>
                                             <option value="Under Development">Under Development</option>
                                             <option value="New Project">New Project</option>
+                                            <option value="Gated Community - Developed">Gated Community - Developed</option>
+                                            <option value="Gated Community - Under Development">Gated Community - Under Development</option>
+                                            <option value="Mixed Use - Developed">Mixed Use - Developed</option>
+                                            <option value="Mixed Use - Under Development">Mixed Use - Under Development</option>
+                                            <option value="Open Development">Open Development</option>
+                                            <option value="Planned Community">Planned Community</option>
                                         </select>
                                     </div>
 
                                     <div>
                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                            Project Stage
+                                            Project Stage *
                                         </label>
                                         <select
                                             value={projectData.projectStage}
                                             onChange={(e) => handleProjectChange('projectStage', e.target.value)}
+                                            required
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select Stage</option>
@@ -1779,17 +1854,27 @@ const PropertyAdd = () => {
                                                             >
                                                                 <option value="">Select Type</option>
                                                                 <option value="Apartment / Flat">Apartment / Flat</option>
-                                                                <option value="Villa / House">Villa / House</option>
-                                                                <option value="Penthouse">Penthouse</option>
                                                                 <option value="Studio Apartment">Studio Apartment</option>
-                                                                <option value="Duplex / Triplex">Duplex / Triplex</option>
-                                                                <option value="Townhouse / Row House">Townhouse / Row House</option>
-                                                                <option value="Serviced Apartment">Serviced Apartment</option>
-                                                                <option value="Residential Plot / Land">Residential Plot / Land</option>
-                                                                <option value="Commercial Plot / Land">Commercial Plot / Land</option>
-                                                                <option value="Office / Office Space">Office / Office Space</option>
-                                                                <option value="Retail / Shop / Showroom">Retail / Shop / Showroom</option>
-                                                                <option value="Warehouse / Industrial Unit">Warehouse / Industrial Unit</option>
+                                                                <option value="1 Bed Apartment">1 Bed Apartment</option>
+                                                                <option value="2 Bed Apartment">2 Bed Apartment</option>
+                                                                <option value="3 Bed Apartment">3 Bed Apartment</option>
+                                                                <option value="4 Bed Apartment">4 Bed Apartment</option>
+                                                                <option value="5 Bed Apartment">5 Bed Apartment</option>
+                                                                <option value="6 Bed Apartment">6 Bed Apartment</option>
+                                                                <option value="Hotel Suites">Hotel Suites</option>
+                                                                <option value="Rooms">Rooms</option>
+                                                                <option value="Plot / Land (Commercial)">Plot / Land (Commercial)</option>
+                                                                <option value="Plot / Land (Residential)">Plot / Land (Residential)</option>
+                                                                <option value="House">House</option>
+                                                                <option value="Villas">Villas</option>
+                                                                <option value="Townhouse">Townhouse</option>
+                                                                <option value="Penthouse">Penthouse</option>
+                                                                <option value="Farmhouse / Country House">Farmhouse / Country House</option>
+                                                                <option value="Shop / Retail Unit">Shop / Retail Unit</option>
+                                                                <option value="Office / Corporate Space">Office / Corporate Space</option>
+                                                                <option value="Warehouse / Storage Unit">Warehouse / Storage Unit</option>
+                                                                <option value="Industrial Unit">Industrial Unit</option>
+                                                                <option value="Other">Other (Specify)</option>
                                                             </select>
                                 </div>
 
@@ -1997,41 +2082,8 @@ const PropertyAdd = () => {
                                         ))}
                                     </div>
                                 )}
-
-                                {/* General Info */}
-                                <div className="mt-8 pt-6 border-t-2 border-gray-200">
-                                    <h4 className="text-sm font-black text-gray-900 uppercase tracking-wider mb-4">
-                                        General Information
-                                    </h4>
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                Total Approx. Units
-                                            </label>
-                                            <input
-                                                type="number"
-                                            value={projectData.totalUnits}
-                                            onChange={(e) => handleProjectChange('totalUnits', e.target.value)}
-                                                placeholder="e.g., 200"
-                                                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                        />
-                                    </div>
-                                    <div>
-                                            <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                            Typical Unit Sizes
-                                        </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.typicalUnitSizes}
-                                            onChange={(e) => handleProjectChange('typicalUnitSizes', e.target.value)}
-                                            placeholder="e.g., 1200-2000 sq. ft"
-                                                className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                        />
-                                        </div>
-                                    </div>
-                                        </div>
-                                    </div>
-                                )}
+                            </div>
+                        )}
 
                         {/* Amenities Tab for Project */}
                         {activeTab === 'amenities' && (
@@ -2377,6 +2429,60 @@ const PropertyAdd = () => {
                                 <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
                                     Contact Information
                                 </h3>
+                                
+                                {/* User ID Search */}
+                                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 xs:p-6 border-2 border-indigo-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <h4 className="text-xs xs:text-sm font-black text-indigo-900 uppercase tracking-wider">
+                                            Auto-Fill from User Database {loadingUsers && <span className="text-[10px] text-indigo-500">(Loading...)</span>}
+                                        </h4>
+                                    </div>
+                                    {loadingUsers ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <div className="flex items-center gap-2 text-indigo-600">
+                                                <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="text-xs font-bold">Loading users database...</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={searchUserId}
+                                                    onChange={(e) => setSearchUserId(e.target.value)}
+                                                    placeholder={`Enter User ID (${allUsers.length} users loaded)`}
+                                                    className="flex-1 px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-indigo-200 focus:border-indigo-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSearchUser}
+                                                    disabled={loadingUsers || !searchUserId.trim()}
+                                                    className="px-4 xs:px-6 py-2.5 xs:py-3 bg-gradient-to-br from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg xs:rounded-xl font-black text-[10px] xs:text-xs uppercase tracking-wider transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                    <span>Search</span>
+                                                </button>
+                                            </div>
+                                            {userFound && (
+                                                <div className="mt-3 px-3 py-2 bg-green-100 border-2 border-green-300 rounded-lg">
+                                                    <p className="text-[10px] xs:text-xs font-bold text-green-800 flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        User Found: {userFound.name} ({userFound.email})
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
                                     <div>
@@ -3234,6 +3340,60 @@ const PropertyAdd = () => {
                                 <h3 className="text-base xs:text-lg font-black text-gray-900 uppercase tracking-tighter pb-3 xs:pb-4 border-b border-gray-100">
                                     Contact Information & Documents
                                 </h3>
+                                
+                                {/* User ID Search */}
+                                <div className="bg-gradient-to-br from-indigo-50 to-blue-50 rounded-xl p-4 xs:p-6 border-2 border-indigo-200">
+                                    <div className="flex items-center gap-2 mb-3">
+                                        <svg className="w-5 h-5 text-indigo-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                        </svg>
+                                        <h4 className="text-xs xs:text-sm font-black text-indigo-900 uppercase tracking-wider">
+                                            Auto-Fill from User Database {loadingUsers && <span className="text-[10px] text-indigo-500">(Loading...)</span>}
+                                        </h4>
+                                    </div>
+                                    {loadingUsers ? (
+                                        <div className="flex items-center justify-center py-4">
+                                            <div className="flex items-center gap-2 text-indigo-600">
+                                                <div className="w-5 h-5 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+                                                <span className="text-xs font-bold">Loading users database...</span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <div className="flex gap-2">
+                                                <input
+                                                    type="text"
+                                                    value={searchUserId}
+                                                    onChange={(e) => setSearchUserId(e.target.value)}
+                                                    placeholder={`Enter User ID (${allUsers.length} users loaded)`}
+                                                    className="flex-1 px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-indigo-200 focus:border-indigo-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
+                                                    onKeyPress={(e) => e.key === 'Enter' && handleSearchUser()}
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={handleSearchUser}
+                                                    disabled={loadingUsers || !searchUserId.trim()}
+                                                    className="px-4 xs:px-6 py-2.5 xs:py-3 bg-gradient-to-br from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-lg xs:rounded-xl font-black text-[10px] xs:text-xs uppercase tracking-wider transition-all shadow-lg hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                                                >
+                                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                                    </svg>
+                                                    <span>Search</span>
+                                                </button>
+                                            </div>
+                                            {userFound && (
+                                                <div className="mt-3 px-3 py-2 bg-green-100 border-2 border-green-300 rounded-lg">
+                                                    <p className="text-[10px] xs:text-xs font-bold text-green-800 flex items-center gap-2">
+                                                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                        </svg>
+                                                        User Found: {userFound.name} ({userFound.email})
+                                                    </p>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
                                 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
                                     <div>

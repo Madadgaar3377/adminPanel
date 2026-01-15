@@ -54,7 +54,7 @@ const PropertyList = () => {
             const data = await res.json();
             if (data.success) {
                 setProperties(properties.filter(p => {
-                    const pid = p.project?.contact?.propertyId || p.individualProperty?.contact?.propertyId;
+                    const pid = p.project?.propertyId || p.individualProperty?.propertyId;
                     return pid !== propertyId;
                 }));
                 alert('Property deleted successfully!');
@@ -80,7 +80,7 @@ const PropertyList = () => {
                 units: property.project.totalUnits || 'N/A',
                 images: property.project.images || [],
                 contact: property.project.contact?.name || 'N/A',
-                propertyId: property.project.contact?.propertyId || property._id,
+                propertyId: property.project.propertyId || property._id,
                 description: property.project.description || '',
                 projectType: property.project.projectType || 'N/A',
             };
@@ -96,7 +96,7 @@ const PropertyList = () => {
                 bathrooms: property.individualProperty.bathrooms || 0,
                 images: property.individualProperty.images || [],
                 contact: property.individualProperty.contact?.name || 'N/A',
-                propertyId: property.individualProperty.contact?.propertyId || property._id,
+                propertyId: property.individualProperty.propertyId || property._id,
                 description: property.individualProperty.description || '',
                 propertyType: property.individualProperty.propertyType || 'N/A',
             };
