@@ -71,6 +71,69 @@ const PropertyAdd = () => {
     };
     const [isEditMode, setIsEditMode] = useState(false);
 
+    // Project Sub-Type options based on Project Type
+    const projectSubTypeOptions = {
+        'Residential': [
+            'Apartment / Flats',
+            'Houses / Villas',
+            'Townhouses',
+            'Plots / Residential Land',
+            'Farmhouses',
+            'High-Rise Residential Buildings',
+            'Gated Communities'
+        ],
+        'Commercial': [
+            'Office Buildings',
+            'Business Centers',
+            'Corporate Towers',
+            'Co-Working Spaces'
+        ],
+        'Retail': [
+            'Shops',
+            'Shopping Malls',
+            'Plazas',
+            'Markets',
+            'Retail / Commercial Centers'
+        ],
+        'Mixed-Use': [
+            'Residential + Commercial',
+            'Residential + Retail',
+            'Commercial + Retail',
+            'Integrated Townships'
+        ],
+        'Industrial': [
+            'Factories',
+            'Warehouses',
+            'Industrial Units',
+            'Logistics Parks'
+        ],
+        'Hospitality': [
+            'Hotels',
+            'Resorts',
+            'Serviced Apartments',
+            'Guest Houses'
+        ],
+        'Healthcare': [
+            'Hospitals',
+            'Clinics',
+            'Medical Centers'
+        ],
+        'Educational': [
+            'Schools',
+            'Colleges',
+            'Universities',
+            'Training Institute'
+        ],
+        'Special Purpose': [
+            'Housing Schemes',
+            'Retirement Homes',
+            'Smart Cities',
+            'Affordable Housing Projects',
+            'SEZ (Special Economic Zones)',
+            'Agricultural / Farm Lands'
+        ]
+    };
+
     // User search for auto-fill contact
     const [searchUserId, setSearchUserId] = useState('');
     const [userFound, setUserFound] = useState(null);
@@ -727,7 +790,12 @@ const PropertyAdd = () => {
                 }
             }));
         } else {
-            setProjectData(prev => ({ ...prev, [field]: value }));
+            // If projectType changes, reset projectSubType
+            if (field === 'projectType') {
+                setProjectData(prev => ({ ...prev, [field]: value, projectSubType: '' }));
+            } else {
+                setProjectData(prev => ({ ...prev, [field]: value }));
+            }
         }
     };
 
@@ -749,6 +817,20 @@ const PropertyAdd = () => {
         const newHighlights = [...projectData.highlights];
         newHighlights[index] = value;
         setProjectData(prev => ({ ...prev, highlights: newHighlights }));
+    };
+
+    const handleAddHighlight = () => {
+        setProjectData(prev => ({ 
+            ...prev, 
+            highlights: [...prev.highlights, ''] 
+        }));
+    };
+
+    const handleRemoveHighlight = (index) => {
+        if (projectData.highlights.length > 1) {
+            const newHighlights = projectData.highlights.filter((_, i) => i !== index);
+            setProjectData(prev => ({ ...prev, highlights: newHighlights }));
+        }
     };
 
     // Handle adding a new unit
@@ -1338,84 +1420,138 @@ const PropertyAdd = () => {
                                         />
                 </div>
 
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                    <div className="relative">
+                                        <label className="flex items-center gap-1.5 text-[9px] xs:text-[10px] font-black text-gray-700 uppercase tracking-wider xs:tracking-widest mb-2.5">
+                                            <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                                             Project Type *
                                         </label>
-                                        <select
-                                            value={projectData.projectType}
-                                            onChange={(e) => handleProjectChange('projectType', e.target.value)}
-                                            required
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        >
-                                            <option value="Residential">Residential</option>
-                                            <option value="Commercial">Commercial</option>
-                                            <option value="Industrial">Industrial</option>
-                                            <option value="Retail">Retail</option>
-                                            <option value="Mixed-Use">Mixed-Use</option>
-                                            <option value="Hospitality">Hospitality</option>
-                                            <option value="Healthcare">Healthcare</option>
-                                            <option value="Educational">Educational</option>
-                                            <option value="Special Purpose">Special Purpose</option>
-                                            <option value="Other">Other</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={projectData.projectType}
+                                                onChange={(e) => handleProjectChange('projectType', e.target.value)}
+                                                required
+                                                className="w-full pl-3 xs:pl-4 pr-8 xs:pr-10 py-3 xs:py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 focus:bg-red-50/30 hover:border-gray-300 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-semibold text-gray-700 transition-all outline-none appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                            >
+                                                <option value="Residential">🏠 Residential</option>
+                                                <option value="Commercial">🏢 Commercial</option>
+                                                <option value="Industrial">🏭 Industrial</option>
+                                                <option value="Retail">🛍️ Retail</option>
+                                                <option value="Mixed-Use">🌆 Mixed-Use</option>
+                                                <option value="Hospitality">🏨 Hospitality</option>
+                                                <option value="Healthcare">🏥 Healthcare</option>
+                                                <option value="Educational">🎓 Educational</option>
+                                                <option value="Special Purpose">⭐ Special Purpose</option>
+                                                <option value="Other">📋 Other</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-3 xs:right-4 flex items-center pointer-events-none">
+                                                <svg className="w-4 h-4 xs:w-5 xs:h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                    <div className="relative">
+                                        <label className="flex items-center gap-1.5 text-[9px] xs:text-[10px] font-black text-gray-700 uppercase tracking-wider xs:tracking-widest mb-2.5">
+                                            <span className="inline-block w-1.5 h-1.5 bg-blue-500 rounded-full"></span>
                                             Project Sub-Type
                                         </label>
-                                        <input
-                                            type="text"
-                                            value={projectData.projectSubType}
-                                            onChange={(e) => handleProjectChange('projectSubType', e.target.value)}
-                                            placeholder="e.g., Luxury Apartments, Gated Community"
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        />
+                                        <div className="relative">
+                                            <select
+                                                value={projectData.projectSubType}
+                                                onChange={(e) => handleProjectChange('projectSubType', e.target.value)}
+                                                className="w-full pl-3 xs:pl-4 pr-8 xs:pr-10 py-3 xs:py-3.5 bg-white border-2 border-gray-200 focus:border-blue-500 focus:bg-blue-50/30 hover:border-gray-300 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-semibold text-gray-700 transition-all outline-none appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                            >
+                                                <option value="">📌 Select Sub-Type</option>
+                                                {projectSubTypeOptions[projectData.projectType]?.map((subType, index) => (
+                                                    <option key={index} value={subType}>{subType}</option>
+                                                ))}
+                                            </select>
+                                            <div className="absolute inset-y-0 right-3 xs:right-4 flex items-center pointer-events-none">
+                                                <svg className="w-4 h-4 xs:w-5 xs:h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
+                                        {!projectData.projectSubType && projectData.projectType && (
+                                            <p className="mt-1.5 text-[10px] xs:text-xs text-blue-600 font-medium flex items-center gap-1">
+                                                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                </svg>
+                                                Please select a sub-type for {projectData.projectType}
+                                            </p>
+                                        )}
                                     </div>
 
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                    <div className="relative">
+                                        <label className="flex items-center gap-1.5 text-[9px] xs:text-[10px] font-black text-gray-700 uppercase tracking-wider xs:tracking-widest mb-2.5">
+                                            <span className="inline-block w-1.5 h-1.5 bg-purple-500 rounded-full"></span>
                                             Infrastructure Status & Development Type
                                         </label>
-                                        <select
-                                            value={projectData.infrastructureStatus}
-                                            onChange={(e) => handleProjectChange('infrastructureStatus', e.target.value)}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        >
-                                            <option value="">Select Status</option>
-                                            <option value="Developed">Developed</option>
-                                            <option value="Under Development">Under Development</option>
-                                            <option value="New Project">New Project</option>
-                                            <option value="Gated Community - Developed">Gated Community - Developed</option>
-                                            <option value="Gated Community - Under Development">Gated Community - Under Development</option>
-                                            <option value="Mixed Use - Developed">Mixed Use - Developed</option>
-                                            <option value="Mixed Use - Under Development">Mixed Use - Under Development</option>
-                                            <option value="Open Development">Open Development</option>
-                                            <option value="Planned Community">Planned Community</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={projectData.infrastructureStatus}
+                                                onChange={(e) => handleProjectChange('infrastructureStatus', e.target.value)}
+                                                className="w-full pl-3 xs:pl-4 pr-8 xs:pr-10 py-3 xs:py-3.5 bg-white border-2 border-gray-200 focus:border-purple-500 focus:bg-purple-50/30 hover:border-gray-300 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-semibold text-gray-700 transition-all outline-none appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                            >
+                                                <option value="">🏗️ Select Development Status</option>
+                                                <optgroup label="🆕 Primary Development Types">
+                                                    <option value="New Development">🌟 New Development</option>
+                                                    <option value="Redevelopment">🔄 Redevelopment</option>
+                                                    <option value="Under-Construction">🚧 Under-Construction</option>
+                                                    <option value="Completed / Ready">✅ Completed / Ready</option>
+                                                </optgroup>
+                                                <optgroup label="🔧 Enhancement & Expansion">
+                                                    <option value="Renovation / Refurbishment">🔨 Renovation / Refurbishment</option>
+                                                    <option value="Expansion / Extension">📐 Expansion / Extension</option>
+                                                    <option value="Land Development">🌍 Land Development</option>
+                                                    <option value="Phased Development">📊 Phased Development</option>
+                                                </optgroup>
+                                                <optgroup label="🏘️ Community Projects">
+                                                    <option value="Gated Community - Developed">🏡 Gated Community - Developed</option>
+                                                    <option value="Gated Community - Under Development">🏘️ Gated Community - Under Development</option>
+                                                    <option value="Mixed Use - Developed">🌆 Mixed Use - Developed</option>
+                                                    <option value="Mixed Use - Under Development">🏗️ Mixed Use - Under Development</option>
+                                                    <option value="Open Development">🌐 Open Development</option>
+                                                    <option value="Planned Community">📋 Planned Community</option>
+                                                </optgroup>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-3 xs:right-4 flex items-center pointer-events-none">
+                                                <svg className="w-4 h-4 xs:w-5 xs:h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </div>
 
-                                    <div>
-                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
+                                    <div className="relative">
+                                        <label className="flex items-center gap-1.5 text-[9px] xs:text-[10px] font-black text-gray-700 uppercase tracking-wider xs:tracking-widest mb-2.5">
+                                            <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full"></span>
                                             Project Stage *
                                         </label>
-                                        <select
-                                            value={projectData.projectStage}
-                                            onChange={(e) => handleProjectChange('projectStage', e.target.value)}
-                                            required
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
-                                        >
-                                            <option value="">Select Stage</option>
-                                            <option value="Planning Stage">Planning Stage</option>
-                                            <option value="Pre-Launch">Pre-Launch</option>
-                                            <option value="Launch Stage">Launch Stage</option>
-                                            <option value="Construction Stage">Construction Stage</option>
-                                            <option value="Near Completion">Near Completion</option>
-                                            <option value="Completed">Completed</option>
-                                            <option value="Handover / Operational">Handover / Operational</option>
-                                            <option value="On Hold / Delayed">On Hold / Delayed</option>
-                                        </select>
+                                        <div className="relative">
+                                            <select
+                                                value={projectData.projectStage}
+                                                onChange={(e) => handleProjectChange('projectStage', e.target.value)}
+                                                required
+                                                className="w-full pl-3 xs:pl-4 pr-8 xs:pr-10 py-3 xs:py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 focus:bg-red-50/30 hover:border-gray-300 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-semibold text-gray-700 transition-all outline-none appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                            >
+                                                <option value="">🎯 Select Project Stage</option>
+                                                <option value="Planning Stage">📝 Planning Stage</option>
+                                                <option value="Pre-Launch">🚀 Pre-Launch</option>
+                                                <option value="Launch Stage">🎉 Launch Stage</option>
+                                                <option value="Construction Stage">🏗️ Construction Stage</option>
+                                                <option value="Near Completion">⏳ Near Completion</option>
+                                                <option value="Completed">✅ Completed</option>
+                                                <option value="Handover / Operational">🔑 Handover / Operational</option>
+                                                <option value="On Hold / Delayed">⏸️ On Hold / Delayed</option>
+                                            </select>
+                                            <div className="absolute inset-y-0 right-3 xs:right-4 flex items-center pointer-events-none">
+                                                <svg className="w-4 h-4 xs:w-5 xs:h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 9l-7 7-7-7" />
+                                                </svg>
+                                            </div>
+                                        </div>
                                     </div>
 
                                     <div>
@@ -1555,20 +1691,69 @@ const PropertyAdd = () => {
                                     </div>
                                 </div>
 
-                                <div>
-                                    <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-wider xs:tracking-widest mb-2">
-                                        Key Features / Highlights
-                                    </label>
-                                    {[0, 1, 2].map(i => (
-                                        <input
-                                            key={i}
-                                            type="text"
-                                            value={projectData.highlights[i]}
-                                            onChange={(e) => handleHighlightChange(i, e.target.value)}
-                                            placeholder={`Feature ${i + 1}`}
-                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none mb-2"
-                                        />
-                                    ))}
+                                <div className="bg-gradient-to-br from-amber-50 to-orange-50 border-2 border-amber-200 rounded-2xl p-4 xs:p-6">
+                                    <div className="flex flex-col xs:flex-row xs:items-center xs:justify-between gap-3 xs:gap-4 mb-4">
+                                        <div className="flex items-center gap-2">
+                                            <div className="w-8 h-8 xs:w-10 xs:h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl flex items-center justify-center shadow-md">
+                                                <svg className="w-4 h-4 xs:w-5 xs:h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                                </svg>
+                                            </div>
+                                            <label className="text-[10px] xs:text-xs font-black text-gray-800 uppercase tracking-wider xs:tracking-widest">
+                                                Key Features / Highlights
+                                            </label>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleAddHighlight}
+                                            className="flex items-center justify-center xs:justify-start gap-1.5 xs:gap-2 px-4 xs:px-5 py-2.5 xs:py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white text-[10px] xs:text-xs font-bold rounded-xl xs:rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 w-full xs:w-auto"
+                                        >
+                                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                                            </svg>
+                                            <span>Add More Feature</span>
+                                        </button>
+                                    </div>
+                                    <div className="space-y-3">
+                                        {projectData.highlights.map((highlight, i) => (
+                                            <div key={i} className="flex items-stretch gap-2 xs:gap-3 group">
+                                                <div className="flex-shrink-0 w-8 xs:w-10 h-auto flex items-center justify-center">
+                                                    <div className="w-7 h-7 xs:w-8 xs:h-8 bg-gradient-to-br from-orange-400 to-amber-500 rounded-lg xs:rounded-xl flex items-center justify-center text-white font-black text-xs xs:text-sm shadow-sm">
+                                                        {i + 1}
+                                                    </div>
+                                                </div>
+                                                <div className="flex-1 relative">
+                                                    <input
+                                                        type="text"
+                                                        value={highlight}
+                                                        onChange={(e) => handleHighlightChange(i, e.target.value)}
+                                                        placeholder={`Enter feature ${i + 1} (e.g., Prime Location, Modern Architecture)`}
+                                                        className="w-full pl-3 xs:pl-4 pr-3 xs:pr-4 py-3 xs:py-3.5 bg-white border-2 border-amber-200 focus:border-orange-500 focus:bg-orange-50/30 hover:border-amber-300 rounded-xl xs:rounded-2xl text-xs xs:text-sm font-semibold text-gray-700 transition-all outline-none shadow-sm focus:shadow-md placeholder:text-gray-400 placeholder:font-normal"
+                                                    />
+                                                </div>
+                                                {projectData.highlights.length > 1 && (
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveHighlight(i)}
+                                                        className="flex-shrink-0 w-10 h-auto xs:w-12 flex items-center justify-center bg-gradient-to-br from-red-500 to-rose-600 hover:from-red-600 hover:to-rose-700 text-white rounded-xl xs:rounded-2xl transition-all shadow-md hover:shadow-lg active:scale-95 group-hover:scale-105"
+                                                        title="Remove this feature"
+                                                    >
+                                                        <svg className="w-4 h-4 xs:w-5 xs:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                                            <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                                        </svg>
+                                                    </button>
+                                                )}
+                                            </div>
+                                        ))}
+                                    </div>
+                                    <div className="mt-4 flex items-start gap-2 bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-amber-200/50">
+                                        <svg className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                        </svg>
+                                        <p className="text-[10px] xs:text-xs text-amber-800 font-medium leading-relaxed">
+                                            Add unique selling points and key features that make this project stand out. Examples: Prime Location, 24/7 Security, Modern Infrastructure, etc.
+                                        </p>
+                                    </div>
                                 </div>
 
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-6">
