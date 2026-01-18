@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import Navbar from '../compontents/Navbar';
 import { useNavigate } from 'react-router-dom';
+import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -59,15 +60,7 @@ const defaultPlan = {
     otherChargesNote: "",
 };
 
-const CATEGORY_OPTIONS = [
-    { value: "", label: "Select category" },
-    { value: "phones", label: "Phones / Mobile" },
-    { value: "bikes_mechanical", label: "Bikes — Mechanical" },
-    { value: "bikes_electric", label: "Bikes — Electric" },
-    { value: "air_conditioner", label: "Air Conditioner" },
-    { value: "appliances", label: "Home Appliances / Other" },
-    { value: "other", label: "Other (custom)" },
-];
+// Categories are now imported from productCategories.js
 
 const InstallmentsAdd = () => {
     const navigate = useNavigate();
@@ -103,6 +96,14 @@ const InstallmentsAdd = () => {
         productImages: [],
         paymentPlans: [{ ...defaultPlan }],
 
+        // New dynamic product specifications
+        productSpecifications: {
+            category: "",
+            subCategory: "",
+            specifications: []
+        },
+
+        // Keep old fields for backward compatibility (can be removed later)
         generalFeatures: { operatingSystem: "", simSupport: "", phoneDimensions: "", phoneWeight: "", colors: "" },
         performance: { processor: "", gpu: "" },
         display: { screenSize: "", screenResolution: "", technology: "", protection: "" },
@@ -148,6 +149,47 @@ const InstallmentsAdd = () => {
             cur[parts[parts.length - 1]] = value;
             return copy;
         });
+    };
+
+    // Handle category change and initialize specifications
+    const handleCategoryChange = (category) => {
+        const specs = CATEGORY_SPECIFICATIONS[category] || [];
+        const initializedSpecs = specs.map(spec => ({
+            field: spec.field,
+            value: ''
+        }));
+
+        setForm(prev => ({
+            ...prev,
+            category: category,
+            productSpecifications: {
+                category: category,
+                subCategory: "",
+                specifications: initializedSpecs
+            }
+        }));
+    };
+
+    // Update a specific specification value
+    const updateSpecification = (fieldName, value) => {
+        setForm(prev => {
+            const updatedSpecs = prev.productSpecifications.specifications.map(spec =>
+                spec.field === fieldName ? { ...spec, value } : spec
+            );
+            return {
+                ...prev,
+                productSpecifications: {
+                    ...prev.productSpecifications,
+                    specifications: updatedSpecs
+                }
+            };
+        });
+    };
+
+    // Get specification value
+    const getSpecValue = (fieldName) => {
+        const spec = form.productSpecifications.specifications.find(s => s.field === fieldName);
+        return spec ? spec.value : '';
     };
 
     // --- Calculation Logic ---
@@ -360,11 +402,35 @@ const InstallmentsAdd = () => {
                                             <InputField label="Base Price (PKR)" type="number" value={form.price} onChange={v => updateForm('price', v)} />
                                         </div>
                                         <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest ml-1">Category Assignment</label>
-                                            <select value={form.category} onChange={e => updateForm('category', e.target.value)} className="w-full px-5 py-3.5 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-2xl text-sm font-bold outline-none transition-all">
-                                                {CATEGORY_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                                            <label className="flex items-center gap-2 text-[10px] font-black text-gray-700 uppercase tracking-widest ml-1">
+                                                <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                                                Product Category *
+                                            </label>
+                                            <select 
+                                                value={form.category} 
+                                                onChange={e => handleCategoryChange(e.target.value)} 
+                                                className="w-full px-5 py-4 bg-white border-2 border-gray-200 focus:border-red-500 focus:bg-red-50/30 hover:border-gray-300 rounded-2xl text-sm font-semibold outline-none transition-all appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                            >
+                                                <option value="">🔍 Select Product Category</option>
+                                                {Object.entries(getGroupedCategories()).map(([group, categories]) => (
+                                                    <optgroup key={group} label={group}>
+                                                        {categories.map(cat => (
+                                                            <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                ))}
                                             </select>
-                                            {form.category === "other" && <InputField value={form.customCategory} onChange={v => updateForm('customCategory', v)} placeholder="Specify category..." />}
+                                            {form.category && (
+                                                <div className="flex items-start gap-2 bg-blue-50 border border-blue-200 rounded-xl p-3 mt-2">
+                                                    <svg className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                    </svg>
+                                                    <p className="text-xs text-blue-800 font-medium leading-relaxed">
+                                                        Category selected: <strong>{PRODUCT_CATEGORIES.find(c => c.value === form.category)?.label}</strong>. 
+                                                        Proceed to Step 2 to fill product specifications.
+                                                    </p>
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="space-y-4">
@@ -382,77 +448,112 @@ const InstallmentsAdd = () => {
 
                         {step === 2 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 2: Technical Specifications</h2>
-                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                    {(form.category === "phones") && <>
-                                        {/* General Features */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">General Features</span></div>
-                                        <InputField label="OS" value={form.generalFeatures.operatingSystem} onChange={v => updateForm('generalFeatures.operatingSystem', v)} />
-                                        <InputField label="SIM Support" value={form.generalFeatures.simSupport} onChange={v => updateForm('generalFeatures.simSupport', v)} />
-                                        <InputField label="Dimensions" value={form.generalFeatures.phoneDimensions} onChange={v => updateForm('generalFeatures.phoneDimensions', v)} />
-                                        <InputField label="Weight" value={form.generalFeatures.phoneWeight} onChange={v => updateForm('generalFeatures.phoneWeight', v)} />
-                                        <InputField label="Colors" value={form.generalFeatures.colors} onChange={v => updateForm('generalFeatures.colors', v)} />
-
-                                        {/* Performance */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Performance</span></div>
-                                        <InputField label="Processor" value={form.performance.processor} onChange={v => updateForm('performance.processor', v)} />
-                                        <InputField label="GPU" value={form.performance.gpu} onChange={v => updateForm('performance.gpu', v)} />
-
-                                        {/* Display */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Display</span></div>
-                                        <InputField label="Screen Size" value={form.display.screenSize} onChange={v => updateForm('display.screenSize', v)} />
-                                        <InputField label="Resolution" value={form.display.screenResolution} onChange={v => updateForm('display.screenResolution', v)} />
-                                        <InputField label="Technology" value={form.display.technology} onChange={v => updateForm('display.technology', v)} />
-                                        <InputField label="Protection" value={form.display.protection} onChange={v => updateForm('display.protection', v)} />
-
-                                        {/* Battery */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Battery</span></div>
-                                        <InputField label="Battery Type/Spec" value={form.battery.type} onChange={v => updateForm('battery.type', v)} />
-
-                                        {/* Camera */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Camera</span></div>
-                                        <InputField label="Front Camera" value={form.camera.frontCamera} onChange={v => updateForm('camera.frontCamera', v)} />
-                                        <InputField label="Back Camera" value={form.camera.backCamera} onChange={v => updateForm('camera.backCamera', v)} />
-                                        <InputField label="Features" value={form.camera.features} onChange={v => updateForm('camera.features', v)} />
-
-                                        {/* Memory */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Memory</span></div>
-                                        <InputField label="Internal Memory" value={form.memory.internalMemory} onChange={v => updateForm('memory.internalMemory', v)} />
-                                        <InputField label="RAM" value={form.memory.ram} onChange={v => updateForm('memory.ram', v)} />
-                                        <InputField label="Card Slot" value={form.memory.cardSlot} onChange={v => updateForm('memory.cardSlot', v)} />
-
-                                        {/* Connectivity */}
-                                        <div className="col-span-full border-b border-gray-100 pb-2 mb-2 mt-4"><span className="text-[10px] font-black text-red-600 uppercase tracking-widest">Connectivity</span></div>
-                                        <InputField label="Data Transfer" value={form.connectivity.data} onChange={v => updateForm('connectivity.data', v)} />
-                                        <InputField label="NFC" value={form.connectivity.nfc} onChange={v => updateForm('connectivity.nfc', v)} />
-                                        <InputField label="Bluetooth" value={form.connectivity.bluetooth} onChange={v => updateForm('connectivity.bluetooth', v)} />
-                                        <InputField label="Infrared" value={form.connectivity.infrared} onChange={v => updateForm('connectivity.infrared', v)} />
-                                    </>}
-                                    {form.category === "bikes_mechanical" && <>
-                                        <InputField label="Engine" value={form.mechanicalBike.generalFeatures.engine} onChange={v => updateForm('mechanicalBike.generalFeatures.engine', v)} />
-                                        <InputField label="Model Year" value={form.mechanicalBike.generalFeatures.model} onChange={v => updateForm('mechanicalBike.generalFeatures.model', v)} />
-                                        <InputField label="Displacement" value={form.mechanicalBike.performance.displacement} onChange={v => updateForm('mechanicalBike.performance.displacement', v)} />
-                                        <InputField label="Transmission" value={form.mechanicalBike.performance.transmission} onChange={v => updateForm('mechanicalBike.performance.transmission', v)} />
-                                        <InputField label="Fuel Capacity" value={form.mechanicalBike.performance.petrolCapacity} onChange={v => updateForm('mechanicalBike.performance.petrolCapacity', v)} />
-                                    </>}
-                                    {form.category === "bikes_electric" && <>
-                                        <InputField label="Model Year" value={form.electricalBike.model} onChange={v => updateForm('electricalBike.model', v)} />
-                                        <InputField label="Battery Spec" value={form.electricalBike.batterySpec} onChange={v => updateForm('electricalBike.batterySpec', v)} />
-                                        <InputField label="Range (KM)" value={form.electricalBike.rangeKm} onChange={v => updateForm('electricalBike.rangeKm', v)} />
-                                        <InputField label="Motor" value={form.electricalBike.motor} onChange={v => updateForm('electricalBike.motor', v)} />
-                                        <InputField label="Charging Time" value={form.electricalBike.chargingTime} onChange={v => updateForm('electricalBike.chargingTime', v)} />
-                                        <InputField label="Speed" value={form.electricalBike.speed} onChange={v => updateForm('electricalBike.speed', v)} />
-                                    </>}
-                                    {form.category === "air_conditioner" && <>
-                                        <InputField label="Brand" value={form.airConditioner.brand} onChange={v => updateForm('airConditioner.brand', v)} />
-                                        <InputField label="Capacity (Ton)" value={form.airConditioner.capacityInTon} onChange={v => updateForm('airConditioner.capacityInTon', v)} />
-                                        <InputField label="Energy Star" value={form.airConditioner.energyEfficient} onChange={v => updateForm('airConditioner.energyEfficient', v)} />
-                                        <InputField label="Type (Inverter/Non)" value={form.airConditioner.type} onChange={v => updateForm('airConditioner.type', v)} />
-                                    </>}
-                                    {(!form.category || form.category === "other" || form.category === "appliances") && <div className="col-span-full py-20 text-center bg-gray-50 rounded-[3rem] border-2 border-dashed border-gray-200">
-                                        <p className="text-gray-400 font-bold uppercase tracking-widest">Generic product mode: No specific technical forms for this category.</p>
-                                    </div>}
+                                <div className="flex items-center justify-between">
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">
+                                        Step 2: Product Specifications
+                                    </h2>
+                                    {form.category && (
+                                        <div className="bg-gradient-to-r from-red-500 to-rose-600 text-white px-6 py-3 rounded-2xl">
+                                            <p className="text-xs font-black uppercase tracking-wider">
+                                                {PRODUCT_CATEGORIES.find(c => c.value === form.category)?.label}
+                                            </p>
+                                        </div>
+                                    )}
                                 </div>
+
+                                {!form.category ? (
+                                    <div className="col-span-full py-32 text-center bg-gradient-to-br from-gray-50 to-gray-100 rounded-[3rem] border-2 border-dashed border-gray-200">
+                                        <div className="max-w-md mx-auto space-y-4">
+                                            <div className="w-20 h-20 bg-gray-200 rounded-full flex items-center justify-center mx-auto">
+                                                <svg className="w-10 h-10 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                                </svg>
+                                            </div>
+                                            <p className="text-gray-500 font-black uppercase tracking-widest text-sm">No Category Selected</p>
+                                            <p className="text-gray-400 text-xs font-medium">Please go back to Step 1 and select a product category first.</p>
+                                            <button 
+                                                onClick={() => setStep(1)}
+                                                className="mt-4 px-8 py-3 bg-red-600 text-white rounded-xl font-bold text-sm hover:bg-red-700 transition-all"
+                                            >
+                                                ← Back to Step 1
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : (
+                                    <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-6 xs:p-8 border-2 border-blue-200">
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xs:gap-6">
+                                            {CATEGORY_SPECIFICATIONS[form.category]?.map((spec, index) => (
+                                                <div key={index} className={spec.type === 'textarea' ? 'sm:col-span-2 lg:col-span-3' : ''}>
+                                                    {spec.type === 'text' || !spec.type ? (
+                                                        <div className="space-y-2">
+                                                            <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                                                                {spec.required && <span className="text-red-500">*</span>}
+                                                                {spec.field}
+                                                            </label>
+                                                            <input
+                                                                type="text"
+                                                                value={getSpecValue(spec.field)}
+                                                                onChange={e => updateSpecification(spec.field, e.target.value)}
+                                                                placeholder={spec.placeholder || `Enter ${spec.field.toLowerCase()}`}
+                                                                required={spec.required}
+                                                                className="w-full px-4 py-3 bg-white border-2 border-blue-200 focus:border-blue-500 focus:bg-blue-50/30 hover:border-blue-300 rounded-xl text-sm font-semibold text-gray-700 transition-all outline-none shadow-sm focus:shadow-md"
+                                                            />
+                                                        </div>
+                                                    ) : spec.type === 'select' ? (
+                                                        <div className="space-y-2">
+                                                            <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                                                                {spec.required && <span className="text-red-500">*</span>}
+                                                                {spec.field}
+                                                            </label>
+                                                            <select
+                                                                value={getSpecValue(spec.field)}
+                                                                onChange={e => updateSpecification(spec.field, e.target.value)}
+                                                                required={spec.required}
+                                                                className="w-full px-4 py-3 bg-white border-2 border-blue-200 focus:border-blue-500 focus:bg-blue-50/30 hover:border-blue-300 rounded-xl text-sm font-semibold text-gray-700 transition-all outline-none appearance-none cursor-pointer shadow-sm focus:shadow-md"
+                                                            >
+                                                                <option value="">Select {spec.field}</option>
+                                                                {spec.options?.map((option, i) => (
+                                                                    <option key={i} value={option}>{option}</option>
+                                                                ))}
+                                                            </select>
+                                                        </div>
+                                                    ) : spec.type === 'textarea' ? (
+                                                        <div className="space-y-2">
+                                                            <label className="flex items-center gap-1.5 text-[10px] font-black text-gray-700 uppercase tracking-wider">
+                                                                {spec.required && <span className="text-red-500">*</span>}
+                                                                {spec.field}
+                                                            </label>
+                                                            <textarea
+                                                                value={getSpecValue(spec.field)}
+                                                                onChange={e => updateSpecification(spec.field, e.target.value)}
+                                                                placeholder={spec.placeholder || `Enter ${spec.field.toLowerCase()}`}
+                                                                required={spec.required}
+                                                                rows={3}
+                                                                className="w-full px-4 py-3 bg-white border-2 border-blue-200 focus:border-blue-500 focus:bg-blue-50/30 hover:border-blue-300 rounded-xl text-sm font-semibold text-gray-700 transition-all outline-none resize-none shadow-sm focus:shadow-md"
+                                                            />
+                                                        </div>
+                                                    ) : null}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        
+                                        {form.category && CATEGORY_SPECIFICATIONS[form.category]?.length > 0 && (
+                                            <div className="mt-6 flex items-start gap-3 bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-blue-200/50">
+                                                <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="currentColor" viewBox="0 0 20 20">
+                                                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                                                </svg>
+                                                <div>
+                                                    <p className="text-sm text-blue-900 font-bold">
+                                                        Fill in all required fields (* marked)
+                                                    </p>
+                                                    <p className="text-xs text-blue-700 mt-1">
+                                                        Provide accurate specifications to help customers make informed decisions. Fields marked with * are required.
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
                             </div>
                         )}
 
