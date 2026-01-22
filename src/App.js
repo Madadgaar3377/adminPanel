@@ -31,6 +31,9 @@ import LoanView from "./pages/LoanView";
 import InstallmentView from "./pages/InstallmentView";
 import PropertyView from "./pages/PropertyView";
 import Notifications from "./pages/Notifications";
+import BlogList from "./pages/BlogList";
+import BlogAdd from "./pages/BlogAdd";
+import BlogView from "./pages/BlogView";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -230,6 +233,24 @@ function App() {
           <Route
             path="/loan/edit/:id"
             element={isAuthenticated ? <LoanEdit /> : <Navigate to="/login" />}
+          />
+
+          {/* Blog Routes */}
+          <Route
+            path="/blog/all"
+            element={isAuthenticated ? <BlogList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/blog/add"
+            element={isAuthenticated ? <BlogAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/blog/edit/:id"
+            element={isAuthenticated ? <BlogAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/blog/view/:id"
+            element={isAuthenticated ? <BlogView /> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}

@@ -3,6 +3,7 @@ import ApiBaseUrl from '../constants/apiUrl';
 import Navbar from '../compontents/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
+import RichTextEditor from '../compontents/RichTextEditor';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -71,6 +72,9 @@ const InstallmentsAdd = () => {
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
     const [localImages, setLocalImages] = useState([]);
+    const [step4Tab, setStep4Tab] = useState('installments'); // 'finance' or 'installments'
+    const [userData, setUserData] = useState(null);
+    const [loadingUser, setLoadingUser] = useState(false);
 
     const showToast = (message, type) => {
         setToast({ message, type });
@@ -129,6 +133,12 @@ const InstallmentsAdd = () => {
             generalFeatures: { model: "", dimensions: "", weight: "", engine: "", colors: "", other: "" },
             performance: { transmission: "", groundClearance: "", starting: "", displacement: "", petrolCapacity: "" },
             assembly: { compressionRatio: "", boreAndStroke: "", tyreAtFront: "", tyreAtBack: "", seatHeight: "" },
+        },
+
+        // Finance information
+        finance: {
+            bankName: "",
+            financeInfo: "",
         },
     });
 
@@ -267,6 +277,49 @@ const InstallmentsAdd = () => {
         }
     }, [form.price]);
 
+    // Fetch user data when userId is provided
+    const fetchUserData = async (userId) => {
+        if (!userId) {
+            setUserData(null);
+            return;
+        }
+        
+        setLoadingUser(true);
+        try {
+            const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            const res = await fetch(`${ApiBaseUrl}/getAllUsers`, {
+                headers: {
+                    'Authorization': `Bearer ${authData?.token || ''}`,
+                }
+            });
+            const data = await res.json();
+            
+            if (data.success && data.users) {
+                const user = data.users.find(u => u.userId === userId || u._id === userId);
+                if (user) {
+                    setUserData(user);
+                } else {
+                    setUserData(null);
+                    showToast('User not found with the provided User ID', 'error');
+                }
+            } else {
+                setUserData(null);
+            }
+        } catch (err) {
+            console.error('Error fetching user:', err);
+            setUserData(null);
+        } finally {
+            setLoadingUser(false);
+        }
+    };
+
+    // Fetch user data when step changes to 5 or when userId changes
+    useEffect(() => {
+        if (step === 5 && form.userId) {
+            fetchUserData(form.userId);
+        }
+    }, [step, form.userId]);
+
     // --- Image Handling ---
     const handleFilesChange = (e) => {
         const files = Array.from(e.target.files || []);
@@ -369,20 +422,27 @@ const InstallmentsAdd = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50/50">
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
             <div className="max-w-6xl mx-auto p-6 space-y-8">
-                {/* Header Card */}
-                <div className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 flex justify-between items-center">
-                    <div>
-                        <h1 className="text-3xl font-black text-gray-900 tracking-tighter uppercase">Create Installment Plan</h1>
-
-                    </div>
-                    <div className="flex gap-3">
-                        {[1, 2, 3, 4].map(s => (
-                            <div key={s} className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all ${step === s ? 'bg-red-600 text-white shadow-lg shadow-red-200 scale-110' : (step > s ? 'bg-emerald-500 text-white' : 'bg-gray-100 text-gray-400')}`}>
-                                {step > s ? '✓' : s}
+                {/* Modern Header - v2.0.5 */}
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
+                    
+                    <div className="relative">
+                        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                            <div>
+                                <h1 className="text-3xl font-black text-white tracking-tight mb-2">Create Installment Plan</h1>
+                                <p className="text-red-100 text-sm font-medium">Add new product to installment catalog</p>
                             </div>
-                        ))}
+                            <div className="flex gap-3">
+                                {[1, 2, 3, 4, 5].map(s => (
+                                    <div key={s} className={`w-10 h-10 rounded-2xl flex items-center justify-center font-black transition-all shadow-lg ${step === s ? 'bg-white text-red-600 scale-110' : (step > s ? 'bg-green-500 text-white' : 'bg-white/10 text-white/50 backdrop-blur-sm')}`}>
+                                        {step > s ? '✓' : s}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -590,7 +650,7 @@ const InstallmentsAdd = () => {
                                         <h3 className="text-white font-black uppercase tracking-widest text-sm">Asset Processing Hub</h3>
                                         <p className="text-gray-500 text-xs font-bold leading-relaxed">Ensure all images are high-resolution for the client interface.</p>
                                         <button disabled={!localImages.length || uploading} onClick={handleUploadAll} className="w-full py-5 bg-white text-gray-900 rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 hover:text-white transition-all disabled:opacity-20">
-                                            {uploading ? 'Processing Architecture...' : `Commit ${localImages.length} Local Files`}
+                                            {uploading ? 'Uploading Images...' : `Upload ${localImages.length} Image${localImages.length !== 1 ? 's' : ''}`}
                                         </button>
                                     </div>
                                 </div>
@@ -600,89 +660,455 @@ const InstallmentsAdd = () => {
                         {step === 4 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial </h2>
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial</h2>
                                     <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
                                         <div className="flex flex-col">
-                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Global Cash Price</span>
+                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cash Price</span>
                                             <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
                                         </div>
-                                        <div className="h-8 w-[1px] bg-gray-700 mx-2"></div>
-                                        <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Logic Tier</button>
                                     </div>
                                 </div>
-                                <div className="space-y-6">
-                                    {form.paymentPlans.map((p, idx) => (
-                                        <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                                <InputField label="Tier ID" value={p.planName} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].planName = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                }} placeholder="e.g. Premium 12M" />
 
-                                                <div className="space-y-2">
-                                                    <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Markup Type</label>
-                                                    <select value={p.interestType} onChange={e => {
-                                                        const pp = [...form.paymentPlans];
-                                                        pp[idx].interestType = e.target.value;
-                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                        setTimeout(() => recalcPlan(idx), 0);
-                                                    }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
-                                                        <option>Flat Rate</option>
-                                                        <option>Reducing Balance</option>
-                                                        <option>Profit-Based (Islamic/Shariah)</option>
-                                                    </select>
+                                {/* Tab Buttons */}
+                                <div className="flex gap-4 bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
+                                    <button
+                                        onClick={() => setStep4Tab('finance')}
+                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
+                                            step4Tab === 'finance'
+                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        💰 Finance
+                                    </button>
+                                    <button
+                                        onClick={() => setStep4Tab('installments')}
+                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
+                                            step4Tab === 'installments'
+                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        📊 Installments
+                                    </button>
+                                    <button
+                                        onClick={() => setStep4Tab('both')}
+                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
+                                            step4Tab === 'both'
+                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        🔄 Both
+                                    </button>
+                                </div>
+
+                                {/* Finance Tab Content */}
+                                {step4Tab === 'finance' && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-8 border-2 border-blue-200">
+                                            <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight mb-6 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Finance Information
+                                            </h3>
+                                            
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                        Bank Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.finance?.bankName || ''}
+                                                        onChange={(e) => updateForm('finance.bankName', e.target.value)}
+                                                        placeholder="Enter bank name (e.g., HBL, UBL, Meezan Bank...)"
+                                                        className="w-full px-5 py-3.5 border-2 border-blue-200 rounded-2xl text-sm font-bold transition-all outline-none focus:border-blue-500 focus:bg-white bg-white"
+                                                    />
                                                 </div>
 
-                                                <InputField label="Tenure (Months)" type="number" value={p.tenureMonths} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].tenureMonths = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
-
-                                                <InputField label="Downpayment (PKR)" type="number" value={p.downPayment} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].downPayment = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                        Finance Information
+                                                    </label>
+                                                    <RichTextEditor
+                                                        value={form.finance?.financeInfo || ''}
+                                                        onChange={(value) => updateForm('finance.financeInfo', value)}
+                                                        placeholder="Enter detailed finance information, terms, conditions, eligibility criteria, etc..."
+                                                    />
+                                                </div>
                                             </div>
+                                        </div>
+                                    </div>
+                                )}
 
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
-                                                    <>
-                                                        <InputField label="Total Markup (Islamic)" type="number" value={p.markup} onChange={v => {
+                                {/* Installments Tab Content */}
+                                {step4Tab === 'installments' && (
+                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        <div className="flex justify-end">
+                                            <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
+                                        </div>
+                                        <div className="space-y-6">
+                                            {form.paymentPlans.map((p, idx) => (
+                                                <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
+                                                    <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                                        <InputField label="Plan Name" value={p.planName} onChange={v => {
                                                             const pp = [...form.paymentPlans];
-                                                            pp[idx].markup = v;
+                                                            pp[idx].planName = v;
+                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                        }} placeholder="e.g. Premium 12M" />
+
+                                                        <div className="space-y-2">
+                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
+                                                            <select value={p.interestType} onChange={e => {
+                                                                const pp = [...form.paymentPlans];
+                                                                pp[idx].interestType = e.target.value;
+                                                                setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                setTimeout(() => recalcPlan(idx), 0);
+                                                            }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
+                                                                <option>Flat Rate</option>
+                                                                <option>Reducing Balance</option>
+                                                                <option>Profit-Based (Islamic/Shariah)</option>
+                                                            </select>
+                                                        </div>
+
+                                                        <InputField label="Duration (Months)" type="number" value={p.tenureMonths} onChange={v => {
+                                                            const pp = [...form.paymentPlans];
+                                                            pp[idx].tenureMonths = v;
                                                             setForm(f => ({ ...f, paymentPlans: pp }));
                                                             setTimeout(() => recalcPlan(idx), 0);
                                                         }} />
-                                                        <InputField label="Markup Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <InputField label="Markup Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
+
+                                                        <InputField label="Down Payment (PKR)" type="number" value={p.downPayment} onChange={v => {
                                                             const pp = [...form.paymentPlans];
-                                                            pp[idx].interestRatePercent = v;
+                                                            pp[idx].downPayment = v;
                                                             setForm(f => ({ ...f, paymentPlans: pp }));
                                                             setTimeout(() => recalcPlan(idx), 0);
                                                         }} />
-                                                        <InputField label="Total Markup (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
-                                                    </>
+                                                    </div>
+
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                        {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
+                                                            <>
+                                                                <InputField label="Total Profit (Islamic)" type="number" value={p.markup} onChange={v => {
+                                                                    const pp = [...form.paymentPlans];
+                                                                    pp[idx].markup = v;
+                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                    setTimeout(() => recalcPlan(idx), 0);
+                                                                }} />
+                                                                <InputField label="Markup Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <InputField label="Interest Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
+                                                                    const pp = [...form.paymentPlans];
+                                                                    pp[idx].interestRatePercent = v;
+                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                    setTimeout(() => recalcPlan(idx), 0);
+                                                                }} />
+                                                                <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
+                                                            </>
+                                                        )}
+                                                    </div>
+
+                                                    <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
+                                                        <SummaryItem label="Monthly Payment" value={p.monthlyInstallment} highlight />
+                                                        <SummaryItem label="Total Markup Amount" value={p.markup} />
+                                                        <SummaryItem label="Total Payable" value={p.installmentPrice} />
+                                                        <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
+                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
+                                                    </div>
+                                                    {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Both Tab Content - Shows Finance and Installments Together */}
+                                {step4Tab === 'both' && (
+                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {/* Finance Section */}
+                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-8 border-2 border-blue-200">
+                                            <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight mb-6 flex items-center gap-2">
+                                                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                </svg>
+                                                Finance Information
+                                            </h3>
+                                            
+                                            <div className="space-y-6">
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                        Bank Name
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={form.finance?.bankName || ''}
+                                                        onChange={(e) => updateForm('finance.bankName', e.target.value)}
+                                                        placeholder="Enter bank name (e.g., HBL, UBL, Meezan Bank...)"
+                                                        className="w-full px-5 py-3.5 border-2 border-blue-200 rounded-2xl text-sm font-bold transition-all outline-none focus:border-blue-500 focus:bg-white bg-white"
+                                                    />
+                                                </div>
+
+                                                <div>
+                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
+                                                        Finance Information
+                                                    </label>
+                                                    <RichTextEditor
+                                                        value={form.finance?.financeInfo || ''}
+                                                        onChange={(value) => updateForm('finance.financeInfo', value)}
+                                                        placeholder="Enter detailed finance information, terms, conditions, eligibility criteria, etc..."
+                                                    />
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Installments Section */}
+                                        <div className="space-y-6">
+                                            <div className="flex justify-between items-center">
+                                                <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight flex items-center gap-2">
+                                                    <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                    </svg>
+                                                    Payment Plans
+                                                </h3>
+                                                <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
+                                            </div>
+                                            <div className="space-y-6">
+                                                {form.paymentPlans.map((p, idx) => (
+                                                    <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
+                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                                                            <InputField label="Plan Name" value={p.planName} onChange={v => {
+                                                                const pp = [...form.paymentPlans];
+                                                                pp[idx].planName = v;
+                                                                setForm(f => ({ ...f, paymentPlans: pp }));
+                                                            }} placeholder="e.g. Premium 12M" />
+
+                                                            <div className="space-y-2">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
+                                                                <select value={p.interestType} onChange={e => {
+                                                                    const pp = [...form.paymentPlans];
+                                                                    pp[idx].interestType = e.target.value;
+                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                    setTimeout(() => recalcPlan(idx), 0);
+                                                                }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
+                                                                    <option>Flat Rate</option>
+                                                                    <option>Reducing Balance</option>
+                                                                    <option>Profit-Based (Islamic/Shariah)</option>
+                                                                </select>
+                                                            </div>
+
+                                                            <InputField label="Duration (Months)" type="number" value={p.tenureMonths} onChange={v => {
+                                                                const pp = [...form.paymentPlans];
+                                                                pp[idx].tenureMonths = v;
+                                                                setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                setTimeout(() => recalcPlan(idx), 0);
+                                                            }} />
+
+                                                            <InputField label="Down Payment (PKR)" type="number" value={p.downPayment} onChange={v => {
+                                                                const pp = [...form.paymentPlans];
+                                                                pp[idx].downPayment = v;
+                                                                setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                setTimeout(() => recalcPlan(idx), 0);
+                                                            }} />
+                                                        </div>
+
+                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                                                            {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
+                                                                <>
+                                                                    <InputField label="Total Profit (Islamic)" type="number" value={p.markup} onChange={v => {
+                                                                        const pp = [...form.paymentPlans];
+                                                                        pp[idx].markup = v;
+                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                        setTimeout(() => recalcPlan(idx), 0);
+                                                                    }} />
+                                                                    <InputField label="Markup Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
+                                                                </>
+                                                            ) : (
+                                                                <>
+                                                                    <InputField label="Interest Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
+                                                                        const pp = [...form.paymentPlans];
+                                                                        pp[idx].interestRatePercent = v;
+                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                        setTimeout(() => recalcPlan(idx), 0);
+                                                                    }} />
+                                                                    <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
+                                                                </>
+                                                            )}
+                                                        </div>
+
+                                                        <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
+                                                            <SummaryItem label="Monthly Payment" value={p.monthlyInstallment} highlight />
+                                                            <SummaryItem label="Total Markup Amount" value={p.markup} />
+                                                            <SummaryItem label="Total Payable" value={p.installmentPrice} />
+                                                            <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
+                                                            <SummaryItem label="Loan Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
+                                                        </div>
+                                                        {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {step === 5 && (
+                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                <div className="flex justify-between items-center">
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 5: Overview & Confirmation</h2>
+                                </div>
+
+                                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                                    {/* Left Column - Form Overview */}
+                                    <div className="space-y-6">
+                                        {/* Basic Details */}
+                                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                                            <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Basic Details
+                                            </h3>
+                                            <div className="space-y-3">
+                                                <OverviewItem label="Product Name" value={form.productName} />
+                                                <OverviewItem label="Category" value={form.category || form.customCategory} />
+                                                <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
+                                                <OverviewItem label="City" value={form.city} />
+                                                <OverviewItem label="Base Price" value={`PKR ${Number(form.price || 0).toLocaleString()}`} highlight />
+                                                {form.description && (
+                                                    <div>
+                                                        <label className="text-xs font-bold text-gray-500 mb-1 block">Description</label>
+                                                        <div className="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg" dangerouslySetInnerHTML={{ __html: form.description }} />
+                                                    </div>
                                                 )}
                                             </div>
-
-                                            <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
-                                                <SummaryItem label="Monthly Installment (EMI)" value={p.monthlyInstallment} highlight />
-                                                <SummaryItem label="Total Markup Amount" value={p.markup} />
-                                                <SummaryItem label="Total Payable" value={p.installmentPrice} />
-                                                <SummaryItem label="Total Cost to Customer" value={p.totalCostToCustomer} highlight />
-                                                <SummaryItem label="Financed Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
-                                            </div>
-                                            {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                         </div>
-                                    ))}
+
+                                        {/* Payment Plans Summary */}
+                                        {form.paymentPlans && form.paymentPlans.length > 0 && (
+                                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                                                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                                    <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                                                    </svg>
+                                                    Payment Plans ({form.paymentPlans.length})
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {form.paymentPlans.map((plan, idx) => (
+                                                        <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+                                                            <div className="font-bold text-gray-900 mb-2">{plan.planName || `Plan ${idx + 1}`}</div>
+                                                            <div className="grid grid-cols-2 gap-2 text-sm">
+                                                                <div><span className="text-gray-600">Duration:</span> <span className="font-semibold">{plan.tenureMonths} months</span></div>
+                                                                <div><span className="text-gray-600">Down Payment:</span> <span className="font-semibold">PKR {Number(plan.downPayment || 0).toLocaleString()}</span></div>
+                                                                <div><span className="text-gray-600">Monthly EMI:</span> <span className="font-semibold text-red-600">PKR {Number(plan.monthlyInstallment || 0).toLocaleString()}</span></div>
+                                                                <div><span className="text-gray-600">Interest Rate:</span> <span className="font-semibold">{plan.interestRatePercent || 0}%</span></div>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Finance Information */}
+                                        {form.finance && (form.finance.bankName || form.finance.financeInfo) && (
+                                            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-2xl shadow-sm p-6 border-2 border-blue-200">
+                                                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                                    <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    Finance Information
+                                                </h3>
+                                                <div className="space-y-3">
+                                                    {form.finance.bankName && <OverviewItem label="Bank Name" value={form.finance.bankName} />}
+                                                    {form.finance.financeInfo && (
+                                                        <div>
+                                                            <label className="text-xs font-bold text-gray-500 mb-1 block">Finance Details</label>
+                                                            <div className="text-sm text-gray-700 bg-white p-3 rounded-lg" dangerouslySetInnerHTML={{ __html: form.finance.financeInfo }} />
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Right Column - User Information */}
+                                    <div className="space-y-6">
+                                        <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                                            <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                                <svg className="w-5 h-5 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                </svg>
+                                                User Information
+                                            </h3>
+                                            
+                                            {loadingUser ? (
+                                                <div className="flex items-center justify-center py-8">
+                                                    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-600"></div>
+                                                    <span className="ml-3 text-gray-600">Loading user data...</span>
+                                                </div>
+                                            ) : userData ? (
+                                                <div className="space-y-4">
+                                                    {userData.profilePic && (
+                                                        <div className="flex justify-center mb-4">
+                                                            <img src={userData.profilePic} alt="Profile" className="w-24 h-24 rounded-full object-cover border-4 border-gray-200" />
+                                                        </div>
+                                                    )}
+                                                    <OverviewItem label="User ID" value={userData.userId} />
+                                                    <OverviewItem label="Name" value={userData.name} highlight />
+                                                    <OverviewItem label="Email" value={userData.email} />
+                                                    <OverviewItem label="Phone Number" value={userData.phoneNumber} />
+                                                    <OverviewItem label="WhatsApp Number" value={userData.WhatsappNumber} />
+                                                    <OverviewItem label="Address" value={userData.Address} />
+                                                    <OverviewItem label="User Type" value={userData.UserType} />
+                                                    {userData.isVerified !== undefined && (
+                                                        <div className="flex items-center gap-2">
+                                                            <span className="text-xs font-bold text-gray-500">Verification Status:</span>
+                                                            <span className={`px-3 py-1 rounded-full text-xs font-bold ${userData.isVerified ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                                                                {userData.isVerified ? '✓ Verified' : '⚠ Unverified'}
+                                                            </span>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ) : form.userId ? (
+                                                <div className="text-center py-8 text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                                    </svg>
+                                                    <p className="font-semibold">User not found</p>
+                                                    <p className="text-sm mt-1">User ID: {form.userId}</p>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-8 text-gray-500">
+                                                    <svg className="w-12 h-12 mx-auto mb-3 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                                    </svg>
+                                                    <p className="font-semibold">No User ID provided</p>
+                                                    <p className="text-sm mt-1">Please enter User ID in Step 1</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Images Summary */}
+                                        {form.productImages && form.productImages.length > 0 && (
+                                            <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+                                                <h3 className="text-lg font-black text-gray-900 mb-4 flex items-center gap-2">
+                                                    <svg className="w-5 h-5 text-purple-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                                    </svg>
+                                                    Product Images ({form.productImages.length})
+                                                </h3>
+                                                <div className="grid grid-cols-3 gap-2">
+                                                    {form.productImages.slice(0, 6).map((img, idx) => (
+                                                        <img key={idx} src={img} alt={`Product ${idx + 1}`} className="w-full h-24 object-cover rounded-lg border border-gray-200" />
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
                         )}
@@ -690,13 +1116,13 @@ const InstallmentsAdd = () => {
 
                     {/* Navigation Footer */}
                     <div className="p-8 bg-gray-50/50 border-t border-gray-100 flex justify-between items-center">
-                        <button onClick={() => setStep(s => Math.max(1, s - 1))} className={`px-10 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}>Previous Vector</button>
+                        <button onClick={() => setStep(s => Math.max(1, s - 1))} className={`px-10 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}>Previous</button>
                         <div className="flex gap-4">
-                            {step < 4 ?
+                            {step < 5 ?
                                 <button onClick={() => setStep(s => s + 1)} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all">Next Phase Matrix</button>
                                 :
                                 <button onClick={handleSubmit} disabled={loading} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95">
-                                    {loading ? 'Committing Logic...' : 'Build Enterprise Plan'}
+                                    {loading ? 'Creating Plan...' : 'Create Plan'}
                                 </button>
                             }
                         </div>
@@ -736,6 +1162,15 @@ const SummaryItem = ({ label, value, highlight = false, border = true }) => (
         <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest">{label}</span>
         <span className={`text-sm font-black tracking-tighter ${highlight ? 'text-red-600' : 'text-gray-800'}`}>
             PKR {Number(value || 0).toLocaleString()}
+        </span>
+    </div>
+);
+
+const OverviewItem = ({ label, value, highlight = false }) => (
+    <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-0">
+        <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{label}:</span>
+        <span className={`text-sm font-semibold text-right ${highlight ? 'text-red-600' : 'text-gray-900'}`}>
+            {value || 'N/A'}
         </span>
     </div>
 );

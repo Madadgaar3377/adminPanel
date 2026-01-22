@@ -98,6 +98,13 @@ const Navbar = ({ onLogout }) => {
             items: [
                 { label: 'Manage Partners', href: '/partners/all' },
             ]
+        },
+        {
+            title: 'Blog',
+            items: [
+                { label: 'Create Blog', href: '/blog/add' },
+                { label: 'View All Blogs', href: '/blog/all' },
+            ]
         }
     ];
 
