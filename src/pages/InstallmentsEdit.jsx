@@ -321,24 +321,6 @@ const InstallmentsEdit = () => {
         }
     };
 
-    const updateForm = (path, value) => {
-        if (!path.includes('.')) {
-            setForm(prev => ({ ...prev, [path]: value }));
-            return;
-        }
-        const parts = path.split('.');
-        setForm(prev => {
-            const copy = JSON.parse(JSON.stringify(prev));
-            let cur = copy;
-            for (let i = 0; i < parts.length - 1; i++) {
-                if (cur[parts[i]] === undefined) cur[parts[i]] = {};
-                cur = cur[parts[i]];
-            }
-            cur[parts[parts.length - 1]] = value;
-            return copy;
-        });
-    };
-
     const amortizedMonthlyPayment = (principal, annualInterestPercent, months) => {
         if (!months || months <= 0) return 0;
         const r = Number(annualInterestPercent) / 100 / 12;
