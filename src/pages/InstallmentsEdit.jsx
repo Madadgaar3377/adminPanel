@@ -888,7 +888,67 @@ const InstallmentsEdit = () => {
                                                                 <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
                                                             </>
                                                         )}
-                                                    </div>
+                                                        </div>
+
+                                                        {/* Finance Section for this Payment Plan */}
+                                                        <div className="mt-6 pt-6 border-t border-gray-200">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Finance / Bank Information</label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const pp = [...form.paymentPlans];
+                                                                        if (!pp[idx].hasFinance) {
+                                                                            pp[idx].hasFinance = true;
+                                                                            if (!pp[idx].finance) {
+                                                                                pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                            }
+                                                                        } else {
+                                                                            pp[idx].hasFinance = false;
+                                                                        }
+                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                    }}
+                                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                        p.hasFinance 
+                                                                            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' 
+                                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                    }`}
+                                                                >
+                                                                    {p.hasFinance ? '✓ Finance Enabled' : '+ Add Finance'}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {p.hasFinance && (
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                                                                    <InputField 
+                                                                        label="Bank Name" 
+                                                                        value={p.finance?.bankName || ""} 
+                                                                        onChange={v => {
+                                                                            const pp = [...form.paymentPlans];
+                                                                            if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                            pp[idx].finance.bankName = v;
+                                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                        }} 
+                                                                        placeholder="e.g. HBL, UBL, Meezan Bank" 
+                                                                    />
+                                                                    <div className="space-y-2">
+                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Finance Information</label>
+                                                                        <div className="border-2 border-transparent rounded-2xl bg-white focus-within:border-red-600 transition-all shadow-sm">
+                                                                            <RichTextEditor
+                                                                                value={p.finance?.financeInfo || ""}
+                                                                                onChange={(html) => {
+                                                                                    const pp = [...form.paymentPlans];
+                                                                                    if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                                    pp[idx].finance.financeInfo = html;
+                                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                                }}
+                                                                                placeholder="Additional finance details, terms, conditions, etc."
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
 
                                                     <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
                                                         <SummaryItem label="Monthly Payment" value={p.monthlyInstallment} highlight />
@@ -1014,6 +1074,66 @@ const InstallmentsEdit = () => {
                                                                     }} />
                                                                     <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
                                                                 </>
+                                                            )}
+                                                        </div>
+
+                                                        {/* Finance Section for this Payment Plan */}
+                                                        <div className="mt-6 pt-6 border-t border-gray-200">
+                                                            <div className="flex items-center justify-between mb-4">
+                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Finance / Bank Information</label>
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => {
+                                                                        const pp = [...form.paymentPlans];
+                                                                        if (!pp[idx].hasFinance) {
+                                                                            pp[idx].hasFinance = true;
+                                                                            if (!pp[idx].finance) {
+                                                                                pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                            }
+                                                                        } else {
+                                                                            pp[idx].hasFinance = false;
+                                                                        }
+                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                    }}
+                                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                                        p.hasFinance 
+                                                                            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' 
+                                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                                                                    }`}
+                                                                >
+                                                                    {p.hasFinance ? '✓ Finance Enabled' : '+ Add Finance'}
+                                                                </button>
+                                                            </div>
+                                                            
+                                                            {p.hasFinance && (
+                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
+                                                                    <InputField 
+                                                                        label="Bank Name" 
+                                                                        value={p.finance?.bankName || ""} 
+                                                                        onChange={v => {
+                                                                            const pp = [...form.paymentPlans];
+                                                                            if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                            pp[idx].finance.bankName = v;
+                                                                            setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                        }} 
+                                                                        placeholder="e.g. HBL, UBL, Meezan Bank" 
+                                                                    />
+                                                                    <div className="space-y-2">
+                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Finance Information</label>
+                                                                        <div className="border-2 border-transparent rounded-2xl bg-white focus-within:border-red-600 transition-all shadow-sm">
+                                                                            <RichTextEditor
+                                                                                value={p.finance?.financeInfo || ""}
+                                                                                onChange={(html) => {
+                                                                                    const pp = [...form.paymentPlans];
+                                                                                    if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
+                                                                                    pp[idx].finance.financeInfo = html;
+                                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                                                }}
+                                                                                placeholder="Additional finance details, terms, conditions, etc."
+                                                                            />
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                                                             )}
                                                         </div>
 
