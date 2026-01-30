@@ -34,6 +34,10 @@ import Notifications from "./pages/Notifications";
 import BlogList from "./pages/BlogList";
 import BlogAdd from "./pages/BlogAdd";
 import BlogView from "./pages/BlogView";
+import CommissionRulesList from "./pages/CommissionRulesList";
+import CasesManagement from "./pages/CasesManagement";
+import CommissionManagement from "./pages/CommissionManagement";
+import AdminChat from "./pages/AdminChat";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -251,6 +255,26 @@ function App() {
           <Route
             path="/blog/view/:id"
             element={isAuthenticated ? <BlogView /> : <Navigate to="/login" />}
+          />
+
+          {/* Commission & Cases Routes */}
+          <Route
+            path="/commission/all"
+            element={isAuthenticated ? <CommissionRulesList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/commission/management"
+            element={isAuthenticated ? <CommissionManagement /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/cases/all"
+            element={isAuthenticated ? <CasesManagement /> : <Navigate to="/login" />}
+          />
+
+          {/* Chat Route */}
+          <Route
+            path="/chat"
+            element={isAuthenticated ? <AdminChat /> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}

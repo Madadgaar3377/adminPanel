@@ -100,10 +100,26 @@ const Navbar = ({ onLogout }) => {
             ]
         },
         {
+            title: 'Commission',
+            items: [
+                { label: 'Commission Rules', href: '/commission/all' },
+                { label: 'Commission Management', href: '/commission/management' },
+                { label: 'Cases Management', href: '/cases/all' },
+            ]
+        },
+        {
             title: 'Blog',
             items: [
                 { label: 'Create Blog', href: '/blog/add' },
                 { label: 'View All Blogs', href: '/blog/all' },
+            ]
+        },
+        {
+            title: 'Commission & Cases',
+            items: [
+                { label: 'Commission Rules', href: '/commission/all' },
+                { label: 'Commission Management', href: '/commission/management' },
+                { label: 'All Cases', href: '/cases/all' },
             ]
         }
     ];
@@ -135,6 +151,13 @@ const Navbar = ({ onLogout }) => {
 
                     {/* Right Section */}
                     <div className="flex items-center gap-2">
+                        {/* Chat */}
+                        <Link to="/chat" className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors relative">
+                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                        </Link>
+
                         {/* Notifications */}
                         <Link to="/notifications" className="p-2 text-gray-500 hover:text-red-600 hover:bg-gray-50 rounded-lg transition-colors relative">
                             <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

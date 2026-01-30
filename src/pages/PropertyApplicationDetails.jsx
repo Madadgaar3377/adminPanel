@@ -76,8 +76,69 @@ const PropertyApplicationDetails = () => {
     if (error) return <div className="p-20 text-center text-red-600 bg-white rounded-2xl border border-red-200">{error}</div>;
     if (!application) return <div className="p-20 text-center text-gray-500">Application not found.</div>;
 
+    // Helper function to extract property data from propertyDetails
+    const getPropertyData = (propertyDetails) => {
+        if (!propertyDetails || !Array.isArray(propertyDetails) || propertyDetails.length === 0) {
+            return { 
+                title: 'N/A', 
+                location: 'N/A', 
+                address: 'N/A',
+                price: null,
+                propertyId: null,
+                typeOfProperty: 'N/A',
+                purpose: 'N/A',
+                type: 'Unknown'
+            };
+        }
+        
+        const property = propertyDetails[0];
+        
+        // Check if it's a Project property
+        if (property.project) {
+            return {
+                title: property.project.projectName || property.project.adTitle || 'Untitled Project',
+                location: `${property.project.area || ''}, ${property.project.city || ''}`.trim() || property.project.locationGPS || 'N/A',
+                address: property.project.street || property.project.area || property.project.city || 'N/A',
+                price: property.project.transaction?.price || property.project.transaction?.totalPayable || null,
+                propertyId: property.project.propertyId || property._id,
+                typeOfProperty: property.project.projectType || 'Project',
+                purpose: property.project.transaction?.type || 'Sale',
+                type: 'Project',
+                description: property.project.description || '',
+            };
+        }
+        
+        // Check if it's an Individual property
+        if (property.individualProperty) {
+            return {
+                title: property.individualProperty.title || property.individualProperty.adTitle || 'Untitled Property',
+                location: property.individualProperty.location || property.individualProperty.city || 'N/A',
+                address: property.individualProperty.location || property.individualProperty.address || 'N/A',
+                price: property.individualProperty.transaction?.price || property.individualProperty.transaction?.totalPayable || null,
+                propertyId: property.individualProperty.propertyId || property._id,
+                typeOfProperty: property.individualProperty.propertyType || 'Individual',
+                purpose: property.individualProperty.transaction?.type || 'Sale',
+                type: 'Individual',
+                description: property.individualProperty.description || '',
+            };
+        }
+        
+        // Legacy fallback
+        return {
+            title: property.adTitle || property.name || property.title || 'Untitled Property',
+            location: property.address || property.city || 'N/A',
+            address: property.address || 'N/A',
+            price: property.price || null,
+            propertyId: property.propertyId || property._id,
+            typeOfProperty: property.typeOfProperty || 'N/A',
+            purpose: property.purpose || 'Sale',
+            type: 'Unknown',
+            description: property.description || '',
+        };
+    };
+
     const applicant = application.commonForm?.[0] || {};
-    const property = application.propertyDetails?.[0] || {};
+    const propertyData = getPropertyData(application.propertyDetails);
 
     return (
         <div className="max-w-6xl mx-auto space-y-6 pb-20">
@@ -148,37 +209,41 @@ const PropertyApplicationDetails = () => {
                 <div className="space-y-6">
                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
                         <div className="bg-red-600 p-5 text-white">
-                            <p className="text-xs text-white/80 mb-1">Property</p>
-                            <h3 className="text-xl font-bold">{property.adTitle || property.name || 'N/A'}</h3>
+                            <p className="text-xs text-white/80 mb-1">Property ({propertyData.type})</p>
+                            <h3 className="text-xl font-bold">{propertyData.title}</h3>
                         </div>
                         <div className="p-5 space-y-4">
                             <div className="space-y-3">
-                                <div className="flex justify-between items-center py-2 border-b border-gray-100">
-                                    <span className="text-sm text-gray-500">Price</span>
-                                    <span className="text-sm font-semibold text-gray-900">RS. {property.price?.toLocaleString()}</span>
-                                </div>
+                                {propertyData.price && (
+                                    <div className="flex justify-between items-center py-2 border-b border-gray-100">
+                                        <span className="text-sm text-gray-500">Price</span>
+                                        <span className="text-sm font-semibold text-gray-900">PKR {propertyData.price.toLocaleString()}</span>
+                                    </div>
+                                )}
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-500">Type</span>
-                                    <span className="text-sm font-semibold text-gray-900">{property.typeOfProperty}</span>
+                                    <span className="text-sm font-semibold text-gray-900">{propertyData.typeOfProperty}</span>
                                 </div>
                                 <div className="flex justify-between items-center py-2 border-b border-gray-100">
                                     <span className="text-sm text-gray-500">Purpose</span>
-                                    <span className="text-sm font-semibold text-gray-900">{property.purpose}</span>
+                                    <span className="text-sm font-semibold text-gray-900">{propertyData.purpose}</span>
                                 </div>
-                                {property.address && (
+                                {propertyData.location && propertyData.location !== 'N/A' && (
                                     <div className="pt-2">
                                         <p className="text-xs text-gray-500 mb-2">Location</p>
-                                        <p className="text-sm text-gray-900">{property.address}</p>
+                                        <p className="text-sm text-gray-900">{propertyData.location}</p>
                                     </div>
                                 )}
                             </div>
 
-                            <button
-                                onClick={() => navigate(`/property/edit/${property.propertyId}`)}
-                                className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black transition-all"
-                            >
-                                View Property Details
-                            </button>
+                            {propertyData.propertyId && (
+                                <button
+                                    onClick={() => navigate(`/property/view/${propertyData.propertyId}`)}
+                                    className="w-full py-3 bg-gray-900 text-white rounded-lg text-sm font-medium hover:bg-black transition-all"
+                                >
+                                    View Property Details
+                                </button>
+                            )}
                         </div>
                     </div>
 

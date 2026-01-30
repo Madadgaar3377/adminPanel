@@ -86,6 +86,8 @@ const Dashboard = () => {
         { label: 'Applications', val: stats?.totalApplications || 0, theme: 'green', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, target: '/notifications' },
         { label: 'Installments', val: stats?.totalInstallmentPlans || 0, theme: 'red', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" /></svg>, target: '/installments/all' },
         { label: 'Market Offers', val: stats?.totalOffers || 0, theme: 'yellow', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>, target: '/banner/all' },
+        { label: 'Commission Rules', val: stats?.totalCommissionRules || 0, theme: 'emerald', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>, target: '/commission/all' },
+        { label: 'Active Cases', val: stats?.totalCases || 0, theme: 'teal', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>, target: '/cases/all' },
         { label: 'Unverified Partners', val: stats?.unverifiedPartners || 0, theme: 'orange', icon: (props) => <svg {...props} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>, target: '/partners' },
     ];
 
@@ -97,7 +99,9 @@ const Dashboard = () => {
             green: { bg: 'bg-green-50', text: 'text-green-600', border: 'border-green-100' },
             red: { bg: 'bg-red-50', text: 'text-red-600', border: 'border-red-100' },
             yellow: { bg: 'bg-amber-50', text: 'text-amber-600', border: 'border-amber-100' },
-            orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' }
+            orange: { bg: 'bg-orange-50', text: 'text-orange-600', border: 'border-orange-100' },
+            emerald: { bg: 'bg-emerald-50', text: 'text-emerald-600', border: 'border-emerald-100' },
+            teal: { bg: 'bg-teal-50', text: 'text-teal-600', border: 'border-teal-100' }
         };
         return themes[theme] || themes.blue;
     };

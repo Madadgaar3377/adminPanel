@@ -16,6 +16,7 @@ const PropertyApplications = () => {
 
     const fetchApplications = async () => {
         setLoading(true);
+        setError(null);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             const res = await fetch(`${ApiBaseUrl}/getAllApplicationsForProperty`, {
@@ -25,12 +26,18 @@ const PropertyApplications = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setApplications(data.applications);
+                // Handle both array and object responses
+                const apps = Array.isArray(data.applications) ? data.applications : (data.applications || []);
+                setApplications(apps);
+                if (apps.length === 0) {
+                    setError("No property applications found.");
+                }
             } else {
-                setError(data.message);
+                setError(data.message || "Failed to fetch applications.");
             }
         } catch (err) {
-            setError("Connection to property vault failed.");
+            console.error("Error fetching property applications:", err);
+            setError("Connection to property vault failed. Please check your connection and try again.");
         } finally {
             setLoading(false);
         }
@@ -70,12 +77,54 @@ const PropertyApplications = () => {
         }
     };
 
+    // Helper function to extract property data from propertyDetails
+    const getPropertyData = (propertyDetails) => {
+        if (!propertyDetails || !Array.isArray(propertyDetails) || propertyDetails.length === 0) {
+            return { title: 'N/A', location: 'N/A', address: 'N/A' };
+        }
+        
+        const property = propertyDetails[0];
+        
+        // Check if it's a Project property
+        if (property.project) {
+            return {
+                title: property.project.projectName || property.project.adTitle || 'Untitled Project',
+                location: `${property.project.area || ''}, ${property.project.city || ''}`.trim() || property.project.locationGPS || 'N/A',
+                address: property.project.street || property.project.area || property.project.city || 'N/A',
+                price: property.project.transaction?.price || property.project.transaction?.totalPayable || null,
+                propertyId: property.project.propertyId || property._id,
+            };
+        }
+        
+        // Check if it's an Individual property
+        if (property.individualProperty) {
+            return {
+                title: property.individualProperty.title || property.individualProperty.adTitle || 'Untitled Property',
+                location: property.individualProperty.location || property.individualProperty.city || 'N/A',
+                address: property.individualProperty.location || property.individualProperty.address || 'N/A',
+                price: property.individualProperty.transaction?.price || property.individualProperty.transaction?.totalPayable || null,
+                propertyId: property.individualProperty.propertyId || property._id,
+            };
+        }
+        
+        // Legacy fallback
+        return {
+            title: property.adTitle || property.name || property.title || 'Untitled Property',
+            location: property.address || property.city || 'N/A',
+            address: property.address || 'N/A',
+            price: property.price || null,
+            propertyId: property.propertyId || property._id,
+        };
+    };
+
     const filtered = applications.filter(app => {
         const applicant = app.commonForm?.[0] || {};
+        const propertyData = getPropertyData(app.propertyDetails);
         const matchesSearch =
             (applicant.name?.toLowerCase().includes(searchTerm.toLowerCase())) ||
             (app.applicationId?.toLowerCase().includes(searchTerm.toLowerCase())) ||
-            (applicant.city?.toLowerCase().includes(searchTerm.toLowerCase()));
+            (applicant.city?.toLowerCase().includes(searchTerm.toLowerCase())) ||
+            (propertyData.title?.toLowerCase().includes(searchTerm.toLowerCase()));
         const matchesStatus = statusFilter === 'all' || app.status?.toLowerCase() === statusFilter.toLowerCase();
         return matchesSearch && matchesStatus;
     });
@@ -128,7 +177,7 @@ const PropertyApplications = () => {
             <div className="grid grid-cols-1 gap-4">
                 {filtered.map((app) => {
                     const applicant = app.commonForm?.[0] || {};
-                    const property = app.propertyDetails?.[0] || {};
+                    const propertyData = getPropertyData(app.propertyDetails);
 
                     return (
                         <div key={app._id} className="bg-white rounded-[2.5rem] border border-gray-100 p-8 shadow-sm hover:shadow-xl transition-all duration-500 group">
@@ -141,8 +190,11 @@ const PropertyApplications = () => {
                                     </div>
                                     <div>
                                         <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.2em] mb-1">REQ ID: {app.applicationId}</p>
-                                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter line-clamp-1">{property.adTitle || property.name || 'Untitled Asset'}</h3>
-                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target: {property.address || 'Location Pending'}</p>
+                                        <h3 className="text-xl font-black text-gray-900 uppercase tracking-tighter line-clamp-1">{propertyData.title}</h3>
+                                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Target: {propertyData.location}</p>
+                                        {propertyData.price && (
+                                            <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest mt-1">PKR {propertyData.price.toLocaleString()}</p>
+                                        )}
                                     </div>
                                 </div>
 
@@ -202,9 +254,13 @@ const PropertyApplications = () => {
                 })}
             </div>
 
-            {filtered.length === 0 && (
+            {filtered.length === 0 && !loading && (
                 <div className="p-32 text-center bg-white rounded-[3.5rem] border-2 border-dashed border-gray-100 flex flex-col items-center justify-center">
-                    <p className="text-[11px] font-black text-gray-300 uppercase tracking-widest">No matching acquisition protocols in current sector.</p>
+                    {applications.length === 0 ? (
+                        <p className="text-[11px] font-black text-gray-300 uppercase tracking-widest">No property applications found in the system.</p>
+                    ) : (
+                        <p className="text-[11px] font-black text-gray-300 uppercase tracking-widest">No matching acquisition protocols in current sector.</p>
+                    )}
                 </div>
             )}
         </div>
