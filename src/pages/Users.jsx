@@ -117,7 +117,7 @@ const Users = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8 space-y-4 sm:space-y-6">
                 {/* Error Message */}
                 {error && (
                     <div className="bg-gradient-to-r from-red-50 to-rose-50 border-l-4 border-red-500 rounded-xl p-5 shadow-sm flex items-start justify-between">
@@ -138,43 +138,43 @@ const Users = () => {
                 )}
 
                 {/* Modern Header - v2.0.5 */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8">
                     <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     
-                    <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                    <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <h1 className="text-3xl font-black text-white tracking-tight">User Management</h1>
-                                    <p className="text-red-100 text-sm font-medium mt-0.5">Manage all platform users • v2.0.5</p>
+                                <div className="min-w-0">
+                                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">User Management</h1>
+                                    <p className="text-red-100 text-xs sm:text-sm font-medium mt-0.5">Manage all platform users • v2.0.5</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-3 w-full md:w-auto">
-                            <div className="relative flex-1 md:flex-initial">
+                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
+                            <div className="relative flex-1 sm:flex-initial sm:w-64">
                                 <input
                                     type="text"
                                     placeholder="Search users..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full md:w-64 pl-10 pr-4 py-3 bg-white/10 backdrop-blur-sm border-2 border-white/20 text-white placeholder:text-white/60 rounded-xl focus:border-white/40 outline-none transition-all font-medium"
+                                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-white/10 backdrop-blur-sm border-2 border-white/20 text-white placeholder:text-white/60 rounded-lg sm:rounded-xl focus:border-white/40 outline-none transition-all font-medium text-sm sm:text-base"
                                 />
-                                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
                             <button
                                 onClick={fetchUsers}
                                 disabled={loading}
-                                className="p-3 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 active:scale-95"
+                                className="p-2 sm:p-3 bg-white/10 backdrop-blur-sm text-white rounded-lg sm:rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 active:scale-95 flex-shrink-0"
                             >
-                                <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                             </button>
@@ -183,8 +183,8 @@ const Users = () => {
             </div>
 
                 {/* Filters - v2.0.5 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg border border-gray-200 p-6">
-                    <div className="flex flex-col lg:flex-row gap-6">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6">
+                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
                         <div className="flex-1">
                             <label className="text-xs font-bold text-gray-700 mb-3 block uppercase tracking-wide flex items-center gap-2">
                                 <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -237,48 +237,48 @@ const Users = () => {
             </div>
 
                 {/* Users Table - v2.0.5 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto">
-                        <table className="w-full">
+                <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+                <div className="overflow-x-auto -mx-3 xs:-mx-4 sm:mx-0">
+                        <table className="w-full min-w-[640px]">
                             <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
                                 <tr>
-                                    <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">User</th>
-                                    <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden md:table-cell">Contact</th>
-                                    <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden lg:table-cell">Type</th>
-                                    <th className="px-6 py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Status</th>
-                                    <th className="px-6 py-4 text-right text-xs font-black text-gray-700 uppercase tracking-wider">Actions</th>
+                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">User</th>
+                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden md:table-cell">Contact</th>
+                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden lg:table-cell">Type</th>
+                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Status</th>
+                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-black text-gray-700 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {paginatedUsers.map(user => (
                                     <tr key={user._id} className="hover:bg-gradient-to-r hover:from-red-50/50 hover:to-rose-50/50 transition-all duration-300">
-                                    <td className="px-6 py-4">
-                                        <div className="flex items-center gap-3">
+                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4">
+                                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
                                             {user.profilePic ? (
-                                                    <img src={user.profilePic} alt="" className="w-12 h-12 rounded-xl object-cover ring-2 ring-gray-200" />
+                                                    <img src={user.profilePic} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl object-cover ring-2 ring-gray-200 flex-shrink-0" />
                                             ) : (
-                                                    <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-xl flex items-center justify-center text-white font-black text-lg shadow-lg">
+                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg flex-shrink-0">
                                                     {user.name?.charAt(0).toUpperCase()}
                                                 </div>
                                             )}
-                                            <div>
-                                                    <p className="font-bold text-gray-900">{user.name}</p>
-                                                    <p className="text-xs text-gray-500 font-medium">ID: {user.userId}</p>
+                                            <div className="min-w-0">
+                                                    <p className="font-bold text-gray-900 text-sm sm:text-base truncate">{user.name}</p>
+                                                    <p className="text-xs text-gray-500 font-medium truncate">ID: {user.userId}</p>
                                                 </div>
                                         </div>
                                     </td>
-                                        <td className="px-6 py-4 hidden md:table-cell">
-                                            <p className="text-sm text-gray-900 font-semibold">{user.email}</p>
-                                            <p className="text-xs text-gray-500 font-medium">{user.phoneNumber || 'N/A'}</p>
+                                        <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 hidden md:table-cell">
+                                            <p className="text-sm text-gray-900 font-semibold truncate">{user.email}</p>
+                                            <p className="text-xs text-gray-500 font-medium truncate">{user.phoneNumber || 'N/A'}</p>
                                     </td>
-                                        <td className="px-6 py-4 hidden lg:table-cell">
-                                            <span className="px-3 py-1.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg text-xs font-bold capitalize shadow-sm">
+                                        <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
+                                            <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg text-xs font-bold capitalize shadow-sm inline-block">
                                             {user.UserType}
                                         </span>
                                     </td>
-                                    <td className="px-6 py-4">
-                                            <div className="flex flex-wrap gap-2">
-                                                <span className={`px-3 py-1.5 rounded-lg text-xs font-bold shadow-sm ${
+                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4">
+                                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
+                                                <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold shadow-sm whitespace-nowrap ${
                                                     user.isVerified 
                                                         ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200' 
                                                         : 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700 border border-yellow-200'
@@ -286,29 +286,32 @@ const Users = () => {
                                                     {user.isVerified ? '✓ Verified' : '⏳ Pending'}
                                             </span>
                                             {user.isBlocked && (
-                                                    <span className="px-3 py-1.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-700 rounded-lg text-xs font-bold shadow-sm border border-red-200">
+                                                    <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-700 rounded-lg text-xs font-bold shadow-sm border border-red-200 whitespace-nowrap">
                                                         ✗ Blocked
                                                     </span>
                                             )}
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
+                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-right">
+                                        <div className="flex justify-end gap-1.5 sm:gap-2">
                                             <button
                                                 onClick={() => openView(user)}
-                                                    className="p-2.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all duration-300 shadow-sm hover:shadow active:scale-95"
+                                                    className="p-1.5 sm:p-2.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all duration-300 shadow-sm hover:shadow active:scale-95"
                                                     title="View Details"
                                             >
-                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
                                             </button>
                                             <button
                                                 onClick={() => openModal(user)}
-                                                    className="px-4 py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-xl hover:from-red-700 hover:to-rose-700 transition-all duration-300 text-xs font-bold shadow-lg shadow-red-200 hover:shadow-xl active:scale-95"
+                                                    className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg sm:rounded-xl hover:from-red-700 hover:to-rose-700 transition-all duration-300 text-xs font-bold shadow-lg shadow-red-200 hover:shadow-xl active:scale-95"
                                             >
-                                                    Edit
+                                                    <span className="hidden sm:inline">Edit</span>
+                                                    <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
                                             </button>
                                         </div>
                                     </td>
@@ -343,36 +346,36 @@ const Users = () => {
 
                 {/* View Modal - Enhanced with Complete Details */}
             {isViewOpen && viewUser && (
-                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 xs:p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden flex flex-col">
                             {/* Header */}
-                            <div className="p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-red-50 to-white">
-                                <div className="flex items-center gap-4">
+                            <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center bg-gradient-to-r from-red-50 to-white gap-3">
+                                <div className="flex items-center gap-2 sm:gap-4 min-w-0 flex-1">
                                     {viewUser.profilePic ? (
-                                        <img src={viewUser.profilePic} alt="" className="w-16 h-16 rounded-xl object-cover border-2 border-white shadow-md" />
+                                        <img src={viewUser.profilePic} alt="" className="w-12 h-12 sm:w-16 sm:h-16 rounded-lg sm:rounded-xl object-cover border-2 border-white shadow-md flex-shrink-0" />
                                     ) : (
-                                        <div className="w-16 h-16 bg-red-100 rounded-xl flex items-center justify-center text-red-600 font-black text-2xl border-2 border-white shadow-md">
+                                        <div className="w-12 h-12 sm:w-16 sm:h-16 bg-red-100 rounded-lg sm:rounded-xl flex items-center justify-center text-red-600 font-black text-xl sm:text-2xl border-2 border-white shadow-md flex-shrink-0">
                                             {viewUser.name?.charAt(0)}
                                         </div>
                                     )}
-                                    <div>
-                                        <h2 className="text-2xl font-black text-gray-900 uppercase tracking-tight">{viewUser.name}</h2>
-                                        <p className="text-xs font-semibold text-red-600 uppercase tracking-widest mt-0.5">ID: {viewUser.userId}</p>
+                                    <div className="min-w-0">
+                                        <h2 className="text-lg sm:text-2xl font-black text-gray-900 uppercase tracking-tight truncate">{viewUser.name}</h2>
+                                        <p className="text-xs font-semibold text-red-600 uppercase tracking-widest mt-0.5 truncate">ID: {viewUser.userId}</p>
                                     </div>
                                 </div>
                                 <button
                                     onClick={() => setIsViewOpen(false)}
-                                    className="p-2 hover:bg-white rounded-xl transition-all"
+                                    className="p-2 hover:bg-white rounded-xl transition-all flex-shrink-0"
                                 >
-                                    <svg className="w-6 h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <svg className="w-5 h-5 sm:w-6 sm:h-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" />
                                     </svg>
                                 </button>
                             </div>
 
                             {/* Content */}
-                            <div className="flex-1 overflow-y-auto p-6">
-                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <div className="flex-1 overflow-y-auto p-4 sm:p-6">
+                                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
                                     {/* Left Column - Images */}
                                     <div className="space-y-6">
                                         <div>
@@ -403,24 +406,24 @@ const Users = () => {
                                         {/* Basic Information */}
                                         <section>
                                             <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Basic Information</h3>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Full Name</label>
-                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.name}</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 truncate">{viewUser.name}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Username</label>
-                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.userName || 'N/A'}</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 truncate">{viewUser.userName || 'N/A'}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">User Type</label>
-                                                    <span className="inline-block px-3 py-1 bg-gray-200 text-gray-800 rounded-lg text-xs font-black uppercase mt-1">
+                                                    <span className="inline-block px-2 sm:px-3 py-1 bg-gray-200 text-gray-800 rounded-lg text-xs font-black uppercase mt-1">
                                                         {viewUser.UserType}
                                                     </span>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">CNIC</label>
-                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.cnicNumber || 'N/A'}</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 truncate">{viewUser.cnicNumber || 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </section>
@@ -428,26 +431,26 @@ const Users = () => {
                                         {/* Contact Information */}
                                         <section>
                                             <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">Contact Information</h3>
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Email</label>
                                                     <p className="text-sm font-bold text-gray-900 mt-1 break-all">{viewUser.email}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Phone Number</label>
                                                     <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.phoneNumber || 'N/A'}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">WhatsApp</label>
                                                     <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.WhatsappNumber || 'N/A'}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 md:col-span-1">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Referred By</label>
-                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.refferedBy || 'N/A'}</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 truncate">{viewUser.refferedBy || 'N/A'}</p>
                                                 </div>
-                                                <div className="p-4 bg-gray-50 rounded-xl border border-gray-100 md:col-span-2">
+                                                <div className="p-3 sm:p-4 bg-gray-50 rounded-lg sm:rounded-xl border border-gray-100 sm:col-span-2">
                                                     <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Address</label>
-                                                    <p className="text-sm font-bold text-gray-900 mt-1">{viewUser.Address || 'N/A'}</p>
+                                                    <p className="text-sm font-bold text-gray-900 mt-1 break-words">{viewUser.Address || 'N/A'}</p>
                                                 </div>
                                             </div>
                                         </section>
@@ -526,7 +529,7 @@ const Users = () => {
                                         {/* Location & System Info */}
                                         <section>
                                             <h3 className="text-sm font-black text-red-600 uppercase tracking-widest mb-4 border-l-4 border-red-600 pl-3">System Information</h3>
-                                            <div className="grid grid-cols-2 gap-4">
+                                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                                                 {viewUser.livelocation && (
                                                     <div className="p-4 bg-gray-50 rounded-xl border border-gray-100">
                                                         <label className="text-xs font-black text-gray-400 uppercase tracking-wider">Live Location</label>

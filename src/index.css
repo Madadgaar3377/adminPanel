@@ -232,6 +232,15 @@
 }
 
 /* Responsive table styles */
+.responsive-table-wrapper {
+  @apply overflow-x-auto -mx-3 xs:-mx-4 sm:-mx-6 lg:-mx-8;
+  @apply px-3 xs:px-4 sm:px-6 lg:px-8;
+}
+
+.responsive-table-wrapper table {
+  @apply min-w-full;
+}
+
 @media screen and (max-width: 768px) {
   .responsive-table {
     @apply block overflow-x-auto;
@@ -239,6 +248,36 @@
   
   .responsive-table table {
     @apply min-w-full;
+  }
+  
+  /* Stack table cells on mobile */
+  .mobile-table-stack {
+    @apply block;
+  }
+  
+  .mobile-table-stack thead {
+    @apply hidden;
+  }
+  
+  .mobile-table-stack tbody {
+    @apply block;
+  }
+  
+  .mobile-table-stack tr {
+    @apply block mb-4 border-2 border-gray-200 rounded-lg p-4 bg-white;
+  }
+  
+  .mobile-table-stack td {
+    @apply block text-right pl-0 pr-0 pb-2 border-0;
+  }
+  
+  .mobile-table-stack td:before {
+    content: attr(data-label);
+    @apply float-left font-bold text-gray-700 text-sm;
+  }
+  
+  .mobile-table-stack td:last-child {
+    @apply pb-0 pt-2 border-t border-gray-200 mt-2;
   }
 }
 

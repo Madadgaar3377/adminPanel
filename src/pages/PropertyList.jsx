@@ -152,42 +152,43 @@ const PropertyList = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8 space-y-4 sm:space-y-6">
                 {/* Modern Header - v2.0.5 */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8">
                     <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     
-                    <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                    <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <h1 className="text-3xl font-black text-white tracking-tight">Property Listings</h1>
-                                    <p className="text-red-100 text-sm font-medium mt-0.5">Manage & monitor all properties • v2.0.5</p>
+                                <div className="min-w-0">
+                                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">Property Listings</h1>
+                                    <p className="text-red-100 text-xs sm:text-sm font-medium mt-0.5">Manage & monitor all properties • v2.0.5</p>
                                 </div>
                             </div>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
                             <button
                                 onClick={() => navigate('/property/add')}
-                                className="group px-6 py-3 bg-white text-red-600 rounded-xl hover:bg-red-50 transition-all duration-300 text-sm font-bold flex items-center gap-2 shadow-lg hover:shadow-xl active:scale-95"
+                                className="group px-4 sm:px-6 py-2 sm:py-3 bg-white text-red-600 rounded-lg sm:rounded-xl hover:bg-red-50 transition-all duration-300 text-xs sm:text-sm font-bold flex items-center gap-1.5 sm:gap-2 shadow-lg hover:shadow-xl active:scale-95 flex-1 sm:flex-initial"
                             >
-                                <svg className="w-5 h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="w-4 h-4 sm:w-5 sm:h-5 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 4v16m8-8H4" />
                                 </svg>
-                                Add Property
+                                <span className="hidden xs:inline">Add Property</span>
+                                <span className="xs:hidden">Add</span>
                             </button>
                             <button
                                 onClick={fetchProperties}
                                 disabled={loading}
-                                className="p-3 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 active:scale-95"
+                                className="p-2 sm:p-3 bg-white/10 backdrop-blur-sm text-white rounded-lg sm:rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 active:scale-95 flex-shrink-0"
                             >
-                                <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                             </button>
@@ -196,7 +197,7 @@ const PropertyList = () => {
                 </div>
 
                 {/* Modern Filters Section - v2.0.5 */}
-                <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-6 space-y-5">
+                <div className="bg-white rounded-xl sm:rounded-2xl shadow-lg border border-gray-100 p-4 sm:p-6 space-y-4 sm:space-y-5">
                     {/* Search */}
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
@@ -209,11 +210,11 @@ const PropertyList = () => {
                             placeholder="Search by title, location, contact, or ID..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full pl-12 pr-4 py-3.5 bg-gray-50 border-2 border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all font-medium text-gray-700 placeholder:text-gray-400"
+                            className="w-full pl-10 sm:pl-12 pr-3 sm:pr-4 py-2.5 sm:py-3.5 bg-gray-50 border-2 border-gray-200 rounded-lg sm:rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent outline-none transition-all font-medium text-sm sm:text-base text-gray-700 placeholder:text-gray-400"
                         />
                     </div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-5">
                         {/* Type Filter */}
                         <div className="space-y-3">
                             <label className="text-sm font-bold text-gray-700 uppercase tracking-wider">Property Type</label>
@@ -222,7 +223,7 @@ const PropertyList = () => {
                                     <button
                                         key={type}
                                         onClick={() => setFilterType(type)}
-                                        className={`px-5 py-2.5 rounded-xl text-sm font-bold transition-all duration-300 ${
+                                        className={`px-3 sm:px-5 py-2 sm:py-2.5 rounded-lg sm:rounded-xl text-xs sm:text-sm font-bold transition-all duration-300 ${
                                             filterType === type
                                                 ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200'
                                                 : 'bg-gray-100 text-gray-600 hover:bg-gray-200'

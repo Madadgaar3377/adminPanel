@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 
 const AgentAssignments = () => {
     const [assignments, setAssignments] = useState([]);
+    const [agentDetails, setAgentDetails] = useState({}); // Store agent details by agentId
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [statusFilter, setStatusFilter] = useState('all');
@@ -26,19 +27,49 @@ const AgentAssignments = () => {
             const data = await res.json();
             console.log("Assignment Feed Data:", data);
 
+            let assignmentList = [];
             if (Array.isArray(data)) {
-                setAssignments(data);
+                assignmentList = data;
             } else if (data.success) {
-                // Try multiple common keys for the data array
-                const list = data.data || data.requests || data.allRequests || data.assignments || [];
-                setAssignments(list);
+                assignmentList = data.data || data.requests || data.allRequests || data.assignments || [];
             } else {
                 setError(data.message || "Protocol rejection.");
+                return;
             }
+
+            setAssignments(assignmentList);
+
+            // Fetch agent details for all unique agent IDs
+            const uniqueAgentIds = [...new Set(assignmentList.map(a => a.agentId).filter(Boolean))];
+            await fetchAgentDetails(uniqueAgentIds, authData?.token);
         } catch (err) {
             setError("Connection failure to deployment matrix.");
         } finally {
             setLoading(false);
+        }
+    };
+
+    const fetchAgentDetails = async (agentIds, token) => {
+        try {
+            const details = {};
+            for (const agentId of agentIds) {
+                try {
+                    const res = await fetch(`${ApiBaseUrl}/getUserById?userId=${agentId}`, {
+                        headers: {
+                            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                        }
+                    });
+                    const data = await res.json();
+                    if (data.success && data.data) {
+                        details[agentId] = data.data;
+                    }
+                } catch (err) {
+                    console.error(`Error fetching agent ${agentId}:`, err);
+                }
+            }
+            setAgentDetails(details);
+        } catch (err) {
+            console.error("Error fetching agent details:", err);
         }
     };
 
@@ -199,14 +230,37 @@ const AgentAssignments = () => {
                                     </td>
                                     <td className="px-6 py-4">
                                         <div>
-                                            <p className="text-sm font-bold text-gray-900">{item.agentId}</p>
-                                            <p className="text-xs text-gray-500 font-medium">User: {item.userId}</p>
+                                            <p className="text-sm font-bold text-gray-900">{agentDetails[item.agentId]?.name || item.agentId || 'N/A'}</p>
+                                            <p className="text-xs text-gray-500 font-medium">ID: {item.agentId}</p>
+                                            {agentDetails[item.agentId]?.email && (
+                                                <p className="text-xs text-gray-400 font-medium">{agentDetails[item.agentId].email}</p>
+                                            )}
+                                            {agentDetails[item.agentId]?.phoneNumber && (
+                                                <p className="text-xs text-gray-400 font-medium">📞 {agentDetails[item.agentId].phoneNumber}</p>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div>
                                             <p className="text-sm font-bold text-gray-900">{item.city || 'N/A'}</p>
                                             <p className="text-xs text-gray-500 font-medium">{item.assigenAt ? new Date(item.assigenAt).toLocaleDateString() : 'N/A'}</p>
+                                            {item.commissionInfo?.eligibleCommission && (
+                                                <p className="text-xs text-green-600 font-bold mt-1">
+                                                    Commission: PKR {item.commissionInfo.eligibleCommission.toLocaleString()}
+                                                </p>
+                                            )}
+                                            {agentDetails[item.agentId]?.BankAccountinfo && agentDetails[item.agentId].BankAccountinfo.length > 0 && (
+                                                <div className="mt-2 pt-2 border-t border-gray-200">
+                                                    <p className="text-xs font-bold text-gray-700 uppercase mb-1">Bank Account:</p>
+                                                    {agentDetails[item.agentId].BankAccountinfo.map((account, idx) => (
+                                                        <div key={idx} className="text-xs text-gray-600">
+                                                            <p className="font-medium">{account.bankName || 'N/A'}</p>
+                                                            <p>Account: {account.accountNumber || 'N/A'}</p>
+                                                            <p>Name: {account.accountName || 'N/A'}</p>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

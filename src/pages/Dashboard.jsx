@@ -108,41 +108,41 @@ const Dashboard = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+            <div className="max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8 space-y-4 sm:space-y-6">
                 {/* Modern Header - v2.0.5 */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-3xl shadow-2xl p-8">
+                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8">
                     <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
                     
-                    <div className="relative flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                        <div>
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-12 h-12 bg-white/10 backdrop-blur-sm rounded-2xl flex items-center justify-center">
-                                    <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
+                        <div className="min-w-0 flex-1">
+                            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
+                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
+                                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
                                 </div>
-                                <div>
-                                    <h1 className="text-3xl font-black text-white tracking-tight">Dashboard</h1>
-                                    <p className="text-red-100 text-sm font-medium mt-0.5">Welcome back, here's your overview • v2.0.5</p>
+                                <div className="min-w-0">
+                                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">Dashboard</h1>
+                                    <p className="text-red-100 text-xs sm:text-sm font-medium mt-0.5">Welcome back, here's your overview • v2.0.5</p>
                                 </div>
                             </div>
                         </div>
                         <button
                             onClick={fetchDashboardData}
                             disabled={loading}
-                            className="px-6 py-3 bg-white/10 backdrop-blur-sm text-white rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 font-bold active:scale-95"
+                            className="px-4 sm:px-6 py-2 sm:py-3 bg-white/10 backdrop-blur-sm text-white rounded-lg sm:rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 flex items-center gap-2 font-bold active:scale-95 text-sm sm:text-base flex-shrink-0"
                         >
-                            <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                             </svg>
-                            Refresh
+                            <span className="hidden xs:inline">Refresh</span>
                         </button>
                     </div>
                 </div>
 
                 {/* Modern Stats Cards - v2.0.5 */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6">
                     {cardData.map((card, idx) => {
                         const colors = getThemeColors(card.theme);
                         const gradients = {
@@ -158,16 +158,16 @@ const Dashboard = () => {
                             <Link
                                 key={idx}
                                 to={card.target}
-                                className="group bg-white rounded-2xl border-2 border-gray-100 hover:border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 p-6 hover:-translate-y-1"
+                                className="group bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 hover:border-gray-200 shadow-lg hover:shadow-2xl transition-all duration-300 p-4 sm:p-6 hover:-translate-y-1"
                             >
-                                <div className="flex items-start justify-between mb-6">
-                                    <div className={`w-14 h-14 bg-gradient-to-br ${gradients[card.theme]} rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300`}>
-                                        {card.icon({ className: `w-7 h-7 text-white` })}
+                                <div className="flex items-start justify-between mb-4 sm:mb-6">
+                                    <div className={`w-12 h-12 sm:w-14 sm:h-14 bg-gradient-to-br ${gradients[card.theme]} rounded-xl sm:rounded-2xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}>
+                                        {card.icon({ className: `w-6 h-6 sm:w-7 sm:h-7 text-white` })}
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="text-4xl font-black text-gray-900 mb-2">{card.val}</p>
-                                    <p className="text-sm font-bold text-gray-500 uppercase tracking-wider">{card.label}</p>
+                                <div className="min-w-0">
+                                    <p className="text-3xl sm:text-4xl font-black text-gray-900 mb-1 sm:mb-2 truncate">{card.val}</p>
+                                    <p className="text-xs sm:text-sm font-bold text-gray-500 uppercase tracking-wider line-clamp-2">{card.label}</p>
                                 </div>
                             </Link>
                         );
@@ -175,9 +175,9 @@ const Dashboard = () => {
                 </div>
 
                 {/* Modern Charts Section - v2.0.5 */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
                     {/* Bar Chart */}
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+                    <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 shadow-lg p-4 sm:p-6 lg:p-8">
                         <div className="flex justify-between items-center mb-8">
                             <div>
                                 <h3 className="text-2xl font-black text-gray-900">Overview</h3>
@@ -213,7 +213,7 @@ const Dashboard = () => {
                     </div>
 
                     {/* Progress Bars */}
-                    <div className="bg-white rounded-2xl border-2 border-gray-100 shadow-lg p-8">
+                    <div className="bg-white rounded-xl sm:rounded-2xl border-2 border-gray-100 shadow-lg p-4 sm:p-6 lg:p-8">
                         <div className="mb-8">
                             <h3 className="text-2xl font-black text-gray-900">Distribution</h3>
                             <p className="text-sm font-medium text-gray-500 mt-1">Resource breakdown</p>
