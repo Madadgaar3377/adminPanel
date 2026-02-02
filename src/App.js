@@ -38,6 +38,10 @@ import CommissionRulesList from "./pages/CommissionRulesList";
 import CasesManagement from "./pages/CasesManagement";
 import CommissionManagement from "./pages/CommissionManagement";
 import AdminChat from "./pages/AdminChat";
+import InsurancePlansList from "./pages/InsurancePlansList";
+import InsuranceApplicationsList from "./pages/InsuranceApplicationsList";
+import InsuranceClaimsList from "./pages/InsuranceClaimsList";
+import InsurancePlanAdd from "./pages/InsurancePlanAdd";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -269,6 +273,32 @@ function App() {
           <Route
             path="/cases/all"
             element={isAuthenticated ? <CasesManagement /> : <Navigate to="/login" />}
+          />
+
+          {/* Insurance Routes */}
+          <Route
+            path="/insurance/all"
+            element={isAuthenticated ? <InsurancePlansList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/add"
+            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/edit/:id"
+            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/view/:id"
+            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/applications"
+            element={isAuthenticated ? <InsuranceApplicationsList /> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/claims"
+            element={isAuthenticated ? <InsuranceClaimsList /> : <Navigate to="/login" />}
           />
 
           {/* Chat Route */}

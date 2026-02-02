@@ -42,7 +42,7 @@ const CasesManagement = () => {
       params.append("limit", filters.limit);
 
       const response = await fetch(
-        `${ApiBaseUrl}/getAllCases?${params.toString()}`,
+        `${ApiBaseUrl}/getAllRequests?${params.toString()}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -61,7 +61,7 @@ const CasesManagement = () => {
     }
   };
 
-  const handleMarkCommissionPaid = async (caseId) => {
+  const handleMarkCommissionPaid = async (applicationId) => {
     const paymentReference = prompt("Enter payment reference:");
     if (!paymentReference) return;
 
@@ -73,14 +73,19 @@ const CasesManagement = () => {
       const token = authData?.token;
 
       const response = await fetch(
-        `${ApiBaseUrl}/markCommissionPaid/${caseId}`,
+        `${ApiBaseUrl}/markAsDoneAndCalculateCommission`,
         {
-          method: "PUT",
+          method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ paymentReference, payoutMethod }),
+          body: JSON.stringify({ 
+            applicationId,
+            action: "markAsDone",
+            paymentReference,
+            payoutMethod 
+          }),
         }
       );
 
@@ -163,13 +168,12 @@ const CasesManagement = () => {
 
   const getStatusBadgeColor = (status) => {
     const colors = {
-      Received: "bg-blue-100 text-blue-800",
-      "In Progress": "bg-yellow-100 text-yellow-800",
-      Verified: "bg-purple-100 text-purple-800",
-      Closed: "bg-green-100 text-green-800",
-      Rejected: "bg-red-100 text-red-800",
-      Transferred: "bg-orange-100 text-orange-800",
-      Shared: "bg-indigo-100 text-indigo-800",
+      pending: "bg-blue-100 text-blue-800",
+      in_progress: "bg-yellow-100 text-yellow-800",
+      approved: "bg-purple-100 text-purple-800",
+      completed: "bg-green-100 text-green-800",
+      rejected: "bg-red-100 text-red-800",
+      cancelled: "bg-orange-100 text-orange-800",
     };
     return colors[status] || "bg-gray-100 text-gray-800";
   };
@@ -186,10 +190,9 @@ const CasesManagement = () => {
 
   const filteredCases = cases.filter(
     (caseItem) =>
-      caseItem.caseId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      caseItem.agentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      caseItem.clientName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      caseItem.productName?.toLowerCase().includes(searchTerm.toLowerCase())
+      caseItem.applicationId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      caseItem.assignmentId?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      caseItem._id?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -204,7 +207,7 @@ const CasesManagement = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl sm:text-3xl font-bold text-gray-800">
-          Cases Management & Oversight
+          Assignments Management & Oversight
         </h1>
       </div>
 
@@ -219,7 +222,7 @@ const CasesManagement = () => {
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Case ID, Agent, Client..."
+              placeholder="Application ID, Agent, Client..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             />
           </div>
@@ -236,13 +239,12 @@ const CasesManagement = () => {
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-red-500"
             >
               <option value="">All Statuses</option>
-              <option value="Received">Received</option>
-              <option value="In Progress">In Progress</option>
-              <option value="Verified">Verified</option>
-              <option value="Closed">Closed</option>
-              <option value="Rejected">Rejected</option>
-              <option value="Transferred">Transferred</option>
-              <option value="Shared">Shared</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="approved">Approved</option>
+              <option value="completed">Completed</option>
+              <option value="rejected">Rejected</option>
+              <option value="cancelled">Cancelled</option>
             </select>
           </div>
 
@@ -292,7 +294,7 @@ const CasesManagement = () => {
             <thead className="bg-gray-50">
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Case ID
+                  Application ID
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Agent
@@ -318,7 +320,7 @@ const CasesManagement = () => {
               {filteredCases.length === 0 ? (
                 <tr>
                   <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
-                    No cases found
+                    No assignments found
                   </td>
                 </tr>
               ) : (
@@ -326,78 +328,59 @@ const CasesManagement = () => {
                   <tr key={caseItem._id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="text-sm font-medium text-gray-900">
-                        {caseItem.caseId}
+                        {caseItem.applicationId}
                       </div>
                       <div className="text-sm text-gray-500">
-                        {caseItem.productName}
+                        {caseItem.category}
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{caseItem.agentName}</div>
-                      <div className="text-sm text-gray-500">{caseItem.agentEmail}</div>
+                      <div className="text-sm text-gray-900">{caseItem.agentId || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4">
-                      <div className="text-sm text-gray-900">{caseItem.clientName}</div>
-                      <div className="text-sm text-gray-500">{caseItem.clientEmail}</div>
+                      <div className="text-sm text-gray-900">{caseItem.userId || 'N/A'}</div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {caseItem.caseCategory}
+                        {caseItem.category}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusBadgeColor(
-                          caseItem.caseStatus
+                          caseItem.status
                         )}`}
                       >
-                        {caseItem.caseStatus}
+                        {caseItem.status}
                       </span>
                     </td>
                     <td className="px-6 py-4">
                       <div
                         className={`text-sm font-medium ${getCommissionStatusColor(
-                          caseItem.commissionInfo?.commissionPayable
+                          caseItem.commissionInfo?.commissionStatus
                         )}`}
                       >
                         PKR {caseItem.commissionInfo?.eligibleCommission?.toLocaleString() || 0}
                       </div>
                       <div className="text-xs text-gray-500">
-                        {caseItem.commissionInfo?.commissionPayable || "N/A"}
+                        {caseItem.commissionInfo?.commissionStatus || "N/A"}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm space-y-1">
                       <Link
-                        to={`/cases/view/${caseItem.caseId}`}
+                        to={`/assignments/view/${caseItem._id || caseItem.assignmentId}`}
                         className="block text-blue-600 hover:text-blue-900"
                       >
                         View
                       </Link>
-                      {caseItem.commissionInfo?.commissionPayable === "Pending" && (
+                      {caseItem.commissionInfo?.commissionStatus === "Pending" && (
                         <button
-                          onClick={() => handleMarkCommissionPaid(caseItem.caseId)}
+                          onClick={() => handleMarkCommissionPaid(caseItem.applicationId)}
                           className="block text-green-600 hover:text-green-900"
                         >
                           Mark Paid
                         </button>
                       )}
-                      {caseItem.commissionInfo?.commissionPayable === "Paid" && (
-                        <button
-                          onClick={() => handleReverseCommission(caseItem.caseId)}
-                          className="block text-red-600 hover:text-red-900"
-                        >
-                          Reverse
-                        </button>
-                      )}
-                      <button
-                        onClick={() => {
-                          setSelectedCase(caseItem);
-                          setShowOverrideModal(true);
-                        }}
-                        className="block text-purple-600 hover:text-purple-900"
-                      >
-                        Override
-                      </button>
                     </td>
                   </tr>
                 ))

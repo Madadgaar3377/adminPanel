@@ -94,6 +94,15 @@ const Navbar = ({ onLogout }) => {
             ]
         },
         {
+            title: 'Insurance',
+            items: [
+                { label: 'Create Plan', href: '/insurance/add' },
+                { label: 'View All Plans', href: '/insurance/all' },
+                { label: 'All Applications', href: '/insurance/applications' },
+                { label: 'Claims & Maturity', href: '/insurance/claims' },
+            ]
+        },
+        {
             title: 'Partners',
             items: [
                 { label: 'Manage Partners', href: '/partners/all' },

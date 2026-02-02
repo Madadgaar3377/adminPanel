@@ -76,7 +76,16 @@ const CommissionManagement = () => {
 
       if (modalType === "earned" || modalType === "payable") {
         const action = modalType === "earned" ? "commissionEarned" : "commissionPayable";
-        const response = await fetch(`${ApiBaseUrl}/markAsDoneAndCalculateCommission`, {
+        
+        // Ensure no trailing slash in URL
+        const apiUrl = `${ApiBaseUrl}/markAsDoneAndCalculateCommission`.replace(/\/+$/, '');
+        
+        console.log("Calling API:", apiUrl, {
+          applicationId: selectedAssignment.applicationId,
+          action: action,
+        });
+
+        const response = await fetch(apiUrl, {
           method: "POST",
           headers: {
             Authorization: `Bearer ${token}`,
@@ -89,6 +98,12 @@ const CommissionManagement = () => {
             note: formData.note,
           }),
         });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("API Error Response:", response.status, errorText);
+          throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
+        }
 
         const data = await response.json();
         if (data.success) {
