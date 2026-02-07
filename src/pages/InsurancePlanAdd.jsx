@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import ApiBaseUrl from '../constants/apiUrl';
 import { ArrowLeft, ArrowRight, Check, X, Shield, FileText, Image as ImageIcon, Building2, User, Trash2 } from 'lucide-react';
 import RichTextEditor from '../compontents/RichTextEditor';
@@ -24,7 +24,9 @@ const Toast = ({ message, type, onClose }) => {
 const InsurancePlanAdd = () => {
     const navigate = useNavigate();
     const { id } = useParams();
+    const location = useLocation();
     const isEdit = !!id;
+    const isView = location.pathname.includes('/view/');
     
     const [currentStep, setCurrentStep] = useState(1);
     const [loading, setLoading] = useState(false);
@@ -1550,12 +1552,21 @@ const InsurancePlanAdd = () => {
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Description
                             </label>
-                            <RichTextEditor
-                                value={formData.description}
-                                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
-                                placeholder="Enter a detailed description of the insurance plan..."
-                            />
-                            <p className="text-xs text-gray-500 mt-2">Provide a comprehensive description of the plan features, benefits, and coverage details.</p>
+                            {isView ? (
+                                <div 
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl min-h-[200px] prose prose-sm max-w-none"
+                                    dangerouslySetInnerHTML={{ __html: formData.description || '' }}
+                                />
+                            ) : (
+                                <>
+                                    <RichTextEditor
+                                        value={formData.description}
+                                        onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
+                                        placeholder="Enter a detailed description of the insurance plan..."
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">Provide a comprehensive description of the plan features, benefits, and coverage details.</p>
+                                </>
+                            )}
                         </div>
 
                         <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
