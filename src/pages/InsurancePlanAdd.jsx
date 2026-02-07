@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import ApiBaseUrl from '../constants/apiUrl';
-import { ArrowLeft, ArrowRight, Check, Upload, X, Shield, FileText, Image as ImageIcon, Building2, Package, DollarSign, User } from 'lucide-react';
+import { ArrowLeft, ArrowRight, Check, X, Shield, FileText, Image as ImageIcon, Building2, User, Trash2 } from 'lucide-react';
+import RichTextEditor from '../compontents/RichTextEditor';
 
 // Toast Notification Component
 const Toast = ({ message, type, onClose }) => {
@@ -31,13 +32,14 @@ const InsurancePlanAdd = () => {
     const [message, setMessage] = useState(null);
     const [toast, setToast] = useState(null);
     const [insuranceCompanies, setInsuranceCompanies] = useState([]);
-    const [uploading, setUploading] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
     const [imagePreview, setImagePreview] = useState(null);
     const [creationMethod, setCreationMethod] = useState('company'); // 'company' or 'userId'
     const [userIdInput, setUserIdInput] = useState('');
     const [fetchedUser, setFetchedUser] = useState(null);
     const [fetchingUser, setFetchingUser] = useState(false);
+    const [uploadProgress, setUploadProgress] = useState({});
+    const [uploadingDocuments, setUploadingDocuments] = useState({});
 
     const totalSteps = 5;
 
@@ -49,6 +51,13 @@ const InsurancePlanAdd = () => {
         planStatus: 'Active',
         isVisible: true,
         planImage: '',
+        // Step 2: Common fields for all policy types
+        policyTerm: '', // e.g., "5 years", "10 years"
+        eligibleAge: {
+            min: '',
+            max: '',
+        },
+        estimatedMaturity: '', // PKR amount
         
         // Life Insurance
         lifeInsurancePlan: {
@@ -150,13 +159,14 @@ const InsurancePlanAdd = () => {
         
         // Documents
         planDocuments: {
-            productBrochure: '',
-            policyWording: '',
-            rateCard: '',
-            claimProcedure: '',
-            secpApproval: '',
-            otherDocuments: [],
-        },
+        productBrochure: '',
+        policyWording: '',
+        rateCard: '', // Optional
+        policyRiders: '', // Optional - 2nd attachment
+        claimProcedure: '',
+        secpApproval: '',
+        otherDocuments: [],
+    },
         
         // Authorization
         authorization: {
@@ -174,7 +184,8 @@ const InsurancePlanAdd = () => {
         } else {
             fetchPlanDetails();
         }
-    }, [id]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [id, isEdit]);
 
     const fetchUserByUserId = async () => {
         if (!userIdInput.trim()) {
@@ -214,13 +225,14 @@ const InsurancePlanAdd = () => {
     const fetchInsuranceCompanies = async () => {
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/getAllInsuranceCompanies`, {
+            const res = await fetch(`${ApiBaseUrl}/getAllInsuranceCompanies?status=approved`, {
                 headers: {
                     'Authorization': `Bearer ${authData.token}`,
                 }
             });
             const data = await res.json();
             if (data.success) {
+                // Backend already filters by userAccess containing "Insurance"
                 setInsuranceCompanies(data.data || []);
             }
         } catch (err) {
@@ -328,40 +340,138 @@ const InsurancePlanAdd = () => {
     };
 
     const handleDocumentUpload = async (file, documentType) => {
-        setUploading(true);
+        // Validate file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            showToast(`File size exceeds 5MB limit. Selected file: ${(file.size / (1024 * 1024)).toFixed(2)}MB`, 'error');
+            return null;
+        }
+
+        // Validate file type
+        const allowedTypes = ['.pdf', '.doc', '.docx', '.xls', '.xlsx'];
+        const fileExtension = '.' + file.name.split('.').pop().toLowerCase();
+        if (!allowedTypes.includes(fileExtension)) {
+            showToast(`Invalid file type. Allowed types: ${allowedTypes.join(', ')}`, 'error');
+            return null;
+        }
+
+        setUploadingDocuments(prev => ({ ...prev, [documentType]: true }));
+        setUploadProgress(prev => ({ ...prev, [documentType]: 0 }));
+
         try {
             const formDataUpload = new FormData();
             formDataUpload.append('document', file);
             
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const response = await fetch(`${ApiBaseUrl}/upload-document`, {
-                method: 'POST',
+            const xhr = new XMLHttpRequest();
+
+            // Track upload progress
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    setUploadProgress(prev => ({ ...prev, [documentType]: percentComplete }));
+                }
+            });
+
+            const uploadPromise = new Promise((resolve, reject) => {
+                xhr.onload = () => {
+                    if (xhr.status === 200) {
+                        try {
+                            const data = JSON.parse(xhr.responseText);
+                            if (data.success && data.url) {
+                                resolve(data.url);
+                            } else {
+                                reject(new Error(data.message || 'Upload failed'));
+                            }
+                        } catch (err) {
+                            reject(new Error('Invalid response from server'));
+                        }
+                    } else {
+                        reject(new Error(`Upload failed with status ${xhr.status}`));
+                    }
+                };
+                xhr.onerror = () => reject(new Error('Network error during upload'));
+            });
+
+            xhr.open('POST', `${ApiBaseUrl}/upload-document`);
+            xhr.setRequestHeader('Authorization', `Bearer ${authData.token}`);
+            xhr.send(formDataUpload);
+
+            const url = await uploadPromise;
+            
+            setFormData(prev => ({
+                ...prev,
+                planDocuments: {
+                    ...prev.planDocuments,
+                    [documentType]: url,
+                },
+            }));
+            
+            setUploadProgress(prev => ({ ...prev, [documentType]: 100 }));
+            setTimeout(() => {
+                setUploadProgress(prev => {
+                    const newProgress = { ...prev };
+                    delete newProgress[documentType];
+                    return newProgress;
+                });
+            }, 1000);
+
+            showToast('Document uploaded successfully!', 'success');
+            return url;
+        } catch (err) {
+            console.error('Upload error:', err);
+            showToast(err.message || 'Failed to upload document', 'error');
+            setUploadProgress(prev => {
+                const newProgress = { ...prev };
+                delete newProgress[documentType];
+                return newProgress;
+            });
+            return null;
+        } finally {
+            setUploadingDocuments(prev => ({ ...prev, [documentType]: false }));
+        }
+    };
+
+    const handleDeleteDocument = async (documentType) => {
+        const fileUrl = formData.planDocuments[documentType];
+        
+        if (!fileUrl) {
+            return;
+        }
+
+        // Confirm deletion
+        if (!window.confirm('Are you sure you want to delete this document? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            const response = await fetch(`${ApiBaseUrl}/delete-document`, {
+                method: 'DELETE',
                 headers: {
+                    'Content-Type': 'application/json',
                     'Authorization': `Bearer ${authData.token}`,
                 },
-                body: formDataUpload,
+                body: JSON.stringify({ fileUrl }),
             });
-            
+
             const data = await response.json();
-            if (data.success && data.url) {
+            
+            if (data.success) {
+                // Remove from state only after successful deletion
                 setFormData(prev => ({
                     ...prev,
                     planDocuments: {
                         ...prev.planDocuments,
-                        [documentType]: data.url,
+                        [documentType]: '',
                     },
                 }));
-                showToast('Document uploaded successfully!', 'success');
-                return data.url;
+                showToast('Document deleted successfully from R2', 'success');
             } else {
-                throw new Error(data.message || 'Upload failed');
+                showToast(data.message || 'Failed to delete document', 'error');
             }
         } catch (err) {
-            console.error('Upload error:', err);
-            showToast('Failed to upload document', 'error');
-            return null;
-        } finally {
-            setUploading(false);
+            console.error('Error deleting document:', err);
+            showToast('Failed to delete document. Please try again.', 'error');
         }
     };
 
@@ -388,6 +498,12 @@ const InsurancePlanAdd = () => {
             }
                 break;
             case 2:
+                // Check common fields first
+                if (!formData.policyTerm || !formData.eligibleAge.min || !formData.eligibleAge.max || !formData.estimatedMaturity) {
+                    showToast('Please fill in Policy Term, Eligible Age Range, and Estimated Maturity', 'error');
+                    return false;
+                }
+
                 const policyType = formData.policyType;
                 const policyKey = `${policyType.charAt(0).toLowerCase() + policyType.slice(1)}${policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
                 const policyData = formData[policyKey];
@@ -406,8 +522,10 @@ const InsurancePlanAdd = () => {
                 // Add validation for other policy types
                 break;
             case 3:
-                if (!formData.planDocuments.productBrochure || !formData.planDocuments.policyWording || !formData.planDocuments.rateCard) {
-                    showToast('Please upload all required documents', 'error');
+                // Only productBrochure and policyWording are required
+                // policyRiders and rateCard are optional
+                if (!formData.planDocuments.productBrochure || !formData.planDocuments.policyWording) {
+                    showToast('Please upload Product Brochure and Policy Wording', 'error');
                     return false;
                 }
                 break;
@@ -417,6 +535,8 @@ const InsurancePlanAdd = () => {
                     return false;
                 }
                 break;
+            default:
+                return true;
         }
         return true;
     };
@@ -459,6 +579,10 @@ const InsurancePlanAdd = () => {
                 planDocuments: formData.planDocuments,
                 authorization: formData.authorization,
                 tags: formData.tags,
+                // Add new common fields (Step 2)
+                policyTerm: formData.policyTerm,
+                eligibleAge: formData.eligibleAge,
+                estimatedMaturity: formData.estimatedMaturity,
                 [policyKey]: policyData,
             };
             
@@ -1333,11 +1457,12 @@ const InsurancePlanAdd = () => {
                                         >
                                             <option value="">Select Insurance Company</option>
                                             {insuranceCompanies.map((company) => (
-                                                <option key={company._id} value={company.insuranceCompanyId || company.userId}>
-                                                    {company.insuranceCompanyName || company.name}
+                                                <option key={company._id || company.insuranceCompanyId} value={company.insuranceCompanyId || company.userId}>
+                                                    {company.insuranceCompanyName || company.name || company.companyDetails?.RegisteredCompanyName}
                                                 </option>
                                             ))}
                                         </select>
+                                        <p className="text-xs text-gray-500 mt-1">Only insurance companies are shown (Insurance/Takaful partners)</p>
                                     </div>
                                 )}
 
@@ -1425,12 +1550,9 @@ const InsurancePlanAdd = () => {
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
                                 Description
                             </label>
-                            <textarea
-                                name="description"
+                            <RichTextEditor
                                 value={formData.description}
-                                onChange={handleInput}
-                                rows={5}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                onChange={(html) => setFormData(prev => ({ ...prev, description: html }))}
                                 placeholder="Enter a detailed description of the insurance plan..."
                             />
                             <p className="text-xs text-gray-500 mt-2">Provide a comprehensive description of the plan features, benefits, and coverage details.</p>
@@ -1482,6 +1604,89 @@ const InsurancePlanAdd = () => {
                             </div>
                             <h2 className="text-2xl font-bold text-gray-900">Step 2: Plan Details</h2>
                         </div>
+
+                        {/* Common Fields for All Policy Types */}
+                        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
+                            <h3 className="text-lg font-semibold text-blue-900 mb-4">Common Plan Information</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Policy Term <span className="text-red-500">*</span>
+                                    </label>
+                                    <select
+                                        name="policyTerm"
+                                        value={formData.policyTerm}
+                                        onChange={handleInput}
+                                        className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                        required
+                                    >
+                                        <option value="">Select Policy Term</option>
+                                        <option value="5 years">5 years</option>
+                                        <option value="10 years">10 years</option>
+                                        <option value="15 years">15 years</option>
+                                        <option value="20 years">20 years</option>
+                                        <option value="25 years">25 years</option>
+                                        <option value="30 years">30 years</option>
+                                        <option value="Whole Life">Whole Life</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Eligible Age Range <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="flex items-center gap-2">
+                                        <input
+                                            type="number"
+                                            name="eligibleAgeMin"
+                                            value={formData.eligibleAge.min}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                eligibleAge: { ...prev.eligibleAge, min: e.target.value }
+                                            }))}
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                            placeholder="Min"
+                                            required
+                                        />
+                                        <span className="text-gray-500">-</span>
+                                        <input
+                                            type="number"
+                                            name="eligibleAgeMax"
+                                            value={formData.eligibleAge.max}
+                                            onChange={(e) => setFormData(prev => ({
+                                                ...prev,
+                                                eligibleAge: { ...prev.eligibleAge, max: e.target.value }
+                                            }))}
+                                            className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                            placeholder="Max"
+                                            required
+                                        />
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">e.g., 30-60 years</p>
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                        Estimated Maturity <span className="text-red-500">*</span>
+                                    </label>
+                                    <div className="relative">
+                                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                        <input
+                                            type="number"
+                                            name="estimatedMaturity"
+                                            value={formData.estimatedMaturity}
+                                            onChange={handleInput}
+                                            className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                            placeholder="0.00"
+                                            required
+                                        />
+                                    </div>
+                                    <p className="mt-1 text-xs text-gray-500">Estimated maturity amount in PKR</p>
+                                </div>
+                            </div>
+                        </div>
+
                         {renderPolicyTypeFields()}
                     </div>
                 );
@@ -1501,24 +1706,48 @@ const InsurancePlanAdd = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Product Brochure <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx"
-                                    onChange={(e) => {
-                                        if (e.target.files[0]) {
-                                            handleDocumentUpload(e.target.files[0], 'productBrochure');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                    required
-                                />
-                                {formData.planDocuments.productBrochure && (
+                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX | Max size: 5MB</p>
+                                {!formData.planDocuments.productBrochure ? (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx"
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    handleDocumentUpload(e.target.files[0], 'productBrochure');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                            required
+                                            disabled={uploadingDocuments.productBrochure}
+                                        />
+                                        {uploadingDocuments.productBrochure && (
+                                            <div className="mt-3">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
+                                                        style={{ width: `${uploadProgress.productBrochure || 0}%` }}
+                                                    ></div>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.productBrochure || 0)}%</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
                                     <div className="mt-3 flex items-center gap-2 text-green-600">
                                         <Check className="w-5 h-5" />
                                         <span className="text-sm font-medium">Document uploaded successfully</span>
                                         <a href={formData.planDocuments.productBrochure} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                                             View
                                         </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument('productBrochure')}
+                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-sm">Delete</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -1527,50 +1756,146 @@ const InsurancePlanAdd = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Policy Wording <span className="text-red-500">*</span>
                                 </label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx"
-                                    onChange={(e) => {
-                                        if (e.target.files[0]) {
-                                            handleDocumentUpload(e.target.files[0], 'policyWording');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                    required
-                                />
-                                {formData.planDocuments.policyWording && (
+                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX | Max size: 5MB</p>
+                                {!formData.planDocuments.policyWording ? (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx"
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    handleDocumentUpload(e.target.files[0], 'policyWording');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                            required
+                                            disabled={uploadingDocuments.policyWording}
+                                        />
+                                        {uploadingDocuments.policyWording && (
+                                            <div className="mt-3">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
+                                                        style={{ width: `${uploadProgress.policyWording || 0}%` }}
+                                                    ></div>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.policyWording || 0)}%</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
                                     <div className="mt-3 flex items-center gap-2 text-green-600">
                                         <Check className="w-5 h-5" />
                                         <span className="text-sm font-medium">Document uploaded successfully</span>
                                         <a href={formData.planDocuments.policyWording} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                                             View
                                         </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument('policyWording')}
+                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-sm">Delete</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
 
                             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-400 transition-all">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Rate Card <span className="text-red-500">*</span>
+                                    Policy Riders <span className="text-gray-500">(Optional)</span>
                                 </label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx,.xls,.xlsx"
-                                    onChange={(e) => {
-                                        if (e.target.files[0]) {
-                                            handleDocumentUpload(e.target.files[0], 'rateCard');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                    required
-                                />
-                                {formData.planDocuments.rateCard && (
+                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX | Max size: 5MB</p>
+                                {!formData.planDocuments.policyRiders ? (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx"
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    handleDocumentUpload(e.target.files[0], 'policyRiders');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                            disabled={uploadingDocuments.policyRiders}
+                                        />
+                                        {uploadingDocuments.policyRiders && (
+                                            <div className="mt-3">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
+                                                        style={{ width: `${uploadProgress.policyRiders || 0}%` }}
+                                                    ></div>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.policyRiders || 0)}%</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
+                                    <div className="mt-3 flex items-center gap-2 text-green-600">
+                                        <Check className="w-5 h-5" />
+                                        <span className="text-sm font-medium">Document uploaded successfully</span>
+                                        <a href={formData.planDocuments.policyRiders} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                                            View
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument('policyRiders')}
+                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-sm">Delete</span>
+                                        </button>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-400 transition-all">
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                    Rate Card <span className="text-gray-500">(Optional)</span>
+                                </label>
+                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX, XLS, XLSX | Max size: 5MB</p>
+                                {!formData.planDocuments.rateCard ? (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx,.xls,.xlsx"
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    handleDocumentUpload(e.target.files[0], 'rateCard');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                            disabled={uploadingDocuments.rateCard}
+                                        />
+                                        {uploadingDocuments.rateCard && (
+                                            <div className="mt-3">
+                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                                                    <div 
+                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
+                                                        style={{ width: `${uploadProgress.rateCard || 0}%` }}
+                                                    ></div>
+                                                </div>
+                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.rateCard || 0)}%</p>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
                                     <div className="mt-3 flex items-center gap-2 text-green-600">
                                         <Check className="w-5 h-5" />
                                         <span className="text-sm font-medium">Document uploaded successfully</span>
                                         <a href={formData.planDocuments.rateCard} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
                                             View
                                         </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument('rateCard')}
+                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-sm">Delete</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>
@@ -1825,7 +2150,7 @@ const InsurancePlanAdd = () => {
                     ) : (
                         <button
                             type="submit"
-                            disabled={loading || uploading || uploadingImage}
+                            disabled={loading || Object.values(uploadingDocuments).some(u => u) || uploadingImage}
                             className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-red-600 to-red-700 text-white rounded-lg hover:from-red-700 hover:to-red-800 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
                         >
                             {loading ? (
