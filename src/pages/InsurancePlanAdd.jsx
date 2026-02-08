@@ -253,7 +253,12 @@ const InsurancePlanAdd = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setFormData(data.data);
+                // Ensure eligibleAge is initialized if missing
+                const formDataFromApi = {
+                    ...data.data,
+                    eligibleAge: data.data.eligibleAge || { min: '', max: '' }
+                };
+                setFormData(formDataFromApi);
                 if (data.data.planImage) {
                     setImagePreview(data.data.planImage);
                 }
@@ -501,9 +506,24 @@ const InsurancePlanAdd = () => {
                 break;
             case 2:
                 // Check common fields first
-                if (!formData.policyTerm || !formData.eligibleAge.min || !formData.eligibleAge.max || !formData.estimatedMaturity) {
+                if (!formData.policyTerm || !formData.eligibleAge?.min || !formData.eligibleAge?.max || !formData.estimatedMaturity) {
                     showToast('Please fill in Policy Term, Eligible Age Range, and Estimated Maturity', 'error');
                     return false;
+                }
+
+                // If Custom is selected, validate Min/Max Policy Term
+                if (formData.policyTerm === 'Custom') {
+                    const policyType = formData.policyType;
+                    if (!policyType) {
+                        showToast('Please select a Policy Type first', 'error');
+                        return false;
+                    }
+                    const policyKey = `${policyType.charAt(0).toLowerCase() + policyType.slice(1)}${policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+                    const policyData = formData[policyKey];
+                    if (!policyData?.policyTermYearsMin || !policyData?.policyTermYearsMax) {
+                        showToast('Please fill in Min and Max Policy Term (Years) for Custom policy term', 'error');
+                        return false;
+                    }
                 }
 
                 const policyType = formData.policyType;
@@ -677,47 +697,6 @@ const InsurancePlanAdd = () => {
                             />
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Min Policy Term (Years) <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="policyTermYearsMin"
-                                value={policyData.policyTermYearsMin}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Max Policy Term (Years) <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="policyTermYearsMax"
-                                value={policyData.policyTermYearsMax}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Premium Payment Term (Years) <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="premiumPaymentTerm"
-                                value={policyData.premiumPaymentTerm}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1619,7 +1598,7 @@ const InsurancePlanAdd = () => {
                         {/* Common Fields for All Policy Types */}
                         <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
                             <h3 className="text-lg font-semibold text-blue-900 mb-4">Common Plan Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Policy Term <span className="text-red-500">*</span>
@@ -1632,16 +1611,87 @@ const InsurancePlanAdd = () => {
                                         required
                                     >
                                         <option value="">Select Policy Term</option>
+                                        <option value="1 year">1 year</option>
+                                        <option value="2 years">2 years</option>
+                                        <option value="3 years">3 years</option>
+                                        <option value="4 years">4 years</option>
                                         <option value="5 years">5 years</option>
+                                        <option value="6 years">6 years</option>
+                                        <option value="7 years">7 years</option>
+                                        <option value="8 years">8 years</option>
+                                        <option value="9 years">9 years</option>
                                         <option value="10 years">10 years</option>
                                         <option value="15 years">15 years</option>
                                         <option value="20 years">20 years</option>
                                         <option value="25 years">25 years</option>
                                         <option value="30 years">30 years</option>
                                         <option value="Whole Life">Whole Life</option>
-                                        <option value="Other">Other</option>
+                                        <option value="Custom">Custom</option>
                                     </select>
                                 </div>
+
+                                {/* Show Min/Max Policy Term inputs only when "Custom" is selected */}
+                                {formData.policyTerm === 'Custom' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Min Policy Term (Years) <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="policyTermYearsMin"
+                                                value={(() => {
+                                                    if (!formData.policyType) return '';
+                                                    const policyKey = `${formData.policyType.charAt(0).toLowerCase() + formData.policyType.slice(1)}${formData.policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+                                                    return formData[policyKey]?.policyTermYearsMin || '';
+                                                })()}
+                                                onChange={(e) => {
+                                                    if (!formData.policyType) return;
+                                                    const policyKey = `${formData.policyType.charAt(0).toLowerCase() + formData.policyType.slice(1)}${formData.policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        [policyKey]: {
+                                                            ...prev[policyKey],
+                                                            policyTermYearsMin: e.target.value
+                                                        }
+                                                    }));
+                                                }}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                placeholder="e.g., 1"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Max Policy Term (Years) <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="policyTermYearsMax"
+                                                value={(() => {
+                                                    if (!formData.policyType) return '';
+                                                    const policyKey = `${formData.policyType.charAt(0).toLowerCase() + formData.policyType.slice(1)}${formData.policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+                                                    return formData[policyKey]?.policyTermYearsMax || '';
+                                                })()}
+                                                onChange={(e) => {
+                                                    if (!formData.policyType) return;
+                                                    const policyKey = `${formData.policyType.charAt(0).toLowerCase() + formData.policyType.slice(1)}${formData.policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+                                                    setFormData(prev => ({
+                                                        ...prev,
+                                                        [policyKey]: {
+                                                            ...prev[policyKey],
+                                                            policyTermYearsMax: e.target.value
+                                                        }
+                                                    }));
+                                                }}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                placeholder="e.g., 30"
+                                                required
+                                            />
+                                        </div>
+                                    </>
+                                )}
 
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1651,10 +1701,10 @@ const InsurancePlanAdd = () => {
                                         <input
                                             type="number"
                                             name="eligibleAgeMin"
-                                            value={formData.eligibleAge.min}
+                                            value={formData.eligibleAge?.min || ''}
                                             onChange={(e) => setFormData(prev => ({
                                                 ...prev,
-                                                eligibleAge: { ...prev.eligibleAge, min: e.target.value }
+                                                eligibleAge: { ...(prev.eligibleAge || {}), min: e.target.value }
                                             }))}
                                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                                             placeholder="Min"
@@ -1664,10 +1714,10 @@ const InsurancePlanAdd = () => {
                                         <input
                                             type="number"
                                             name="eligibleAgeMax"
-                                            value={formData.eligibleAge.max}
+                                            value={formData.eligibleAge?.max || ''}
                                             onChange={(e) => setFormData(prev => ({
                                                 ...prev,
-                                                eligibleAge: { ...prev.eligibleAge, max: e.target.value }
+                                                eligibleAge: { ...(prev.eligibleAge || {}), max: e.target.value }
                                             }))}
                                             className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                                             placeholder="Max"
@@ -1733,14 +1783,21 @@ const InsurancePlanAdd = () => {
                                             disabled={uploadingDocuments.productBrochure}
                                         />
                                         {uploadingDocuments.productBrochure && (
-                                            <div className="mt-3">
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div 
-                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
-                                                        style={{ width: `${uploadProgress.productBrochure || 0}%` }}
-                                                    ></div>
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
+                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.productBrochure || 0)}%</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.productBrochure || 0)}%</p>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                                        style={{ width: `${uploadProgress.productBrochure || 0}%` }}
+                                                    >
+                                                        {uploadProgress.productBrochure > 10 && (
+                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.productBrochure || 0)}%</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </>
@@ -1754,10 +1811,10 @@ const InsurancePlanAdd = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument('productBrochure')}
-                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm">Delete</span>
+                                            <span className="text-sm font-medium">Delete</span>
                                         </button>
                                     </div>
                                 )}
@@ -1783,14 +1840,21 @@ const InsurancePlanAdd = () => {
                                             disabled={uploadingDocuments.policyWording}
                                         />
                                         {uploadingDocuments.policyWording && (
-                                            <div className="mt-3">
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div 
-                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
-                                                        style={{ width: `${uploadProgress.policyWording || 0}%` }}
-                                                    ></div>
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
+                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.policyWording || 0)}%</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.policyWording || 0)}%</p>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                                        style={{ width: `${uploadProgress.policyWording || 0}%` }}
+                                                    >
+                                                        {uploadProgress.policyWording > 10 && (
+                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.policyWording || 0)}%</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </>
@@ -1804,10 +1868,10 @@ const InsurancePlanAdd = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument('policyWording')}
-                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm">Delete</span>
+                                            <span className="text-sm font-medium">Delete</span>
                                         </button>
                                     </div>
                                 )}
@@ -1832,14 +1896,21 @@ const InsurancePlanAdd = () => {
                                             disabled={uploadingDocuments.policyRiders}
                                         />
                                         {uploadingDocuments.policyRiders && (
-                                            <div className="mt-3">
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div 
-                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
-                                                        style={{ width: `${uploadProgress.policyRiders || 0}%` }}
-                                                    ></div>
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
+                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.policyRiders || 0)}%</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.policyRiders || 0)}%</p>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                                        style={{ width: `${uploadProgress.policyRiders || 0}%` }}
+                                                    >
+                                                        {uploadProgress.policyRiders > 10 && (
+                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.policyRiders || 0)}%</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </>
@@ -1853,10 +1924,10 @@ const InsurancePlanAdd = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument('policyRiders')}
-                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm">Delete</span>
+                                            <span className="text-sm font-medium">Delete</span>
                                         </button>
                                     </div>
                                 )}
@@ -1881,14 +1952,21 @@ const InsurancePlanAdd = () => {
                                             disabled={uploadingDocuments.rateCard}
                                         />
                                         {uploadingDocuments.rateCard && (
-                                            <div className="mt-3">
-                                                <div className="w-full bg-gray-200 rounded-full h-2.5">
-                                                    <div 
-                                                        className="bg-red-600 h-2.5 rounded-full transition-all duration-300" 
-                                                        style={{ width: `${uploadProgress.rateCard || 0}%` }}
-                                                    ></div>
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
+                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.rateCard || 0)}%</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mt-1">Uploading... {Math.round(uploadProgress.rateCard || 0)}%</p>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                                        style={{ width: `${uploadProgress.rateCard || 0}%` }}
+                                                    >
+                                                        {uploadProgress.rateCard > 10 && (
+                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.rateCard || 0)}%</span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
                                         )}
                                     </>
@@ -1902,10 +1980,10 @@ const InsurancePlanAdd = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument('rateCard')}
-                                            className="ml-auto text-red-600 hover:text-red-800 flex items-center gap-1"
+                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
                                         >
                                             <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm">Delete</span>
+                                            <span className="text-sm font-medium">Delete</span>
                                         </button>
                                     </div>
                                 )}
@@ -1915,20 +1993,54 @@ const InsurancePlanAdd = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">
                                     Claim Procedure (Optional)
                                 </label>
-                                <input
-                                    type="file"
-                                    accept=".pdf,.doc,.docx"
-                                    onChange={(e) => {
-                                        if (e.target.files[0]) {
-                                            handleDocumentUpload(e.target.files[0], 'claimProcedure');
-                                        }
-                                    }}
-                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                />
-                                {formData.planDocuments.claimProcedure && (
+                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX | Max size: 5MB</p>
+                                {!formData.planDocuments.claimProcedure ? (
+                                    <>
+                                        <input
+                                            type="file"
+                                            accept=".pdf,.doc,.docx"
+                                            onChange={(e) => {
+                                                if (e.target.files[0]) {
+                                                    handleDocumentUpload(e.target.files[0], 'claimProcedure');
+                                                }
+                                            }}
+                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
+                                            disabled={uploadingDocuments.claimProcedure}
+                                        />
+                                        {uploadingDocuments.claimProcedure && (
+                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                                <div className="flex items-center justify-between mb-2">
+                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
+                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.claimProcedure || 0)}%</span>
+                                                </div>
+                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                                                    <div 
+                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
+                                                        style={{ width: `${uploadProgress.claimProcedure || 0}%` }}
+                                                    >
+                                                        {uploadProgress.claimProcedure > 10 && (
+                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.claimProcedure || 0)}%</span>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </>
+                                ) : (
                                     <div className="mt-3 flex items-center gap-2 text-green-600">
                                         <Check className="w-5 h-5" />
                                         <span className="text-sm font-medium">Document uploaded successfully</span>
+                                        <a href={formData.planDocuments.claimProcedure} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
+                                            View
+                                        </a>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDocument('claimProcedure')}
+                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
+                                        >
+                                            <Trash2 className="w-4 h-4" />
+                                            <span className="text-sm font-medium">Delete</span>
+                                        </button>
                                     </div>
                                 )}
                             </div>

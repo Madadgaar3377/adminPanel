@@ -138,11 +138,11 @@ const Navbar = ({ onLogout }) => {
                     </Link>
 
                     {/* Desktop Navigation */}
-                    <div className="hidden xl:flex items-center gap-1 flex-wrap">
-                        <Link to="/" className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors">
+                    <div className="hidden lg:flex items-center gap-1 flex-wrap justify-center flex-1 max-w-5xl mx-4">
+                        <Link to="/" className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors whitespace-nowrap">
                             Dashboard
                         </Link>
-                        <Link to="/users" className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors">
+                        <Link to="/users" className="px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:text-red-600 hover:bg-gray-50 transition-colors whitespace-nowrap">
                             Users
                         </Link>
                         {navigationCategories.map((cat, idx) => (
@@ -217,7 +217,7 @@ const Navbar = ({ onLogout }) => {
                         {/* Mobile Menu Button */}
                         <button
                             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                            className="xl:hidden p-1.5 sm:p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-gray-50 transition-colors"
+                            className="lg:hidden p-1.5 sm:p-2 rounded-lg text-gray-500 hover:text-red-600 hover:bg-gray-50 transition-colors"
                             aria-label="Toggle menu"
                         >
                             {isMobileMenuOpen ? (
@@ -236,7 +236,7 @@ const Navbar = ({ onLogout }) => {
 
             {/* Mobile Menu */}
             {isMobileMenuOpen && (
-                <div className="xl:hidden border-t border-gray-200 bg-white max-h-[calc(100vh-4rem)] overflow-y-auto">
+                <div className="lg:hidden border-t border-gray-200 bg-white max-h-[calc(100vh-4rem)] overflow-y-auto">
                     <div className="px-3 xs:px-4 pt-2 pb-4 space-y-1">
                         <Link to="/" onClick={() => setIsMobileMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-red-600 bg-red-50">
                             Dashboard

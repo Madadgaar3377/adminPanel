@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
-import Navbar from "./compontents/Navbar";
+import { SidebarProvider } from "./compontents/SidebarContext";
+import Layout from "./compontents/Layout";
 import LoginPage from "./compontents/LoginPage";
 import Dashboard from "./pages/Dashboard";
 import Users from "./pages/Users";
@@ -40,6 +41,7 @@ import CommissionManagement from "./pages/CommissionManagement";
 import AdminChat from "./pages/AdminChat";
 import InsurancePlansList from "./pages/InsurancePlansList";
 import InsuranceApplicationsList from "./pages/InsuranceApplicationsList";
+import InsuranceApplicationDetails from "./pages/InsuranceApplicationDetails";
 import InsuranceClaimsList from "./pages/InsuranceClaimsList";
 import InsurancePlanAdd from "./pages/InsurancePlanAdd";
 
@@ -82,10 +84,8 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {isAuthenticated && <Navbar onLogout={handleLogout} />}
-
-      <div className={isAuthenticated ? "max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 lg:px-8 py-4 xs:py-6 sm:py-8 md:py-10 safe-bottom" : ""}>
+    <SidebarProvider>
+      <div className="min-h-screen bg-gray-50">
         <Routes>
           {/* Public Route */}
           <Route
@@ -96,222 +96,222 @@ function App() {
           {/* Protected Routes */}
           <Route
             path="/"
-            element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Dashboard /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/users"
-            element={isAuthenticated ? <Users /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Users /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/notifications"
-            element={isAuthenticated ? <Notifications /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Notifications /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/add"
-            element={isAuthenticated ? <InstallmentsAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentsAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/all"
-            element={isAuthenticated ? <InstallmentsList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentsList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/update"
-            element={isAuthenticated ? <InstallmentsManage /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentsManage /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/edit/:id"
-            element={isAuthenticated ? <InstallmentsEdit /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentsEdit /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/view/:id"
-            element={isAuthenticated ? <InstallmentView /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentView /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/all-applications"
-            element={isAuthenticated ? <InstallmentApplications /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentApplications /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/application/:id"
-            element={isAuthenticated ? <InstallmentApplicationDetails /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InstallmentApplicationDetails /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Banner Routes */}
           <Route
             path="/banner/all"
-            element={isAuthenticated ? <BannersList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BannersList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/banner/add"
-            element={isAuthenticated ? <BannersAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BannersAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/banner/update/:id"
-            element={isAuthenticated ? <BannersAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BannersAdd /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Agent Routes */}
           <Route
             path="/agent/all"
-            element={isAuthenticated ? <AgentsList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentsList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/agent/assign"
-            element={isAuthenticated ? <AgentAssignments /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentAssignments /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/agent/add"
-            element={isAuthenticated ? <AgentAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/agent/update/:id"
-            element={isAuthenticated ? <AgentUpdate /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentUpdate /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/agent/unverified"
-            element={isAuthenticated ? <UnverifiedAgents /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><UnverifiedAgents /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/profile"
-            element={isAuthenticated ? <Profile /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Profile /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/update-password"
-            element={isAuthenticated ? <UpdatePassword /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><UpdatePassword /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/partners/all"
-            element={isAuthenticated ? <Partners /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Partners /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/partners"
-            element={isAuthenticated ? <Partners /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><Partners /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/partners/update/:id"
-            element={isAuthenticated ? <AgentUpdate /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentUpdate /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Property Routes */}
           <Route
             path="/property/all"
-            element={isAuthenticated ? <PropertyList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/add"
-            element={isAuthenticated ? <PropertyAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/edit/:id"
-            element={isAuthenticated ? <PropertyAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/view/:id"
-            element={isAuthenticated ? <PropertyView /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyView /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/update"
-            element={isAuthenticated ? <PropertyList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/all-applications"
-            element={isAuthenticated ? <PropertyApplications /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyApplications /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/property/application/:id"
-            element={isAuthenticated ? <PropertyApplicationDetails /> : <Navigate to="/login" />}
-          />
-          <Route
-            path="/property/view/:id"
-            element={isAuthenticated ? <PropertyView /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><PropertyApplicationDetails /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Loan Routes */}
           <Route
             path="/loan/all"
-            element={isAuthenticated ? <LoanList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/loan/add"
-            element={isAuthenticated ? <LoanAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/loan/view/:id"
-            element={isAuthenticated ? <LoanView /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanView /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/loan/edit/:id"
-            element={isAuthenticated ? <LoanEdit /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanEdit /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Blog Routes */}
           <Route
             path="/blog/all"
-            element={isAuthenticated ? <BlogList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BlogList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/blog/add"
-            element={isAuthenticated ? <BlogAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BlogAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/blog/edit/:id"
-            element={isAuthenticated ? <BlogAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BlogAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/blog/view/:id"
-            element={isAuthenticated ? <BlogView /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BlogView /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Commission & Cases Routes */}
           <Route
             path="/commission/all"
-            element={isAuthenticated ? <CommissionRulesList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><CommissionRulesList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/commission/management"
-            element={isAuthenticated ? <CommissionManagement /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><CommissionManagement /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/cases/all"
-            element={isAuthenticated ? <CasesManagement /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><CasesManagement /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Insurance Routes */}
           <Route
             path="/insurance/all"
-            element={isAuthenticated ? <InsurancePlansList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsurancePlansList /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/insurance/add"
-            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsurancePlanAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/insurance/edit/:id"
-            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsurancePlanAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/insurance/view/:id"
-            element={isAuthenticated ? <InsurancePlanAdd /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsurancePlanAdd /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/insurance/applications"
-            element={isAuthenticated ? <InsuranceApplicationsList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsuranceApplicationsList /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/insurance/application/:id"
+            element={isAuthenticated ? <InsuranceApplicationDetails onLogout={handleLogout} /> : <Navigate to="/login" />}
           />
           <Route
             path="/insurance/claims"
-            element={isAuthenticated ? <InsuranceClaimsList /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><InsuranceClaimsList /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Chat Route */}
           <Route
             path="/chat"
-            element={isAuthenticated ? <AdminChat /> : <Navigate to="/login" />}
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AdminChat /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}
           <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} />} />
         </Routes>
       </div>
-    </div>
+    </SidebarProvider>
   );
 }
 
