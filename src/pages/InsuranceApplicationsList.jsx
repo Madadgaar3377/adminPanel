@@ -26,6 +26,7 @@ const InsuranceApplicationsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [filterStatus, setFilterStatus] = useState('All');
     const [filterPolicyType, setFilterPolicyType] = useState('All');
+    const [filterCreator, setFilterCreator] = useState('all'); // all, partner, agent
     const [currentPage, setCurrentPage] = useState(1);
     const [toast, setToast] = useState(null);
     const itemsPerPage = 10;
@@ -50,7 +51,51 @@ const InsuranceApplicationsList = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setApplications(data.data || []);
+                // Fetch plan details to get creator information
+                const applicationsWithCreatorInfo = await Promise.all(
+                    (data.data || []).map(async (app) => {
+                        try {
+                            if (app.planId) {
+                                const planRes = await fetch(`${ApiBaseUrl}/getInsurancePlanAdmin/${app.planId}`, {
+                                    headers: {
+                                        'Authorization': `Bearer ${authData.token}`,
+                                    }
+                                });
+                                const planData = await planRes.json();
+                                if (planData.success && planData.data) {
+                                    // Check if createdBy is an agent or partner by checking user type
+                                    let creatorType = 'partner'; // default
+                                    if (planData.data.createdBy) {
+                                        try {
+                                            const userRes = await fetch(`${ApiBaseUrl}/getUserById?userId=${planData.data.createdBy}`, {
+                                                headers: {
+                                                    'Authorization': `Bearer ${authData.token}`,
+                                                }
+                                            });
+                                            const userData = await userRes.json();
+                                            if (userData.success && userData.data) {
+                                                creatorType = userData.data.UserType === 'agent' ? 'agent' : 'partner';
+                                            }
+                                        } catch (err) {
+                                            console.error('Error fetching creator user info:', err);
+                                        }
+                                    }
+                                    
+                                    return {
+                                        ...app,
+                                        planCreatedBy: planData.data.createdBy,
+                                        planCreatedByType: creatorType,
+                                    };
+                                }
+                            }
+                            return app;
+                        } catch (err) {
+                            console.error('Error fetching plan details:', err);
+                            return app;
+                        }
+                    })
+                );
+                setApplications(applicationsWithCreatorInfo);
             } else {
                 setError(data.message);
             }
@@ -98,7 +143,10 @@ const InsuranceApplicationsList = () => {
             app.planName?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStatus = filterStatus === 'All' || app.status === filterStatus.toLowerCase();
         const matchesPolicyType = filterPolicyType === 'All' || app.policyType === filterPolicyType;
-        return matchesSearch && matchesStatus && matchesPolicyType;
+        const matchesCreator = filterCreator === 'all' || 
+            (filterCreator === 'partner' && app.planCreatedByType !== 'agent') ||
+            (filterCreator === 'agent' && app.planCreatedByType === 'agent');
+        return matchesSearch && matchesStatus && matchesPolicyType && matchesCreator;
     });
 
     const paginatedApplications = filtered.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
@@ -134,7 +182,7 @@ const InsuranceApplicationsList = () => {
 
             {/* Filters */}
             <div className="bg-white rounded-lg shadow-sm p-4 mb-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <input
                         type="text"
                         placeholder="Search applications..."
@@ -168,6 +216,15 @@ const InsuranceApplicationsList = () => {
                         <option value="Property">Property</option>
                         <option value="Takaful">Takaful</option>
                     </select>
+                    <select
+                        value={filterCreator}
+                        onChange={(e) => setFilterCreator(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                    >
+                        <option value="all">All Creators</option>
+                        <option value="partner">Partner Created</option>
+                        <option value="agent">Agent Created</option>
+                    </select>
                 </div>
             </div>
 
@@ -181,6 +238,7 @@ const InsuranceApplicationsList = () => {
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Applicant</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Policy Type</th>
+                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created By</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
@@ -189,7 +247,7 @@ const InsuranceApplicationsList = () => {
                         <tbody className="bg-white divide-y divide-gray-200">
                             {paginatedApplications.length === 0 ? (
                                 <tr>
-                                    <td colSpan="7" className="px-6 py-4 text-center text-gray-500">
+                                    <td colSpan="8" className="px-6 py-4 text-center text-gray-500">
                                         No applications found
                                     </td>
                                 </tr>
@@ -210,6 +268,15 @@ const InsuranceApplicationsList = () => {
                                         <td className="px-6 py-4 whitespace-nowrap">
                                             <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
                                                 {app.policyType || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <span className={`px-2 py-1 text-xs font-medium rounded-full ${
+                                                app.planCreatedByType === 'agent' 
+                                                    ? 'bg-purple-100 text-purple-800' 
+                                                    : 'bg-green-100 text-green-800'
+                                            }`}>
+                                                {app.planCreatedByType === 'agent' ? 'Agent' : 'Partner'}
                                             </span>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap">
