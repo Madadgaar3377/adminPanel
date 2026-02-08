@@ -227,7 +227,8 @@ const InsurancePlanAdd = () => {
     const fetchInsuranceCompanies = async () => {
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/getAllInsuranceCompanies?status=approved`, {
+            // Fetch all companies by setting a high limit (1000 should be enough for all companies)
+            const res = await fetch(`${ApiBaseUrl}/getAllInsuranceCompanies?status=approved&limit=1000`, {
                 headers: {
                     'Authorization': `Bearer ${authData.token}`,
                 }
@@ -510,6 +511,14 @@ const InsurancePlanAdd = () => {
                     showToast('Please fill in Policy Term, Eligible Age Range, and Estimated Maturity', 'error');
                     return false;
                 }
+                
+                // For Life Insurance, check static fields (minEntryAge and maxEntryAge removed)
+                if (formData.policyType === 'Life') {
+                    if (!formData.lifeInsurancePlan?.sumAssured || !formData.lifeInsurancePlan?.premiumAmount || !formData.lifeInsurancePlan?.paymentFrequency) {
+                        showToast('Please fill in Sum Assured, Premium Amount, and Payment Frequency', 'error');
+                        return false;
+                    }
+                }
 
                 // If Custom is selected, validate Min/Max Policy Term
                 if (formData.policyTerm === 'Custom') {
@@ -544,10 +553,9 @@ const InsurancePlanAdd = () => {
                 // Add validation for other policy types
                 break;
             case 3:
-                // Only productBrochure and policyWording are required
-                // policyRiders and rateCard are optional
-                if (!formData.planDocuments.productBrochure || !formData.planDocuments.policyWording) {
-                    showToast('Please upload Product Brochure and Policy Wording', 'error');
+                // Only productBrochure is required (policyWording removed)
+                if (!formData.planDocuments.productBrochure) {
+                    showToast('Please upload Product Brochure', 'error');
                     return false;
                 }
                 break;
@@ -682,81 +690,6 @@ const InsurancePlanAdd = () => {
                             </select>
                         </div>
 
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Sum Assured <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="sumAssured"
-                                value={policyData.sumAssured}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                placeholder="500000"
-                                required
-                            />
-                        </div>
-
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Premium Amount <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="premiumAmount"
-                                value={policyData.premiumAmount}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Payment Frequency <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="paymentFrequency"
-                                value={policyData.paymentFrequency}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            >
-                                <option value="Monthly">Monthly</option>
-                                <option value="Quarterly">Quarterly</option>
-                                <option value="Semi-Annually">Semi-Annually</option>
-                                <option value="Annually">Annually</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Min Entry Age <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="minEntryAge"
-                                value={policyData.minEntryAge}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Max Entry Age <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="maxEntryAge"
-                                value={policyData.maxEntryAge}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1595,10 +1528,11 @@ const InsurancePlanAdd = () => {
                             <h2 className="text-2xl font-bold text-gray-900">Step 2: Plan Details</h2>
                         </div>
 
-                        {/* Common Fields for All Policy Types */}
-                        <div className="bg-blue-50 border-l-4 border-blue-500 p-6 rounded-lg mb-6">
-                            <h3 className="text-lg font-semibold text-blue-900 mb-4">Common Plan Information</h3>
+                        {/* Merged Form - Common Fields + Life Insurance Static Fields */}
+                        <div className="bg-gradient-to-br from-blue-50 via-red-50 to-purple-50 border-l-4 border-red-500 p-6 rounded-lg mb-6">
+                            <h3 className="text-lg font-semibold text-gray-900 mb-4">Plan Information</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {/* Policy Term - Common for all */}
                                 <div>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Policy Term <span className="text-red-500">*</span>
@@ -1629,6 +1563,98 @@ const InsurancePlanAdd = () => {
                                         <option value="Custom">Custom</option>
                                     </select>
                                 </div>
+
+                                {/* For Life Insurance - Static Fields */}
+                                {formData.policyType === 'Life' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Sum Assured <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="sumAssured"
+                                                value={formData.lifeInsurancePlan?.sumAssured || ''}
+                                                onChange={handlePolicyTypeInput}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                placeholder="500000"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Premium Amount <span className="text-red-500">*</span>
+                                            </label>
+                                            <input
+                                                type="number"
+                                                name="premiumAmount"
+                                                value={formData.lifeInsurancePlan?.premiumAmount || ''}
+                                                onChange={handlePolicyTypeInput}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                placeholder="Enter premium amount"
+                                                required
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Payment Frequency <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="paymentFrequency"
+                                                value={formData.lifeInsurancePlan?.paymentFrequency || 'Monthly'}
+                                                onChange={handlePolicyTypeInput}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                required
+                                            >
+                                                <option value="Monthly">Monthly</option>
+                                                <option value="Quarterly">Quarterly</option>
+                                                <option value="Semi-Annually">Semi-Annually</option>
+                                                <option value="Annually">Annually</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Estimated Maturity <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                                <input
+                                                    type="number"
+                                                    name="estimatedMaturity"
+                                                    value={formData.estimatedMaturity || ''}
+                                                    onChange={handleInput}
+                                                    className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                    placeholder="0.00"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Estimated Maturity - For non-Life insurance types */}
+                                {formData.policyType !== 'Life' && (
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                            Estimated Maturity <span className="text-red-500">*</span>
+                                        </label>
+                                        <div className="relative">
+                                            <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                            <input
+                                                type="number"
+                                                name="estimatedMaturity"
+                                                value={formData.estimatedMaturity || ''}
+                                                onChange={handleInput}
+                                                className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                placeholder="0.00"
+                                                required
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* Show Min/Max Policy Term inputs only when "Custom" is selected */}
                                 {formData.policyTerm === 'Custom' && (
@@ -1693,7 +1719,8 @@ const InsurancePlanAdd = () => {
                                     </>
                                 )}
 
-                                <div>
+                                {/* Eligible Age Range - Common for all */}
+                                <div className={formData.policyType === 'Life' ? 'md:col-span-2' : ''}>
                                     <label className="block text-sm font-semibold text-gray-700 mb-2">
                                         Eligible Age Range <span className="text-red-500">*</span>
                                     </label>
@@ -1726,28 +1753,46 @@ const InsurancePlanAdd = () => {
                                     </div>
                                     <p className="mt-1 text-xs text-gray-500">e.g., 30-60 years</p>
                                 </div>
-
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                        Estimated Maturity <span className="text-red-500">*</span>
-                                    </label>
-                                    <div className="relative">
-                                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
-                                        <input
-                                            type="number"
-                                            name="estimatedMaturity"
-                                            value={formData.estimatedMaturity}
-                                            onChange={handleInput}
-                                            className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                            placeholder="0.00"
-                                            required
-                                        />
-                                    </div>
-                                    <p className="mt-1 text-xs text-gray-500">Estimated maturity amount in PKR</p>
-                                </div>
                             </div>
                         </div>
 
+                        {/* Display Cards for Life Insurance Static Fields */}
+                        {formData.policyType === 'Life' && (
+                            <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+                                <div className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Premium Amount</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        PKR {formData.lifeInsurancePlan?.premiumAmount ? Number(formData.lifeInsurancePlan.premiumAmount).toLocaleString() : '0'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Payment Frequency</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {formData.lifeInsurancePlan?.paymentFrequency || 'Monthly'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Sum Assured</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        PKR {formData.lifeInsurancePlan?.sumAssured ? Number(formData.lifeInsurancePlan.sumAssured).toLocaleString() : '0'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Policy Term</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {formData.policyTerm || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-red-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Estimated Maturity</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        PKR {formData.estimatedMaturity ? Number(formData.estimatedMaturity).toLocaleString() : '0'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Policy-Specific Fields (excluding Life Insurance static fields) */}
                         {renderPolicyTypeFields()}
                     </div>
                 );
@@ -1811,63 +1856,6 @@ const InsurancePlanAdd = () => {
                                         <button
                                             type="button"
                                             onClick={() => handleDeleteDocument('productBrochure')}
-                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm font-medium">Delete</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-400 transition-all">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Policy Wording <span className="text-red-500">*</span>
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX | Max size: 5MB</p>
-                                {!formData.planDocuments.policyWording ? (
-                                    <>
-                                        <input
-                                            type="file"
-                                            accept=".pdf,.doc,.docx"
-                                            onChange={(e) => {
-                                                if (e.target.files[0]) {
-                                                    handleDocumentUpload(e.target.files[0], 'policyWording');
-                                                }
-                                            }}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                            required
-                                            disabled={uploadingDocuments.policyWording}
-                                        />
-                                        {uploadingDocuments.policyWording && (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
-                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.policyWording || 0)}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                                    <div 
-                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
-                                                        style={{ width: `${uploadProgress.policyWording || 0}%` }}
-                                                    >
-                                                        {uploadProgress.policyWording > 10 && (
-                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.policyWording || 0)}%</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="mt-3 flex items-center gap-2 text-green-600">
-                                        <Check className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Document uploaded successfully</span>
-                                        <a href={formData.planDocuments.policyWording} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                                            View
-                                        </a>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteDocument('policyWording')}
                                             className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
                                         >
                                             <Trash2 className="w-4 h-4" />
