@@ -548,28 +548,31 @@ const PropertyAdd = () => {
                 const property = data.data;
                 setIsEditMode(true);
                 
-                // Determine property type and load data
-                if (property.commonForm) {
+                // Determine property type and load data - check both commonForm (legacy) and project/individualProperty (new schema)
+                const projectData = property.project || property.commonForm;
+                const individualData = property.individualProperty;
+                
+                if (projectData) {
                     // Project type
                     setPropertyType('Project');
                     setProjectData({
-                        projectName: property.commonForm.projectName || '',
-                        city: property.commonForm.city || '',
-                        district: property.commonForm.district || '',
-                        tehsil: property.commonForm.tehsil || '',
-                        area: property.commonForm.area || '',
-                        street: property.commonForm.street || '',
-                        address: property.commonForm.address || '',
-                        latitude: property.commonForm.latitude || '',
-                        longitude: property.commonForm.longitude || '',
-                        projectType: property.commonForm.projectType || 'Residential',
-                        projectSubType: property.commonForm.projectSubType || '',
-                        developmentType: property.commonForm.developmentType || '',
-                        infrastructureStatus: property.commonForm.infrastructureStatus || '',
-                        projectStage: property.commonForm.projectStage || '',
-                        expectedCompletionDate: property.commonForm.expectedCompletionDate || '',
-                        possessionDate: property.commonForm.possessionDate || '',
-                        utilities: property.commonForm.utilities || {
+                        projectName: projectData.projectName || '',
+                        city: projectData.city || '',
+                        district: projectData.district || '',
+                        tehsil: projectData.tehsil || '',
+                        area: projectData.area || '',
+                        street: projectData.street || '',
+                        address: projectData.address || '',
+                        latitude: projectData.latitude || '',
+                        longitude: projectData.longitude || '',
+                        projectType: projectData.projectType || 'Residential',
+                        projectSubType: projectData.projectSubType || '',
+                        developmentType: projectData.developmentType || '',
+                        infrastructureStatus: projectData.infrastructureStatus || '',
+                        projectStage: projectData.projectStage || '',
+                        expectedCompletionDate: projectData.expectedCompletionDate || '',
+                        possessionDate: projectData.possessionDate || '',
+                        utilities: projectData.utilities || {
                             electricity: false,
                             water: false,
                             gas: false,
@@ -577,79 +580,108 @@ const PropertyAdd = () => {
                             sewage: false,
                             telephoneLine: false,
                         },
-                        amenities: property.commonForm.amenities || projectData.amenities,
-                        description: property.commonForm.description || '',
-                        highlights: property.commonForm.highlights || ['', '', ''],
-                        totalLandArea: property.commonForm.totalLandArea || '',
-                        landAreaUnit: property.commonForm.landAreaUnit || 'sqft',
-                        propertyTypesAvailable: property.commonForm.propertyTypesAvailable || [],
-                        totalUnits: property.commonForm.totalUnits || '',
-                        typicalUnitSizes: property.commonForm.typicalUnitSizes || '',
-                        nearbyLandmarks: property.commonForm.nearbyLandmarks || '',
-                        remarks: property.commonForm.remarks || '',
-                        developerBuilder: property.commonForm.developerBuilder || '',
-                        units: property.commonForm.units || [],
+                        amenities: projectData.amenities || projectData.amenities || {},
+                        description: projectData.description || '',
+                        highlights: projectData.highlights || ['', '', ''],
+                        totalLandArea: projectData.totalLandArea || '',
+                        landAreaUnit: projectData.landAreaUnit || 'sqft',
+                        propertyTypesAvailable: projectData.propertyTypesAvailable || [],
+                        totalUnits: projectData.totalUnits || '',
+                        typicalUnitSizes: projectData.typicalUnitSizes || '',
+                        nearbyLandmarks: projectData.nearbyLandmarks || '',
+                        remarks: projectData.remarks || '',
+                        developerBuilder: projectData.developerBuilder || '',
+                        units: projectData.units ? projectData.units.map(unit => ({
+                            ...unit,
+                            transaction: {
+                                ...unit.transaction,
+                                price: '', // Clear price for projects
+                                priceRange: unit.transaction?.priceRange || '',
+                                type: unit.transaction?.type || 'Sale',
+                                advanceAmount: unit.transaction?.advanceAmount || '',
+                                monthlyRent: unit.transaction?.monthlyRent || '',
+                                contractDuration: unit.transaction?.contractDuration || '',
+                                bookingAmount: unit.transaction?.bookingAmount || '',
+                                downPayment: unit.transaction?.downPayment || '',
+                                monthlyInstallment: unit.transaction?.monthlyInstallment || '',
+                                tenure: unit.transaction?.tenure || '',
+                                totalPayable: unit.transaction?.totalPayable || '',
+                            }
+                        })) : [],
                         transaction: {
-                            type: property.commonForm.transaction?.type || 'Sale',
-                            price: property.commonForm.transaction?.price || '',
-                            priceRange: property.commonForm.transaction?.priceRange || '',
-                            advanceAmount: property.commonForm.transaction?.advanceAmount || '',
-                            monthlyRent: property.commonForm.transaction?.monthlyRent || '',
-                            contractDuration: property.commonForm.transaction?.contractDuration || '',
-                            bookingAmount: property.commonForm.transaction?.bookingAmount || '',
-                            downPayment: property.commonForm.transaction?.downPayment || '',
-                            monthlyInstallment: property.commonForm.transaction?.monthlyInstallment || '',
-                            tenure: property.commonForm.transaction?.tenure || '',
-                            totalPayable: property.commonForm.transaction?.totalPayable || '',
-                            interestRate: property.commonForm.transaction?.interestRate || '',
-                            additionalCharges: property.commonForm.transaction?.additionalCharges || '',
-                            discountsOffers: property.commonForm.transaction?.discountsOffers || '',
-                            additionalInfo: property.commonForm.transaction?.additionalInfo || '',
+                            type: projectData.transaction?.type || 'Sale',
+                            price: projectData.transaction?.price || '',
+                            priceRange: projectData.transaction?.priceRange || '',
+                            advanceAmount: projectData.transaction?.advanceAmount || '',
+                            monthlyRent: projectData.transaction?.monthlyRent || '',
+                            contractDuration: projectData.transaction?.contractDuration || '',
+                            bookingAmount: projectData.transaction?.bookingAmount || '',
+                            downPayment: projectData.transaction?.downPayment || '',
+                            monthlyInstallment: projectData.transaction?.monthlyInstallment || '',
+                            tenure: projectData.transaction?.tenure || '',
+                            totalPayable: projectData.transaction?.totalPayable || '',
+                            interestRate: projectData.transaction?.interestRate || '',
+                            additionalCharges: projectData.transaction?.additionalCharges || '',
+                            discountsOffers: projectData.transaction?.discountsOffers || '',
+                            additionalInfo: projectData.transaction?.additionalInfo || '',
                         },
-                        images: property.commonForm.images || [],
-                        video: property.commonForm.video || '',
-                        documents: property.commonForm.documents || [],
+                        images: projectData.images || [],
+                        video: projectData.video || '',
+                        documents: projectData.documents || [],
                         contact: {
-                            name: property.commonForm.contact?.name || '',
-                            email: property.commonForm.contact?.email || '',
-                            number: property.commonForm.contact?.number || '',
-                            whatsapp: property.commonForm.contact?.whatsapp || '',
-                            cnic: property.commonForm.contact?.cnic || '',
-                            city: property.commonForm.contact?.city || '',
-                            area: property.commonForm.contact?.area || '',
-                            companyName: property.commonForm.contact?.companyName || '',
-                            designation: property.commonForm.contact?.designation || '',
+                            name: projectData.contact?.name || '',
+                            email: projectData.contact?.email || '',
+                            number: projectData.contact?.number || '',
+                            whatsapp: projectData.contact?.whatsapp || '',
+                            cnic: projectData.contact?.cnic || '',
+                            city: projectData.contact?.city || '',
+                            area: projectData.contact?.area || '',
+                            companyName: projectData.contact?.companyName || '',
+                            designation: projectData.contact?.designation || '',
                         },
-                        declarationAccepted: property.commonForm.declarationAccepted || false,
+                        declarationAccepted: projectData.declarationAccepted || false,
                     });
-                } else if (property.individualProperty) {
+                } else if (individualData) {
                     // Individual property type
                     setPropertyType('Individual');
                     setIndividualData({
-                        title: property.individualProperty.title || '',
-                        description: property.individualProperty.description || '',
-                        propertyType: property.individualProperty.propertyType || 'Apartment / Flat',
-                        areaUnit: property.individualProperty.areaUnit || 'sq. ft',
-                        areaSize: property.individualProperty.areaSize || '',
-                        city: property.individualProperty.city || '',
-                        location: property.individualProperty.location || '',
-                        bedrooms: property.individualProperty.bedrooms || '',
-                        bathrooms: property.individualProperty.bathrooms || '',
-                        kitchenType: property.individualProperty.kitchenType || '',
-                        furnishingStatus: property.individualProperty.furnishingStatus || '',
-                        floor: property.individualProperty.floor || '',
-                        totalFloors: property.individualProperty.totalFloors || '',
-                        possessionStatus: property.individualProperty.possessionStatus || '',
-                        zoningType: property.individualProperty.zoningType || 'Residential',
-                        utilities: property.individualProperty.utilities || {
+                        title: individualData.title || '',
+                        description: individualData.description || '',
+                        propertyType: individualData.propertyType || 'Apartment / Flat',
+                        areaUnit: individualData.areaUnit || 'sq. ft',
+                        areaSize: individualData.areaSize || '',
+                        city: individualData.city || '',
+                        location: individualData.location || '',
+                        bedrooms: individualData.bedrooms || '',
+                        bathrooms: individualData.bathrooms || '',
+                        kitchenType: individualData.kitchenType || '',
+                        furnishingStatus: individualData.furnishingStatus || '',
+                        floor: individualData.floor || '',
+                        totalFloors: individualData.totalFloors || '',
+                        possessionStatus: individualData.possessionStatus || '',
+                        zoningType: individualData.zoningType || 'Residential',
+                        utilities: individualData.utilities || {
                             electricity: false,
                             water: false,
                             gas: false,
                             internet: false,
                         },
-                        amenities: property.individualProperty.amenities || individualData.amenities,
-                        nearbyLandmarks: property.individualProperty.nearbyLandmarks || '',
-                        transaction: property.individualProperty.transaction || {
+                        amenities: individualData.amenities || {},
+                        nearbyLandmarks: individualData.nearbyLandmarks || '',
+                        transaction: individualData.transaction ? {
+                            type: individualData.transaction.type || 'Sale',
+                            price: individualData.transaction.price || '',
+                            priceRange: individualData.transaction.priceRange || '',
+                            advanceAmount: individualData.transaction.advanceAmount || '',
+                            monthlyRent: individualData.transaction.monthlyRent || '',
+                            contractDuration: individualData.transaction.contractDuration || '',
+                            bookingAmount: individualData.transaction.bookingAmount || '',
+                            downPayment: individualData.transaction.downPayment || '',
+                            monthlyInstallment: individualData.transaction.monthlyInstallment || '',
+                            tenure: individualData.transaction.tenure || '',
+                            totalPayable: individualData.transaction.totalPayable || '',
+                            additionalInfo: individualData.transaction.additionalInfo || '',
+                        } : {
                             type: 'Sale',
                             price: '',
                             advanceAmount: '',
@@ -662,9 +694,9 @@ const PropertyAdd = () => {
                             totalPayable: '',
                             additionalInfo: '',
                         },
-                        images: property.individualProperty.images || [],
-                        documents: property.individualProperty.documents || [],
-                        contact: property.individualProperty.contact || {
+                        images: individualData.images || [],
+                        documents: individualData.documents || [],
+                        contact: individualData.contact || {
                             name: '',
                             email: '',
                             number: '',
@@ -1152,7 +1184,20 @@ const PropertyAdd = () => {
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 xs:gap-5">
                                         <button
                                 type="button"
-                                onClick={() => setPropertyType('Project')}
+                                onClick={() => {
+                                    setPropertyType('Project');
+                                    // Clear price from all units when switching to Project
+                                    setProjectData(prev => ({
+                                        ...prev,
+                                        units: prev.units.map(unit => ({
+                                            ...unit,
+                                            transaction: {
+                                                ...unit.transaction,
+                                                price: '' // Clear price for projects
+                                            }
+                                        }))
+                                    }));
+                                }}
                                 className={`tap-target group relative py-6 xs:py-8 px-5 xs:px-6 rounded-2xl font-bold uppercase text-xs xs:text-sm tracking-wider transition-all duration-300 ${
                                     propertyType === 'Project'
                                         ? 'bg-gradient-to-br from-red-600 to-red-700 text-white shadow-2xl shadow-red-200 scale-105'
@@ -1992,6 +2037,75 @@ const PropertyAdd = () => {
                                     </button>
                                 </div>
 
+                                {/* Units Summary Table */}
+                                {projectData.units.length > 0 && (
+                                    <div className="bg-white rounded-2xl border-2 border-gray-200 shadow-lg overflow-hidden">
+                                        <div className="bg-gradient-to-r from-red-600 to-rose-600 px-6 py-4">
+                                            <h4 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
+                                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                                </svg>
+                                                Units Pricing Summary
+                                            </h4>
+                                        </div>
+                                        <div className="overflow-x-auto">
+                                            <table className="w-full">
+                                                <thead className="bg-gray-50 border-b-2 border-gray-200">
+                                                    <tr>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Unit</th>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Type</th>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Size</th>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Qty</th>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Transaction</th>
+                                                        <th className="px-4 py-3 text-left text-[10px] font-black text-gray-700 uppercase tracking-wider">Price Range</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody className="divide-y divide-gray-200">
+                                                    {projectData.units.map((unit, index) => (
+                                                        <tr key={index} className="hover:bg-gray-50 transition-colors">
+                                                            <td className="px-4 py-3">
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="w-6 h-6 bg-red-600 rounded text-white text-xs font-bold flex items-center justify-center">
+                                                                        {index + 1}
+                                                                    </div>
+                                                                </div>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-xs font-bold text-gray-900">{unit.offeringType || 'N/A'}</span>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-xs font-semibold text-gray-700">
+                                                                    {unit.unitSize ? `${unit.unitSize} ${unit.unitSizeUnit || ''}` : 'N/A'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-xs font-semibold text-gray-700">{unit.numberOfUnits || 'N/A'}</span>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-1 rounded-lg text-[10px] font-bold uppercase ${
+                                                                    unit.transaction?.type === 'Sale' ? 'bg-green-100 text-green-700' :
+                                                                    unit.transaction?.type === 'Rent' ? 'bg-blue-100 text-blue-700' :
+                                                                    'bg-purple-100 text-purple-700'
+                                                                }`}>
+                                                                    {unit.transaction?.type || 'N/A'}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3">
+                                                                <span className="text-xs font-bold text-red-600">
+                                                                    {unit.transaction?.priceRange || 
+                                                                     (unit.transaction?.monthlyRent ? `PKR ${unit.transaction.monthlyRent.toLocaleString()}/month` :
+                                                                     unit.transaction?.bookingAmount ? `PKR ${unit.transaction.bookingAmount.toLocaleString()}` :
+                                                                     'N/A')}
+                                                                </span>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Units List */}
                                 {projectData.units.length === 0 ? (
                                     <div className="text-center py-12 bg-gray-50 rounded-2xl border-2 border-dashed border-gray-200">
@@ -2133,26 +2247,15 @@ const PropertyAdd = () => {
                                 </div>
 
                                                             {unit.transaction.type === 'Sale' && (
-                                                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                    <div>
-                                                                        <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
-                                                                            Price (PKR) *
-                                        </label>
-                                        <input
-                                            type="number"
-                                                                            value={unit.transaction.price}
-                                                                            onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'price')}
-                                                                            placeholder="e.g., 15000000"
-                                                                            className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"
-                                                                        />
-                                                                    </div>
+                                                                <div>
+                                                                    {/* Price field hidden for projects - projects should not show price */}
                                                                     <div>
                                                                         <label className="block text-[9px] xs:text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">
                                                                             Price Range
                                                                         </label>
                                                                         <input
                                                                             type="text"
-                                                                            value={unit.transaction.priceRange}
+                                                                            value={unit.transaction.priceRange || ''}
                                                                             onChange={(e) => handleUnitChange(index, 'transaction', e.target.value, 'priceRange')}
                                                                             placeholder="e.g., 1.5 Cr - 2 Cr"
                                                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-white border-2 border-gray-200 focus:border-red-600 rounded-lg text-xs font-bold transition-all outline-none"

@@ -110,10 +110,10 @@ const InsurancePlanAdd = () => {
             theftCoverage: false,
             floodCoverage: false,
             naturalCalamities: false,
+            thirdPartyCoverage: [],
+            totalLossCoverage: [],
+            ownDamageCoverage: [],
             annualPremium: '',
-            deductibleExcess: '',
-            claimProcessType: '',
-            averageClaimTATDays: '',
             requiredDocuments: [],
         },
         
@@ -286,6 +286,18 @@ const InsurancePlanAdd = () => {
         const { name, value, type, checked } = e.target;
         const policyType = formData.policyType;
         const policyKey = `${policyType.charAt(0).toLowerCase() + policyType.slice(1)}${policyType === 'Takaful' ? '' : 'Insurance'}Plan`;
+        
+        // Handle array fields (for coverage checklists)
+        if (Array.isArray(value)) {
+            setFormData(prev => ({
+                ...prev,
+                [policyKey]: {
+                    ...prev[policyKey],
+                    [name]: value,
+                }
+            }));
+            return;
+        }
         
         setFormData(prev => ({
             ...prev,
@@ -506,16 +518,30 @@ const InsurancePlanAdd = () => {
             }
                 break;
             case 2:
-                // Check common fields first
-                if (!formData.policyTerm || !formData.eligibleAge?.min || !formData.eligibleAge?.max || !formData.estimatedMaturity) {
-                    showToast('Please fill in Policy Term, Eligible Age Range, and Estimated Maturity', 'error');
-                    return false;
+                // Check common fields first (except for Motor)
+                if (formData.policyType !== 'Motor') {
+                    if (!formData.policyTerm || !formData.eligibleAge?.min || !formData.eligibleAge?.max || !formData.estimatedMaturity) {
+                        showToast('Please fill in Policy Term, Eligible Age Range, and Estimated Maturity', 'error');
+                        return false;
+                    }
                 }
                 
                 // For Life Insurance, check static fields (minEntryAge and maxEntryAge removed)
                 if (formData.policyType === 'Life') {
-                    if (!formData.lifeInsurancePlan?.sumAssured || !formData.lifeInsurancePlan?.premiumAmount || !formData.lifeInsurancePlan?.paymentFrequency) {
-                        showToast('Please fill in Sum Assured, Premium Amount, and Payment Frequency', 'error');
+                    if (!formData.lifeInsurancePlan?.sumAssured || !formData.lifeInsurancePlan?.premiumAmount || !formData.lifeInsurancePlan?.paymentFrequency ||
+                        !formData.lifeInsurancePlan?.premiumPaymentTerm || !formData.lifeInsurancePlan?.minEntryAge || !formData.lifeInsurancePlan?.maxEntryAge ||
+                        formData.lifeInsurancePlan?.maturityBenefit === undefined || !formData.lifeInsurancePlan?.deathBenefitDescription ||
+                        !formData.lifeInsurancePlan?.medicalRequirement || !formData.lifeInsurancePlan?.claimType ||
+                        !formData.lifeInsurancePlan?.maturityProcessingTimeDays) {
+                        showToast('Please fill in all required Life Insurance fields', 'error');
+                        return false;
+                    }
+                }
+
+                // For Motor Insurance, check static fields
+                if (formData.policyType === 'Motor') {
+                    if (!formData.motorInsurancePlan?.motorType || !formData.motorInsurancePlan?.coverageType || !formData.motorInsurancePlan?.vehicleValueRangeMin || !formData.motorInsurancePlan?.vehicleValueRangeMax || !formData.motorInsurancePlan?.annualPremium) {
+                        showToast('Please fill in Motor Type, Coverage Type, Vehicle Value Range, and Annual Premium', 'error');
                         return false;
                     }
                 }
@@ -540,7 +566,11 @@ const InsurancePlanAdd = () => {
                 const policyData = formData[policyKey];
                 
                 if (policyType === 'Life') {
-                    if (!policyData.planSubType || !policyData.sumAssured || !policyData.premiumAmount) {
+                    if (!policyData.planSubType || !policyData.sumAssured || !policyData.premiumPaymentTerm || 
+                        !policyData.minEntryAge || !policyData.maxEntryAge || policyData.maturityBenefit === undefined ||
+                        !policyData.deathBenefitDescription || !policyData.medicalRequirement || 
+                        !policyData.premiumAmount || !policyData.paymentFrequency || 
+                        !policyData.claimType || !policyData.maturityProcessingTimeDays) {
                         showToast('Please fill in all required Life Insurance fields', 'error');
                         return false;
                     }
@@ -553,7 +583,7 @@ const InsurancePlanAdd = () => {
                 // Add validation for other policy types
                 break;
             case 3:
-                // Only productBrochure is required (policyWording removed)
+                // Product Brochure is required
                 if (!formData.planDocuments.productBrochure) {
                     showToast('Please upload Product Brochure', 'error');
                     return false;
@@ -690,6 +720,50 @@ const InsurancePlanAdd = () => {
                             </select>
                         </div>
 
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Premium Payment Term (Years) <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                name="premiumPaymentTerm"
+                                value={policyData.premiumPaymentTerm}
+                                onChange={handlePolicyTypeInput}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                placeholder="e.g., 10"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Min Entry Age <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                name="minEntryAge"
+                                value={policyData.minEntryAge}
+                                onChange={handlePolicyTypeInput}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                placeholder="e.g., 18"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Max Entry Age <span className="text-red-500">*</span>
+                            </label>
+                            <input
+                                type="number"
+                                name="maxEntryAge"
+                                value={policyData.maxEntryAge}
+                                onChange={handlePolicyTypeInput}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                placeholder="e.g., 65"
+                                required
+                            />
+                        </div>
 
                         <div className="md:col-span-2">
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -721,6 +795,34 @@ const InsurancePlanAdd = () => {
                             />
                         </div>
 
+                        <div className="md:col-span-2">
+                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                Riders Available (Optional)
+                            </label>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                {['Accidental Death', 'Critical Illness', 'Disability', 'Waiver of Premium', 'Term Rider', 'Income Benefit', 'Hospital Cash', 'Other'].map((rider) => (
+                                    <label key={rider} className="flex items-center gap-2 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            checked={policyData.ridersAvailable?.includes(rider) || false}
+                                            onChange={() => {
+                                                const currentRiders = policyData.ridersAvailable || [];
+                                                const newRiders = currentRiders.includes(rider)
+                                                    ? currentRiders.filter(r => r !== rider)
+                                                    : [...currentRiders, rider];
+                                                handlePolicyTypeInput({ target: { name: 'ridersAvailable', value: newRiders } });
+                                            }}
+                                            className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
+                                        />
+                                        <span className="text-sm font-medium text-gray-700">{rider}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {policyData.ridersAvailable?.length > 0 && (
+                                <p className="mt-2 text-xs text-gray-500">Selected: {policyData.ridersAvailable.join(', ')}</p>
+                            )}
+                        </div>
+
                         <div className="md:col-span-2 flex gap-6">
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -730,7 +832,7 @@ const InsurancePlanAdd = () => {
                                     onChange={handlePolicyTypeInput}
                                     className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                                 />
-                                <span className="text-sm font-medium text-gray-700">Maturity Benefit Offered</span>
+                                <span className="text-sm font-medium text-gray-700">Maturity Benefit <span className="text-red-500">*</span></span>
                             </label>
                             <label className="flex items-center gap-2 cursor-pointer">
                                 <input
@@ -740,7 +842,7 @@ const InsurancePlanAdd = () => {
                                     onChange={handlePolicyTypeInput}
                                     className="w-5 h-5 text-red-600 border-gray-300 rounded focus:ring-red-500"
                                 />
-                                <span className="text-sm font-medium text-gray-700">Bonus Applicable</span>
+                                <span className="text-sm font-medium text-gray-700">Bonus Applicable (Optional)</span>
                             </label>
                         </div>
 
@@ -928,54 +1030,6 @@ const InsurancePlanAdd = () => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Motor Type <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="motorType"
-                                value={policyData.motorType}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            >
-                                <option value="">Select Motor Type</option>
-                                <option value="Car">Car</option>
-                                <option value="Bike">Bike</option>
-                                <option value="Commercial">Commercial</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Coverage Type <span className="text-red-500">*</span>
-                            </label>
-                            <select
-                                name="coverageType"
-                                value={policyData.coverageType}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            >
-                                <option value="">Select Coverage Type</option>
-                                <option value="Comprehensive">Comprehensive</option>
-                                <option value="Third Party">Third Party</option>
-                            </select>
-                        </div>
-
-                        <div>
-                            <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                Annual Premium <span className="text-red-500">*</span>
-                            </label>
-                            <input
-                                type="number"
-                                name="annualPremium"
-                                value={policyData.annualPremium}
-                                onChange={handlePolicyTypeInput}
-                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
-                                required
-                            />
-                        </div>
 
                         <div>
                             <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -1635,8 +1689,228 @@ const InsurancePlanAdd = () => {
                                     </>
                                 )}
 
-                                {/* Estimated Maturity - For non-Life insurance types */}
-                                {formData.policyType !== 'Life' && (
+                                {/* For Motor Insurance - Static Fields */}
+                                {formData.policyType === 'Motor' && (
+                                    <>
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Motor Type <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="motorType"
+                                                value={formData.motorInsurancePlan?.motorType || ''}
+                                                onChange={handlePolicyTypeInput}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                required
+                                            >
+                                                <option value="">Select Motor Type</option>
+                                                <option value="Car">Car</option>
+                                                <option value="Bike">Bike</option>
+                                                <option value="Commercial">Commercial</option>
+                                            </select>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Coverage Type <span className="text-red-500">*</span>
+                                            </label>
+                                            <select
+                                                name="coverageType"
+                                                value={formData.motorInsurancePlan?.coverageType || ''}
+                                                onChange={handlePolicyTypeInput}
+                                                className="w-full px-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                required
+                                            >
+                                                <option value="">Select Coverage Type</option>
+                                                <option value="Comprehensive">Comprehensive</option>
+                                                <option value="Third Party">Third Party</option>
+                                            </select>
+                                        </div>
+
+                                        {/* Motor Insurance Coverage Checklists */}
+                                        <div className="md:col-span-2 space-y-4">
+                                            {/* Third Party Coverage */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                                    Third Party Insurance Coverage
+                                                </label>
+                                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {[
+                                                            'Property Damage Liability',
+                                                            'Bodily Injury Liability',
+                                                            'Accidental Death',
+                                                            'Compensation for Pain and Suffering',
+                                                            'Third Party Property Repair',
+                                                            'Court Costs and Settlements',
+                                                            'Funeral Costs'
+                                                        ].map((coverage) => (
+                                                            <label key={coverage} className="flex items-start gap-3 cursor-pointer hover:bg-purple-100 p-3 rounded-lg transition-all border border-transparent hover:border-purple-300">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={formData.motorInsurancePlan?.thirdPartyCoverage?.includes(coverage) || false}
+                                                                    onChange={() => {
+                                                                        const current = formData.motorInsurancePlan?.thirdPartyCoverage || [];
+                                                                        const updated = current.includes(coverage)
+                                                                            ? current.filter(c => c !== coverage)
+                                                                            : [...current, coverage];
+                                                                        handlePolicyTypeInput({
+                                                                            target: {
+                                                                                name: 'thirdPartyCoverage',
+                                                                                value: updated
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                    className="mt-0.5 w-5 h-5 text-purple-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:ring-offset-2 cursor-pointer accent-purple-600"
+                                                                />
+                                                                <span className="text-sm font-medium text-gray-700 flex-1 leading-tight">{coverage}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Total Loss Coverage */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                                    Total Loss Coverage
+                                                </label>
+                                                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {[
+                                                            'Actual Cash Value',
+                                                            'Parts Replacement Cost',
+                                                            'Comprehensive Coverage',
+                                                            'Towing and Storage Fees',
+                                                            'Rental Car Reimbursement',
+                                                            'Personal Belongings',
+                                                            'Deductibles'
+                                                        ].map((coverage) => (
+                                                            <label key={coverage} className="flex items-start gap-3 cursor-pointer hover:bg-blue-100 p-3 rounded-lg transition-all border border-transparent hover:border-blue-300">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={formData.motorInsurancePlan?.totalLossCoverage?.includes(coverage) || false}
+                                                                    onChange={() => {
+                                                                        const current = formData.motorInsurancePlan?.totalLossCoverage || [];
+                                                                        const updated = current.includes(coverage)
+                                                                            ? current.filter(c => c !== coverage)
+                                                                            : [...current, coverage];
+                                                                        handlePolicyTypeInput({
+                                                                            target: {
+                                                                                name: 'totalLossCoverage',
+                                                                                value: updated
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                    className="mt-0.5 w-5 h-5 text-blue-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer accent-blue-600"
+                                                                />
+                                                                <span className="text-sm font-medium text-gray-700 flex-1 leading-tight">{coverage}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Own Damage Coverage */}
+                                            <div>
+                                                <label className="block text-sm font-semibold text-gray-700 mb-3">
+                                                    Own Damage Coverage
+                                                </label>
+                                                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                                                        {[
+                                                            'Comprehensive Coverage',
+                                                            'Theft & Total Loss',
+                                                            'Third Party Liability',
+                                                            'Accidental External Means',
+                                                            'Personal Accident Coverage',
+                                                            'Riots, Strikes & Malicious Damages',
+                                                            'Fire, External Explosion, Self Ignition'
+                                                        ].map((coverage) => (
+                                                            <label key={coverage} className="flex items-start gap-3 cursor-pointer hover:bg-green-100 p-3 rounded-lg transition-all border border-transparent hover:border-green-300">
+                                                                <input
+                                                                    type="checkbox"
+                                                                    checked={formData.motorInsurancePlan?.ownDamageCoverage?.includes(coverage) || false}
+                                                                    onChange={() => {
+                                                                        const current = formData.motorInsurancePlan?.ownDamageCoverage || [];
+                                                                        const updated = current.includes(coverage)
+                                                                            ? current.filter(c => c !== coverage)
+                                                                            : [...current, coverage];
+                                                                        handlePolicyTypeInput({
+                                                                            target: {
+                                                                                name: 'ownDamageCoverage',
+                                                                                value: updated
+                                                                            }
+                                                                        });
+                                                                    }}
+                                                                    className="mt-0.5 w-5 h-5 text-green-600 border-2 border-gray-300 rounded focus:ring-2 focus:ring-green-500 focus:ring-offset-2 cursor-pointer accent-green-600"
+                                                                />
+                                                                <span className="text-sm font-medium text-gray-700 flex-1 leading-tight">{coverage}</span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Vehicle Value Range (Min) <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                                <input
+                                                    type="number"
+                                                    name="vehicleValueRangeMin"
+                                                    value={formData.motorInsurancePlan?.vehicleValueRangeMin || ''}
+                                                    onChange={handlePolicyTypeInput}
+                                                    className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                    placeholder="Min value"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Vehicle Value Range (Max) <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                                <input
+                                                    type="number"
+                                                    name="vehicleValueRangeMax"
+                                                    value={formData.motorInsurancePlan?.vehicleValueRangeMax || ''}
+                                                    onChange={handlePolicyTypeInput}
+                                                    className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                    placeholder="Max value"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+
+                                        <div>
+                                            <label className="block text-sm font-semibold text-gray-700 mb-2">
+                                                Annual Premium <span className="text-red-500">*</span>
+                                            </label>
+                                            <div className="relative">
+                                                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">PKR</span>
+                                                <input
+                                                    type="number"
+                                                    name="annualPremium"
+                                                    value={formData.motorInsurancePlan?.annualPremium || ''}
+                                                    onChange={handlePolicyTypeInput}
+                                                    className="w-full pl-16 pr-4 py-3 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                                                    placeholder="Enter annual premium"
+                                                    required
+                                                />
+                                            </div>
+                                        </div>
+                                    </>
+                                )}
+
+                                {/* Estimated Maturity - For non-Life and non-Motor insurance types */}
+                                {formData.policyType !== 'Life' && formData.policyType !== 'Motor' && (
                                     <div>
                                         <label className="block text-sm font-semibold text-gray-700 mb-2">
                                             Estimated Maturity <span className="text-red-500">*</span>
@@ -1792,6 +2066,36 @@ const InsurancePlanAdd = () => {
                             </div>
                         )}
 
+                        {/* Display Cards for Motor Insurance Static Fields */}
+                        {formData.policyType === 'Motor' && (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+                                <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Motor Type</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {formData.motorInsurancePlan?.motorType || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Coverage Type</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        {formData.motorInsurancePlan?.coverageType || 'N/A'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Vehicle Value Range</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        PKR {formData.motorInsurancePlan?.vehicleValueRangeMin ? Number(formData.motorInsurancePlan.vehicleValueRangeMin).toLocaleString() : '0'} - {formData.motorInsurancePlan?.vehicleValueRangeMax ? Number(formData.motorInsurancePlan.vehicleValueRangeMax).toLocaleString() : '0'}
+                                    </p>
+                                </div>
+                                <div className="bg-white border-2 border-purple-200 rounded-xl p-4 shadow-sm hover:shadow-md transition-shadow">
+                                    <p className="text-xs text-gray-500 mb-1">Annual Premium</p>
+                                    <p className="text-lg font-bold text-gray-900">
+                                        PKR {formData.motorInsurancePlan?.annualPremium ? Number(formData.motorInsurancePlan.annualPremium).toLocaleString() : '0'}
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
                         {/* Policy-Specific Fields (excluding Life Insurance static fields) */}
                         {renderPolicyTypeFields()}
                     </div>
@@ -1921,61 +2225,6 @@ const InsurancePlanAdd = () => {
                                 )}
                             </div>
 
-                            <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-400 transition-all">
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                                    Rate Card <span className="text-gray-500">(Optional)</span>
-                                </label>
-                                <p className="text-xs text-gray-500 mb-2">File types: PDF, DOC, DOCX, XLS, XLSX | Max size: 5MB</p>
-                                {!formData.planDocuments.rateCard ? (
-                                    <>
-                                        <input
-                                            type="file"
-                                            accept=".pdf,.doc,.docx,.xls,.xlsx"
-                                            onChange={(e) => {
-                                                if (e.target.files[0]) {
-                                                    handleDocumentUpload(e.target.files[0], 'rateCard');
-                                                }
-                                            }}
-                                            className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent transition-all"
-                                            disabled={uploadingDocuments.rateCard}
-                                        />
-                                        {uploadingDocuments.rateCard && (
-                                            <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                                                <div className="flex items-center justify-between mb-2">
-                                                    <span className="text-sm font-medium text-blue-700">Uploading...</span>
-                                                    <span className="text-sm font-semibold text-blue-900">{Math.round(uploadProgress.rateCard || 0)}%</span>
-                                                </div>
-                                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                                                    <div 
-                                                        className="bg-gradient-to-r from-blue-500 to-blue-600 h-3 rounded-full transition-all duration-300 flex items-center justify-end pr-2"
-                                                        style={{ width: `${uploadProgress.rateCard || 0}%` }}
-                                                    >
-                                                        {uploadProgress.rateCard > 10 && (
-                                                            <span className="text-xs text-white font-medium">{Math.round(uploadProgress.rateCard || 0)}%</span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <div className="mt-3 flex items-center gap-2 text-green-600">
-                                        <Check className="w-5 h-5" />
-                                        <span className="text-sm font-medium">Document uploaded successfully</span>
-                                        <a href={formData.planDocuments.rateCard} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-sm">
-                                            View
-                                        </a>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteDocument('rateCard')}
-                                            className="ml-auto px-3 py-1.5 bg-red-50 text-red-600 hover:bg-red-100 hover:text-red-800 rounded-lg flex items-center gap-1.5 transition-colors border border-red-200"
-                                        >
-                                            <Trash2 className="w-4 h-4" />
-                                            <span className="text-sm font-medium">Delete</span>
-                                        </button>
-                                    </div>
-                                )}
-                            </div>
 
                             <div className="border-2 border-dashed border-gray-300 rounded-xl p-6 hover:border-green-400 transition-all">
                                 <label className="block text-sm font-semibold text-gray-700 mb-2">

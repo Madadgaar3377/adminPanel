@@ -474,13 +474,22 @@ const PropertyView = () => {
                         Pricing Details
                     </h2>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                        {data.transaction.price > 0 && (
+                        {/* For Individual properties, show price if it exists */}
+                        {!isProject && data.transaction.price && data.transaction.price > 0 && (
                             <div className="p-4 bg-red-50 rounded-lg border border-red-100 md:col-span-2 lg:col-span-3">
                                 <label className="block text-sm text-red-700 mb-1">Price</label>
                                 <p className="text-2xl font-bold text-red-600">PKR {data.transaction.price.toLocaleString()}</p>
                             </div>
                         )}
-                        {data.transaction.priceRange && (
+                        {/* For Projects, show priceRange if it exists (price field is hidden for projects) */}
+                        {isProject && data.transaction.priceRange && (
+                            <div className="p-4 bg-red-50 rounded-lg border border-red-100 md:col-span-2 lg:col-span-3">
+                                <label className="block text-sm text-red-700 mb-1">Price Range</label>
+                                <p className="text-xl font-bold text-red-600">{data.transaction.priceRange}</p>
+                            </div>
+                        )}
+                        {/* For Individual, also show priceRange if it exists */}
+                        {!isProject && data.transaction.priceRange && (
                             <div className="p-4 bg-red-50 rounded-lg border border-red-100 md:col-span-2 lg:col-span-3">
                                 <label className="block text-sm text-red-700 mb-1">Price Range</label>
                                 <p className="text-xl font-bold text-red-600">{data.transaction.priceRange}</p>
@@ -558,6 +567,88 @@ const PropertyView = () => {
                                 <p className="text-base text-gray-900">{data.transaction.additionalInfo}</p>
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Units Pricing (for Projects only) */}
+            {isProject && data?.units && data.units.length > 0 && (
+                <div className="bg-white rounded-2xl shadow-sm p-6">
+                    <h2 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Unit Pricing Details
+                    </h2>
+                    <div className="space-y-4">
+                        {data.units.map((unit, index) => (
+                            <div key={index} className="border-2 border-gray-200 rounded-xl p-5 bg-gradient-to-br from-gray-50 to-white">
+                                <div className="flex items-center gap-3 mb-4">
+                                    <div className="w-10 h-10 bg-red-600 rounded-lg flex items-center justify-center">
+                                        <span className="text-white font-bold">{index + 1}</span>
+                                    </div>
+                                    <h3 className="text-lg font-bold text-gray-900">{unit.offeringType || `Unit ${index + 1}`}</h3>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    {unit.numberOfUnits && (
+                                        <div className="p-3 bg-blue-50 rounded-lg">
+                                            <label className="block text-xs text-blue-700 mb-1">Number of Units</label>
+                                            <p className="text-base font-bold text-blue-900">{unit.numberOfUnits}</p>
+                                        </div>
+                                    )}
+                                    {unit.unitSize && (
+                                        <div className="p-3 bg-green-50 rounded-lg">
+                                            <label className="block text-xs text-green-700 mb-1">Unit Size</label>
+                                            <p className="text-base font-bold text-green-900">
+                                                {unit.unitSize} {unit.unitSizeUnit || ''}
+                                            </p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.type && (
+                                        <div className="p-3 bg-purple-50 rounded-lg">
+                                            <label className="block text-xs text-purple-700 mb-1">Transaction Type</label>
+                                            <p className="text-base font-bold text-purple-900">{unit.transaction.type}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.priceRange && (
+                                        <div className="p-3 bg-red-50 rounded-lg md:col-span-2 lg:col-span-3">
+                                            <label className="block text-xs text-red-700 mb-1">Price Range</label>
+                                            <p className="text-lg font-bold text-red-600">{unit.transaction.priceRange}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.monthlyRent > 0 && (
+                                        <div className="p-3 bg-blue-50 rounded-lg">
+                                            <label className="block text-xs text-blue-700 mb-1">Monthly Rent</label>
+                                            <p className="text-base font-bold text-blue-900">PKR {unit.transaction.monthlyRent.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.advanceAmount > 0 && (
+                                        <div className="p-3 bg-blue-50 rounded-lg">
+                                            <label className="block text-xs text-blue-700 mb-1">Advance Amount</label>
+                                            <p className="text-base font-bold text-blue-900">PKR {unit.transaction.advanceAmount.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.bookingAmount > 0 && (
+                                        <div className="p-3 bg-green-50 rounded-lg">
+                                            <label className="block text-xs text-green-700 mb-1">Booking Amount</label>
+                                            <p className="text-base font-bold text-green-900">PKR {unit.transaction.bookingAmount.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.downPayment > 0 && (
+                                        <div className="p-3 bg-green-50 rounded-lg">
+                                            <label className="block text-xs text-green-700 mb-1">Down Payment</label>
+                                            <p className="text-base font-bold text-green-900">PKR {unit.transaction.downPayment.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                    {unit.transaction?.monthlyInstallment > 0 && (
+                                        <div className="p-3 bg-green-50 rounded-lg">
+                                            <label className="block text-xs text-green-700 mb-1">Monthly Installment</label>
+                                            <p className="text-base font-bold text-green-900">PKR {unit.transaction.monthlyInstallment.toLocaleString()}</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
                     </div>
                 </div>
             )}
