@@ -224,15 +224,44 @@ const BlogAdd = () => {
         }
     };
 
+    // Helper function to check if content has actual text (not just HTML tags)
+    const hasActualContent = (htmlContent) => {
+        if (!htmlContent || htmlContent.trim() === '') return false;
+        // Strip HTML tags and check if there's actual text
+        const textContent = htmlContent.replace(/<[^>]*>/g, '').replace(/&nbsp;/g, ' ').trim();
+        return textContent.length > 0;
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setLoading(true);
 
-        // Validation
-        if (!form.title || !form.content || !form.category) {
-            showToast('Title, content, and category are required', 'error');
+        // Validation with better content checking
+        if (!form.title || !form.title.trim()) {
+            showToast('Title is required', 'error');
             setLoading(false);
             return;
+        }
+
+        if (!hasActualContent(form.content)) {
+            showToast('Content is required. Please add some text to your blog post.', 'error');
+            setLoading(false);
+            return;
+        }
+
+        if (!form.category || !form.category.trim()) {
+            showToast('Category is required', 'error');
+            setLoading(false);
+            return;
+        }
+
+        // Ensure slug is generated if missing
+        let finalSlug = form.slug;
+        if (!finalSlug || !finalSlug.trim()) {
+            finalSlug = form.title
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
         }
 
         try {
@@ -240,13 +269,23 @@ const BlogAdd = () => {
             const url = isEditMode ? `${ApiBaseUrl}/updateBlog/${id}` : `${ApiBaseUrl}/createBlog`;
             const method = isEditMode ? 'PUT' : 'POST';
 
+            // Prepare form data with cleaned values
+            const formData = {
+                ...form,
+                title: form.title.trim(),
+                slug: finalSlug,
+                category: form.category.trim(),
+                content: form.content.trim(),
+                excerpt: form.excerpt?.trim() || '',
+            };
+
             const res = await fetch(url, {
                 method,
                 headers: {
                     'Content-Type': 'application/json',
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
                 },
-                body: JSON.stringify(form),
+                body: JSON.stringify(formData),
             });
 
             const data = await res.json();
@@ -254,9 +293,16 @@ const BlogAdd = () => {
                 showToast(`✓ Blog ${isEditMode ? 'updated' : 'created'} successfully!`, 'success');
                 setTimeout(() => navigate('/blog/all'), 1500);
             } else {
-                showToast(data.message || `Failed to ${isEditMode ? 'update' : 'create'} blog`, 'error');
+                // Show detailed error message
+                let errorMessage = data.message || `Failed to ${isEditMode ? 'update' : 'create'} blog`;
+                if (data.errors && Array.isArray(data.errors)) {
+                    errorMessage += ': ' + data.errors.join(', ');
+                }
+                console.error('Blog creation error:', data);
+                showToast(errorMessage, 'error');
             }
         } catch (err) {
+            console.error('Blog submission error:', err);
             showToast('Server error. Please check your connection and try again.', 'error');
         } finally {
             setLoading(false);
@@ -344,11 +390,18 @@ const BlogAdd = () => {
                                     <input
                                         type="text"
                                         value={form.category}
-                                        onChange={(e) => updateForm('category', e.target.value)}
+                                        onChange={(e) => updateForm('category', e.target.value.trim())}
                                         placeholder="e.g., Technology, Finance..."
                                         required
-                                        className="w-full px-5 py-3.5 border-2 border-gray-200 rounded-2xl text-sm font-bold transition-all outline-none focus:border-red-600 focus:bg-white"
+                                        className={`w-full px-5 py-3.5 border-2 rounded-2xl text-sm font-bold transition-all outline-none focus:bg-white ${
+                                            !form.category || !form.category.trim() 
+                                                ? 'border-red-300 focus:border-red-600' 
+                                                : 'border-gray-200 focus:border-red-600'
+                                        }`}
                                     />
+                                    {(!form.category || !form.category.trim()) && (
+                                        <p className="text-xs text-red-500 mt-1">Category is required</p>
+                                    )}
                                 </div>
 
                                 <div className="md:col-span-2">
@@ -371,11 +424,16 @@ const BlogAdd = () => {
                             <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">
                                 Content <span className="text-red-500">*</span>
                             </h2>
-                            <RichTextEditor
-                                value={form.content}
-                                onChange={(value) => updateForm('content', value)}
-                                placeholder="Write your blog content here..."
-                            />
+                            <div className={!hasActualContent(form.content) ? 'ring-2 ring-red-300 rounded-2xl' : ''}>
+                                <RichTextEditor
+                                    value={form.content}
+                                    onChange={(value) => updateForm('content', value)}
+                                    placeholder="Write your blog content here..."
+                                />
+                            </div>
+                            {!hasActualContent(form.content) && (
+                                <p className="text-xs text-red-500 mt-1">Content is required. Please add some text to your blog post.</p>
+                            )}
                         </div>
 
                         {/* Featured Image */}

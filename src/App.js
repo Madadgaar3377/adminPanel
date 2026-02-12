@@ -38,6 +38,7 @@ import BlogView from "./pages/BlogView";
 import CommissionRulesList from "./pages/CommissionRulesList";
 import CasesManagement from "./pages/CasesManagement";
 import CommissionManagement from "./pages/CommissionManagement";
+import SystemHealth from "./pages/SystemHealth";
 import AdminChat from "./pages/AdminChat";
 import InsurancePlansList from "./pages/InsurancePlansList";
 import InsuranceApplicationsList from "./pages/InsuranceApplicationsList";
@@ -305,6 +306,12 @@ function App() {
           <Route
             path="/chat"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><AdminChat /></Layout> : <Navigate to="/login" />}
+          />
+
+          {/* System Health Route */}
+          <Route
+            path="/system/health"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><SystemHealth /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}
