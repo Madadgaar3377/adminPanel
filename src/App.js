@@ -39,7 +39,9 @@ import CommissionRulesList from "./pages/CommissionRulesList";
 import CasesManagement from "./pages/CasesManagement";
 import CommissionManagement from "./pages/CommissionManagement";
 import SystemHealth from "./pages/SystemHealth";
+import TaxSettings from "./pages/TaxSettings";
 import AdminChat from "./pages/AdminChat";
+import BulkEmail from "./pages/BulkEmail";
 import InsurancePlansList from "./pages/InsurancePlansList";
 import InsuranceApplicationsList from "./pages/InsuranceApplicationsList";
 import InsuranceApplicationDetails from "./pages/InsuranceApplicationDetails";
@@ -106,6 +108,10 @@ function App() {
           <Route
             path="/notifications"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><Notifications /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/bulk-email"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><BulkEmail /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/installments/add"
@@ -312,6 +318,12 @@ function App() {
           <Route
             path="/system/health"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><SystemHealth /></Layout> : <Navigate to="/login" />}
+          />
+
+          {/* Tax Settings Route */}
+          <Route
+            path="/system/tax-settings"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><TaxSettings /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}

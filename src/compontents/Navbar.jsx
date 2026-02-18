@@ -83,7 +83,7 @@ const Navbar = ({ onLogout }) => {
             items: [
                 { label: 'View All', href: '/agent/all' },
                 { label: 'Unverified Agents', href: '/agent/unverified' },
-                { label: 'Assign Application', href: '/agent/assign' }
+                { label: 'Assignment Details', href: '/agent/assign' }
             ]
         },
         {

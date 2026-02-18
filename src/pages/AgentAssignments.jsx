@@ -4,11 +4,15 @@ import { useNavigate } from 'react-router-dom';
 
 const AgentAssignments = () => {
     const [assignments, setAssignments] = useState([]);
-    const [agentDetails, setAgentDetails] = useState({}); // Store agent details by agentId
+    const [agentDetails, setAgentDetails] = useState({});
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [statusFilter, setStatusFilter] = useState('all');
     const [searchTerm, setSearchTerm] = useState('');
+    const [detailsModalOpen, setDetailsModalOpen] = useState(false);
+    const [selectedAssignment, setSelectedAssignment] = useState(null);
+    const [detailsLoading, setDetailsLoading] = useState(false);
+    const [detailsData, setDetailsData] = useState({ agent: null, partner: null, user: null });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -54,14 +58,14 @@ const AgentAssignments = () => {
             const details = {};
             for (const agentId of agentIds) {
                 try {
-                    const res = await fetch(`${ApiBaseUrl}/getUserById?userId=${agentId}`, {
+                    const res = await fetch(`${ApiBaseUrl}/getUserByUserId/${agentId}`, {
                         headers: {
                             ...(token ? { Authorization: `Bearer ${token}` } : {}),
                         }
                     });
                     const data = await res.json();
-                    if (data.success && data.data) {
-                        details[agentId] = data.data;
+                    if (data.success && data.user) {
+                        details[agentId] = data.user;
                     }
                 } catch (err) {
                     console.error(`Error fetching agent ${agentId}:`, err);
@@ -73,7 +77,52 @@ const AgentAssignments = () => {
         }
     };
 
-    const handleUpdateStatus = async (requestId, newStatus) => {
+    const fetchUserByUserId = async (userId, token) => {
+        if (!userId || !token) return null;
+        try {
+            const res = await fetch(`${ApiBaseUrl}/getUserByUserId/${userId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            const data = await res.json();
+            return (data.success && data.user) ? data.user : null;
+        } catch (err) {
+            console.error(`Error fetching user ${userId}:`, err);
+            return null;
+        }
+    };
+
+    const handleViewDetails = async (assignment) => {
+        setSelectedAssignment(assignment);
+        setDetailsModalOpen(true);
+        setDetailsData({ agent: null, partner: null, user: null });
+        setDetailsLoading(true);
+        const authData = JSON.parse(localStorage.getItem('adminAuth'));
+        const token = authData?.token;
+        if (!token) {
+            setDetailsLoading(false);
+            return;
+        }
+        try {
+            const [agent, partner, user] = await Promise.all([
+                fetchUserByUserId(assignment.agentId, token),
+                assignment.partnerId ? fetchUserByUserId(assignment.partnerId, token) : Promise.resolve(null),
+                assignment.userId ? fetchUserByUserId(assignment.userId, token) : Promise.resolve(null),
+            ]);
+            setDetailsData({ agent, partner, user });
+        } catch (err) {
+            console.error("Error loading details:", err);
+        } finally {
+            setDetailsLoading(false);
+        }
+    };
+
+    const handleUpdateStatus = async (assignment, newStatus) => {
+        const applicationId = assignment?.applicationId;
+        const agentId = assignment?.agentId;
+        if (!applicationId || !newStatus) {
+            alert("Application ID and status are required.");
+            return;
+        }
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             const res = await fetch(`${ApiBaseUrl}/updateRequestStatus`, {
@@ -83,19 +132,24 @@ const AgentAssignments = () => {
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
                 },
                 body: JSON.stringify({
-                    requestId, // Adjust based on backend expectancy
-                    status: newStatus
-                })
+                    applicationId,
+                    agentId: agentId || undefined,
+                    status: newStatus,
+                }),
             });
             const result = await res.json();
             if (result.success) {
-                setAssignments(assignments.map(a => a._id === requestId ? { ...a, status: newStatus } : a));
-                alert("Status Override Successful.");
+                setAssignments(assignments.map(a =>
+                    (a.applicationId === applicationId && (!agentId || a.agentId === agentId))
+                        ? { ...a, status: newStatus }
+                        : a
+                ));
+                alert("Status updated successfully.");
             } else {
-                alert(result.message || "Update rejected.");
+                alert(result.message || "Update failed.");
             }
         } catch (err) {
-            alert("Broadcast failure.");
+            alert("Network error. Please try again.");
         }
     };
 
@@ -143,8 +197,8 @@ const AgentAssignments = () => {
                         </svg>
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-white tracking-tight">Agent Assignments</h1>
-                        <p className="text-red-100 text-sm font-medium mt-0.5">View and manage agent assignments • v2.0.5</p>
+                        <h1 className="text-3xl font-black text-white tracking-tight">Assignment Details</h1>
+                        <p className="text-red-100 text-sm font-medium mt-0.5">View assignment details — Agent, Partner & User (Applicant) • v2.0.5</p>
                     </div>
                 </div>
             </div>
@@ -269,9 +323,16 @@ const AgentAssignments = () => {
                                         </span>
                                     </td>
                                     <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2">
+                                        <div className="flex justify-end items-center gap-2 flex-wrap">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleViewDetails(item)}
+                                                className="px-3 py-2 rounded-xl text-xs font-bold bg-red-100 text-red-700 hover:bg-red-200 border border-red-200 transition-all"
+                                            >
+                                                View details
+                                            </button>
                                             <select
-                                                onChange={(e) => handleUpdateStatus(item._id, e.target.value)}
+                                                onChange={(e) => handleUpdateStatus(item, e.target.value)}
                                                 value={item.status}
                                                 className="bg-gradient-to-br from-gray-100 to-gray-200 px-4 py-2 rounded-xl text-sm font-bold capitalize outline-none focus:border-red-500 border-2 border-transparent transition-all"
                                             >
@@ -293,6 +354,126 @@ const AgentAssignments = () => {
                     </div>
                 )}
             </div>
+
+            {/* Complete details modal */}
+            {detailsModalOpen && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setDetailsModalOpen(false)}>
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-rose-50">
+                            <h3 className="text-lg font-bold text-gray-900">Assignment details — Agent, Partner & User</h3>
+                            <button type="button" onClick={() => setDetailsModalOpen(false)} className="p-2 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-700">
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                        </div>
+                        <div className="p-6 overflow-y-auto flex-1 space-y-6">
+                            {detailsLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12">
+                                    <div className="w-10 h-10 border-4 border-red-600 border-t-transparent rounded-full animate-spin mb-4" />
+                                    <p className="text-sm text-gray-600">Loading details...</p>
+                                </div>
+                            ) : selectedAssignment && (
+                                <>
+                                    {/* Assignment info */}
+                                    <section>
+                                        <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                            <span className="w-1 h-4 bg-red-600 rounded" /> Assignment
+                                        </h4>
+                                        <div className="bg-gray-50 rounded-xl p-4 space-y-2 text-sm">
+                                            <p><span className="font-semibold text-gray-600">Category:</span> {selectedAssignment.category || 'N/A'}</p>
+                                            <p><span className="font-semibold text-gray-600">Application ID:</span> {selectedAssignment.applicationId || 'N/A'}</p>
+                                            <p><span className="font-semibold text-gray-600">Status:</span> <span className={`capitalize ${getStatusStyle(selectedAssignment.status)} px-2 py-0.5 rounded`}>{selectedAssignment.status?.replace('_', ' ')}</span></p>
+                                            <p><span className="font-semibold text-gray-600">City:</span> {selectedAssignment.city || 'N/A'}</p>
+                                            <p><span className="font-semibold text-gray-600">Assigned at:</span> {selectedAssignment.assigenAt ? new Date(selectedAssignment.assigenAt).toLocaleString() : 'N/A'}</p>
+                                            {selectedAssignment.transactionType && <p><span className="font-semibold text-gray-600">Transaction type:</span> {selectedAssignment.transactionType}</p>}
+                                            {selectedAssignment.note && <p><span className="font-semibold text-gray-600">Note:</span> {selectedAssignment.note}</p>}
+                                            {selectedAssignment.commissionInfo && (
+                                                <div className="pt-2 border-t border-gray-200 mt-2">
+                                                    <p className="font-semibold text-gray-600 mb-1">Commission</p>
+                                                    <p>Eligible: PKR {(selectedAssignment.commissionInfo.eligibleCommission || 0).toLocaleString()}</p>
+                                                    <p>Status: {selectedAssignment.commissionInfo.commissionStatus || 'N/A'}</p>
+                                                    {selectedAssignment.commissionInfo.dealValue != null && <p>Deal value: PKR {Number(selectedAssignment.commissionInfo.dealValue).toLocaleString()}</p>}
+                                                </div>
+                                            )}
+                                        </div>
+                                    </section>
+
+                                    {/* Agent */}
+                                    <section>
+                                        <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                            <span className="w-1 h-4 bg-red-600 rounded" /> Agent
+                                        </h4>
+                                        <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                                            {detailsData.agent ? (
+                                                <>
+                                                    <p><span className="font-semibold text-gray-600">Name:</span> {detailsData.agent.name || 'N/A'}</p>
+                                                    <p><span className="font-semibold text-gray-600">User ID:</span> {detailsData.agent.userId || selectedAssignment.agentId}</p>
+                                                    <p><span className="font-semibold text-gray-600">Email:</span> {detailsData.agent.email || 'N/A'}</p>
+                                                    <p><span className="font-semibold text-gray-600">Phone:</span> {detailsData.agent.phoneNumber || 'N/A'}</p>
+                                                    {detailsData.agent.BankAccountinfo?.length > 0 && (
+                                                        <div className="mt-2 pt-2 border-t border-gray-200">
+                                                            <p className="font-semibold text-gray-600">Bank:</p>
+                                                            {detailsData.agent.BankAccountinfo.map((acc, i) => (
+                                                                <p key={i}>{acc.bankName} – {acc.accountNumber} ({acc.accountName})</p>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </>
+                                            ) : (
+                                                <p className="text-gray-500">Agent ID: {selectedAssignment.agentId} (details not loaded)</p>
+                                            )}
+                                        </div>
+                                    </section>
+
+                                    {/* Partner */}
+                                    {(selectedAssignment.partnerId || detailsData.partner) && (
+                                        <section>
+                                            <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                                <span className="w-1 h-4 bg-red-600 rounded" /> Partner
+                                            </h4>
+                                            <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                                                {detailsData.partner ? (
+                                                    <>
+                                                        <p><span className="font-semibold text-gray-600">Name:</span> {detailsData.partner.name || 'N/A'}</p>
+                                                        <p><span className="font-semibold text-gray-600">User ID:</span> {detailsData.partner.userId || selectedAssignment.partnerId}</p>
+                                                        <p><span className="font-semibold text-gray-600">Email:</span> {detailsData.partner.email || 'N/A'}</p>
+                                                        <p><span className="font-semibold text-gray-600">Phone:</span> {detailsData.partner.phoneNumber || 'N/A'}</p>
+                                                        {detailsData.partner.companyDetails?.RegisteredCompanyName && (
+                                                            <p><span className="font-semibold text-gray-600">Company:</span> {detailsData.partner.companyDetails.RegisteredCompanyName}</p>
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <p className="text-gray-500">Partner ID: {selectedAssignment.partnerId}</p>
+                                                )}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {/* User / Applicant */}
+                                    <section>
+                                        <h4 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-2 flex items-center gap-2">
+                                            <span className="w-1 h-4 bg-red-600 rounded" /> User (Applicant)
+                                        </h4>
+                                        <div className="bg-gray-50 rounded-xl p-4 text-sm">
+                                            {detailsData.user ? (
+                                                <>
+                                                    <p><span className="font-semibold text-gray-600">Name:</span> {detailsData.user.name || 'N/A'}</p>
+                                                    <p><span className="font-semibold text-gray-600">User ID:</span> {detailsData.user.userId || selectedAssignment.userId}</p>
+                                                    <p><span className="font-semibold text-gray-600">Email:</span> {detailsData.user.email || 'N/A'}</p>
+                                                    <p><span className="font-semibold text-gray-600">Phone:</span> {detailsData.user.phoneNumber || 'N/A'}</p>
+                                                </>
+                                            ) : selectedAssignment.userId ? (
+                                                <p className="text-gray-500">User ID: {selectedAssignment.userId}</p>
+                                            ) : (
+                                                <p className="text-gray-500">No applicant user linked</p>
+                                            )}
+                                        </div>
+                                    </section>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

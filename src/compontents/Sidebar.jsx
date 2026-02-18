@@ -159,8 +159,8 @@ const Sidebar = ({ onLogout }) => {
             icon: <AgentIcon />,
             items: [
                 { label: 'View All', href: '/agent/all' },
+                { label: 'Assignment Details', href: '/agent/assign' },
                 { label: 'Unverified Agents', href: '/agent/unverified' },
-                { label: 'Assign Application', href: '/agent/assign' }
             ]
         },
         {
@@ -210,6 +210,8 @@ const Sidebar = ({ onLogout }) => {
             icon: <SystemIcon />,
             items: [
                 { label: 'System Health', href: '/system/health' },
+                { label: 'Tax Settings', href: '/system/tax-settings' },
+                { label: 'Bulk Email', href: '/bulk-email' },
             ]
         }
     ];
