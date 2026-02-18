@@ -160,6 +160,7 @@ const Sidebar = ({ onLogout }) => {
             items: [
                 { label: 'View All', href: '/agent/all' },
                 { label: 'Assignment Details', href: '/agent/assign' },
+                { label: 'Withdrawal Requests', href: '/agent/withdrawals' },
                 { label: 'Unverified Agents', href: '/agent/unverified' },
             ]
         },

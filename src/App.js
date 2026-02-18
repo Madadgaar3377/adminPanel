@@ -47,6 +47,7 @@ import InsuranceApplicationsList from "./pages/InsuranceApplicationsList";
 import InsuranceApplicationDetails from "./pages/InsuranceApplicationDetails";
 import InsuranceClaimsList from "./pages/InsuranceClaimsList";
 import InsurancePlanAdd from "./pages/InsurancePlanAdd";
+import AgentWithdrawals from "./pages/AgentWithdrawals";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -176,6 +177,10 @@ function App() {
           <Route
             path="/agent/unverified"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><UnverifiedAgents /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/agent/withdrawals"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AgentWithdrawals /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/profile"
