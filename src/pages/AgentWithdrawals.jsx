@@ -8,6 +8,7 @@ const AgentWithdrawals = () => {
   const [actionLoading, setActionLoading] = useState(null);
   const [rejectModal, setRejectModal] = useState(null);
   const [approveModal, setApproveModal] = useState(null);
+  const [detailModal, setDetailModal] = useState(null);
   const [adminNote, setAdminNote] = useState("");
 
   const getToken = () => {
@@ -197,27 +198,35 @@ const AgentWithdrawals = () => {
                       {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
                     </td>
                     <td className="px-4 py-3 text-right">
-                      {r.status === "pending" && (
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => openApproveModal(r)}
-                            disabled={actionLoading === r._id}
-                            className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition"
-                          >
-                            {actionLoading === r._id ? "..." : "Approve"}
-                          </button>
-                          <button
-                            onClick={() => openRejectModal(r)}
-                            disabled={actionLoading === r._id}
-                            className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition"
-                          >
-                            {actionLoading === r._id ? "..." : "Reject"}
-                          </button>
-                        </div>
-                      )}
-                      {r.status !== "pending" && r.adminNote && (
-                        <span className="text-xs text-gray-500" title={r.adminNote}>Admin note</span>
-                      )}
+                      <div className="flex justify-end items-center gap-2 flex-wrap">
+                        <button
+                          onClick={() => setDetailModal(r)}
+                          className="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm font-medium transition"
+                        >
+                          View Details
+                        </button>
+                        {r.status === "pending" && (
+                          <>
+                            <button
+                              onClick={() => openApproveModal(r)}
+                              disabled={actionLoading === r._id}
+                              className="px-3 py-1.5 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition"
+                            >
+                              {actionLoading === r._id ? "..." : "Approve"}
+                            </button>
+                            <button
+                              onClick={() => openRejectModal(r)}
+                              disabled={actionLoading === r._id}
+                              className="px-3 py-1.5 bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white rounded-lg text-sm font-medium transition"
+                            >
+                              {actionLoading === r._id ? "..." : "Reject"}
+                            </button>
+                          </>
+                        )}
+                        {r.status !== "pending" && r.adminNote && (
+                          <span className="text-xs text-gray-500" title={r.adminNote}>Admin note</span>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -257,6 +266,113 @@ const AgentWithdrawals = () => {
               >
                 {actionLoading === approveModal.request._id ? "..." : "Approve"}
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* View Details modal */}
+      {detailModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-gray-200 sticky top-0 bg-white flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-gray-800">Withdrawal request details</h3>
+              <button
+                onClick={() => setDetailModal(null)}
+                className="p-1 rounded-lg text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              </button>
+            </div>
+            <div className="p-6 space-y-5">
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Request ID</p>
+                <p className="text-sm text-gray-800 font-mono break-all">{detailModal._id || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Agent</p>
+                <p className="text-sm font-medium text-gray-800">{detailModal.agentName || detailModal.agentId || "—"}</p>
+                <p className="text-sm text-gray-600">{detailModal.agentEmail || "—"}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Agent ID: {detailModal.agentId || "—"}</p>
+                {detailModal.agentWalletBalance != null && (
+                  <p className="text-sm text-gray-700 mt-1">Wallet balance: <strong>PKR {Number(detailModal.agentWalletBalance).toLocaleString()}</strong></p>
+                )}
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Amount requested</p>
+                <p className="text-xl font-bold text-gray-800">PKR {Number(detailModal.amount).toLocaleString()}</p>
+              </div>
+              <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bank details (complete)</p>
+                <ul className="space-y-1.5 text-sm text-gray-700">
+                  <li><span className="text-gray-500">Bank name:</span> <strong>{detailModal.bankName || "—"}</strong></li>
+                  <li><span className="text-gray-500">Account holder:</span> <strong>{detailModal.bankAccountName || "—"}</strong></li>
+                  <li><span className="text-gray-500">Account number:</span> <strong className="font-mono">{detailModal.bankAccountNumber || "—"}</strong></li>
+                </ul>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Note from agent</p>
+                <p className="text-sm text-gray-700">{detailModal.note || "—"}</p>
+              </div>
+              <div className="flex flex-wrap gap-2 items-center">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</p>
+                <span
+                  className={`inline-flex px-2 py-1 rounded-full text-xs font-medium ${
+                    detailModal.status === "pending"
+                      ? "bg-amber-100 text-amber-800"
+                      : detailModal.status === "approved"
+                      ? "bg-green-100 text-green-800"
+                      : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {detailModal.status}
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Requested at</p>
+                <p className="text-sm text-gray-700">{detailModal.createdAt ? new Date(detailModal.createdAt).toLocaleString() : "—"}</p>
+              </div>
+              {(detailModal.reviewedAt || detailModal.reviewedBy || detailModal.adminNote) && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Review info</p>
+                  <ul className="space-y-1.5 text-sm text-gray-700">
+                    {detailModal.reviewedAt && (
+                      <li><span className="text-gray-500">Reviewed at:</span> {new Date(detailModal.reviewedAt).toLocaleString()}</li>
+                    )}
+                    {detailModal.reviewedBy && (
+                      <li><span className="text-gray-500">Reviewed by:</span> {detailModal.reviewedBy}</li>
+                    )}
+                    {detailModal.adminNote && (
+                      <li><span className="text-gray-500">Admin note:</span> {detailModal.adminNote}</li>
+                    )}
+                  </ul>
+                </div>
+              )}
+            </div>
+            <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-xl flex flex-wrap gap-2 justify-end">
+              <button
+                onClick={() => setDetailModal(null)}
+                className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-100 font-medium"
+              >
+                Close
+              </button>
+              {detailModal.status === "pending" && (
+                <>
+                  <button
+                    onClick={() => { setDetailModal(null); openApproveModal(detailModal); }}
+                    className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium"
+                  >
+                    Approve
+                  </button>
+                  <button
+                    onClick={() => { setDetailModal(null); openRejectModal(detailModal); }}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium"
+                  >
+                    Reject
+                  </button>
+                </>
+              )}
             </div>
           </div>
         </div>
