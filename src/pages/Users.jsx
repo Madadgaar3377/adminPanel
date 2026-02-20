@@ -17,6 +17,8 @@ const Users = () => {
     const [editForm, setEditForm] = useState({});
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isViewOpen, setIsViewOpen] = useState(false);
+    const [deleteConfirm, setDeleteConfirm] = useState(null);
+    const [deleting, setDeleting] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -66,6 +68,36 @@ const Users = () => {
     };
 
     useEffect(() => { fetchUsers(); }, []);
+
+    const handleDeleteUser = async (user) => {
+        if (!user?.userId) return;
+        setDeleting(true);
+        const authData = JSON.parse(localStorage.getItem('adminAuth'));
+        try {
+            const response = await fetch(`${ApiBaseUrl}/admin/deleteUser/${user.userId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${authData.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ reason: 'Deleted by admin from Users panel' })
+            });
+            const result = await response.json();
+            if (result.success) {
+                setUsers(users.filter(u => u.userId !== user.userId));
+                setDeleteConfirm(null);
+                setIsModalOpen(false);
+                setIsViewOpen(false);
+                alert('User deleted successfully');
+            } else {
+                alert(result.message || 'Failed to delete user');
+            }
+        } catch (err) {
+            alert('Delete failed');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     const filteredUsers = users.filter(user => {
         const matchesSearch = user.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -311,6 +343,15 @@ const Users = () => {
                                                     <span className="hidden sm:inline">Edit</span>
                                                     <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                                    </svg>
+                                            </button>
+                                            <button
+                                                onClick={() => setDeleteConfirm(user)}
+                                                    className="p-1.5 sm:p-2.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-600 rounded-lg sm:rounded-xl hover:from-red-200 hover:to-rose-200 transition-all duration-300 shadow-sm hover:shadow active:scale-95"
+                                                    title="Delete User"
+                                            >
+                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
                                             </button>
                                         </div>
@@ -938,11 +979,11 @@ const Users = () => {
                                     </button>
                                 </div>
                             </div>
-                            <div className="p-6 border-t border-gray-200 bg-gray-50">
+                            <div className="p-6 border-t border-gray-200 bg-gray-50 flex gap-3">
                                 <button
                                     onClick={() => handleUpdateUser(selectedUser.userId, editForm)}
                                     disabled={updating}
-                                    className="w-full py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                                    className="flex-1 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors font-medium disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
                                     {updating ? (
                                         <>
@@ -951,7 +992,61 @@ const Users = () => {
                                         </>
                                     ) : 'Save Changes'}
                                 </button>
+                                <button
+                                    onClick={() => setDeleteConfirm(selectedUser)}
+                                    className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 transition-colors font-medium flex items-center justify-center gap-2"
+                                >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                    Delete
+                                </button>
                         </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Delete Confirmation Modal */}
+                {deleteConfirm && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden">
+                            <div className="p-6 text-center">
+                                <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                    <svg className="w-8 h-8 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </div>
+                                <h3 className="text-xl font-black text-gray-900 mb-2">Delete User</h3>
+                                <p className="text-sm text-gray-600 mb-4">
+                                    Are you sure you want to delete <span className="font-bold text-gray-900">{deleteConfirm.name}</span>?
+                                    <br />
+                                    <span className="text-xs text-gray-500">({deleteConfirm.email})</span>
+                                </p>
+                                <p className="text-xs text-red-600 bg-red-50 rounded-lg p-3 mb-6">
+                                    This action cannot be undone. The user will be permanently removed from the system.
+                                </p>
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => setDeleteConfirm(null)}
+                                        disabled={deleting}
+                                        className="flex-1 py-3 bg-gray-100 text-gray-700 rounded-xl font-bold hover:bg-gray-200 transition-colors disabled:opacity-50"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteUser(deleteConfirm)}
+                                        disabled={deleting}
+                                        className="flex-1 py-3 bg-red-600 text-white rounded-xl font-bold hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                    >
+                                        {deleting ? (
+                                            <>
+                                                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                                                Deleting...
+                                            </>
+                                        ) : 'Delete User'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 )}
