@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 
 const SystemHealth = () => {
@@ -7,6 +7,10 @@ const SystemHealth = () => {
     const [error, setError] = useState('');
     const [autoRefresh, setAutoRefresh] = useState(true);
     const [refreshInterval, setRefreshInterval] = useState(null);
+    const [loginActivity, setLoginActivity] = useState({ list: [], mapPoints: [] });
+    const [loginActivityLoading, setLoginActivityLoading] = useState(false);
+    const mapRef = useRef(null);
+    const mapInstanceRef = useRef(null);
 
     const fetchHealthData = useCallback(async () => {
         try {
@@ -32,8 +36,32 @@ const SystemHealth = () => {
         }
     }, []);
 
+    const fetchLoginActivity = useCallback(async () => {
+        setLoginActivityLoading(true);
+        try {
+            const authData = JSON.parse(localStorage.getItem('adminAuth') || '{}');
+            const since = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+            const res = await fetch(`${ApiBaseUrl}/admin/system/login-activity?since=${encodeURIComponent(since)}&limit=200`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${authData.token || ''}`,
+                },
+            });
+            const data = await res.json();
+            if (data.success && data.list) {
+                setLoginActivity({ list: data.list, mapPoints: data.mapPoints || [] });
+            }
+        } catch (err) {
+            console.error('Login activity fetch error:', err);
+        } finally {
+            setLoginActivityLoading(false);
+        }
+    }, []);
+
     useEffect(() => {
         fetchHealthData();
+        fetchLoginActivity();
         
         if (autoRefresh) {
             const interval = setInterval(() => {
@@ -45,7 +73,7 @@ const SystemHealth = () => {
         } else if (refreshInterval) {
             clearInterval(refreshInterval);
         }
-    }, [autoRefresh, fetchHealthData]);
+    }, [autoRefresh, fetchHealthData, fetchLoginActivity]);
 
     const formatUptime = (seconds) => {
         const days = Math.floor(seconds / 86400);
@@ -77,6 +105,44 @@ const SystemHealth = () => {
         if (percent >= 70) return 'text-yellow-600';
         return 'text-green-600';
     };
+
+    // Leaflet map for login activity (repeated areas)
+    useEffect(() => {
+        const points = loginActivity.mapPoints || [];
+        if (!window.L || !mapRef.current || points.length === 0) return;
+        if (mapInstanceRef.current) {
+            mapInstanceRef.current.remove();
+            mapInstanceRef.current = null;
+        }
+        const L = window.L;
+        const map = L.map(mapRef.current).setView([31.5204, 74.3587], 5);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+        }).addTo(map);
+        const maxCount = Math.max(...points.map((p) => p.count), 1);
+        points.forEach((p) => {
+            const radius = 8 + Math.min(22, (p.count / maxCount) * 22);
+            const circle = L.circleMarker([p.lat, p.lon], {
+                radius,
+                fillColor: '#dc2626',
+                color: '#b91c1c',
+                weight: 1,
+                opacity: 1,
+                fillOpacity: 0.6,
+            });
+            circle.bindPopup(
+                `<strong>${p.ip}</strong><br/>${p.address || 'Unknown'}<br/>Logins: ${p.count}<br/>Madadgaar: ${p.sources?.madadgaar || 0} | Agent: ${p.sources?.agent || 0} | Partner: ${p.sources?.partner || 0} | Admin: ${p.sources?.admin || 0}`
+            );
+            circle.addTo(map);
+        });
+        mapInstanceRef.current = map;
+        return () => {
+            if (mapInstanceRef.current) {
+                mapInstanceRef.current.remove();
+                mapInstanceRef.current = null;
+            }
+        };
+    }, [loginActivity.mapPoints]);
 
     if (loading && !healthData) {
         return (
@@ -372,6 +438,67 @@ const SystemHealth = () => {
                     </div>
                 </div>
             )}
+
+            {/* Login Activity & IP Map */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-semibold text-gray-900">Login Activity & IP Locations</h2>
+                    <button
+                        onClick={fetchLoginActivity}
+                        disabled={loginActivityLoading}
+                        className="px-3 py-1.5 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700 disabled:opacity-50"
+                    >
+                        {loginActivityLoading ? 'Loading...' : 'Refresh'}
+                    </button>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">IP addresses stored on login (Madadgaar, Agent, Partner, Admin). Map shows areas with more repeated logins.</p>
+
+                {loginActivity.list.length > 0 ? (
+                    <>
+                        <div className="overflow-x-auto mb-6">
+                            <table className="w-full text-sm">
+                                <thead>
+                                    <tr className="bg-gray-50 border-b border-gray-200">
+                                        <th className="text-left p-3 font-semibold text-gray-700">IP</th>
+                                        <th className="text-left p-3 font-semibold text-gray-700">Location</th>
+                                        <th className="text-right p-3 font-semibold text-gray-700">Count</th>
+                                        <th className="text-left p-3 font-semibold text-gray-700">Madadgaar / Agent / Partner / Admin</th>
+                                        <th className="text-left p-3 font-semibold text-gray-700">Last seen</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loginActivity.list.map((row, idx) => (
+                                        <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
+                                            <td className="p-3 font-mono text-gray-900">{row.ip}</td>
+                                            <td className="p-3 text-gray-700">{row.address || '—'}</td>
+                                            <td className="p-3 text-right font-semibold text-gray-900">{row.count}</td>
+                                            <td className="p-3">
+                                                <span className="text-blue-600">{row.sources?.madadgaar || 0}</span>
+                                                <span className="text-gray-400 mx-1">/</span>
+                                                <span className="text-amber-600">{row.sources?.agent || 0}</span>
+                                                <span className="text-gray-400 mx-1">/</span>
+                                                <span className="text-green-600">{row.sources?.partner || 0}</span>
+                                                <span className="text-gray-400 mx-1">/</span>
+                                                <span className="text-red-600">{row.sources?.admin || 0}</span>
+                                            </td>
+                                            <td className="p-3 text-gray-600">{row.lastSeen ? new Date(row.lastSeen).toLocaleString() : '—'}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+
+                        {loginActivity.mapPoints.length > 0 && (
+                            <div>
+                                <h3 className="text-lg font-semibold text-gray-900 mb-2">Map (repeated logins by area)</h3>
+                                <div ref={mapRef} className="w-full h-[400px] rounded-xl border border-gray-200 bg-gray-100" />
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <p className="text-gray-500 py-4">{loginActivityLoading ? 'Loading login activity...' : 'No login activity in the last 30 days.'}</p>
+                )}
+            </div>
         </div>
     );
 };

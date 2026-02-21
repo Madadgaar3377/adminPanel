@@ -8,18 +8,29 @@ const LoginPage = ({ onLoginSuccess }) => {
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
 
+    const fetchClientIp = async () => {
+        try {
+            const r = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(3000) });
+            const d = await r.json();
+            return d?.ip || null;
+        } catch {
+            return null;
+        }
+    };
+
     const handleLogin = async (e) => {
         e.preventDefault();
         setLoading(true);
         setError('');
 
         try {
+            const clientIp = await fetchClientIp();
             const response = await fetch(`${ApiBaseUrl}/login`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ email, password }),
+                body: JSON.stringify({ email, password, loginSource: 'admin', ...(clientIp && { clientIp }) }),
             });
 
             const data = await response.json();
