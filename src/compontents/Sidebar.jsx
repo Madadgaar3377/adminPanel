@@ -170,6 +170,7 @@ const Sidebar = ({ onLogout }) => {
             items: [
                 { label: 'Add Banner', href: '/banner/add' },
                 { label: 'Manage All', href: '/banner/all' },
+                { label: 'Offer Items', href: '/offer-items' },
             ]
         },
         {

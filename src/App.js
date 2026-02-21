@@ -13,6 +13,7 @@ import InstallmentApplications from "./pages/InstallmentApplications";
 import InstallmentApplicationDetails from "./pages/InstallmentApplicationDetails";
 import BannersList from "./pages/BannersList";
 import BannersAdd from "./pages/BannersAdd";
+import OfferItems from "./pages/OfferItems";
 import AgentsList from "./pages/AgentsList";
 import AgentAssignments from "./pages/AgentAssignments";
 import AgentAdd from "./pages/AgentAdd";
@@ -155,6 +156,10 @@ function App() {
           <Route
             path="/banner/update/:id"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><BannersAdd /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/offer-items"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><OfferItems /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Agent Routes */}
