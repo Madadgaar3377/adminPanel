@@ -9,6 +9,14 @@ const CATEGORIES = [
   { value: 'insurance', label: 'Insurance' },
 ];
 
+// Backend returns plural keys: installments, loans, properties, insurance
+const CATEGORY_TO_RESPONSE_KEY = {
+  installment: 'installments',
+  loan: 'loans',
+  property: 'properties',
+  insurance: 'insurance',
+};
+
 const OfferItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
@@ -54,8 +62,9 @@ const OfferItems = () => {
     try {
       const res = await fetch(`${ApiBaseUrl}/admin/offer-items/products?type=${type}`, { headers: headers() });
       const data = await res.json();
-      if (data.success && data.data && data.data[type]) {
-        setProductList(data.data[type] || []);
+      const responseKey = CATEGORY_TO_RESPONSE_KEY[type];
+      if (data.success && data.data && responseKey && data.data[responseKey]) {
+        setProductList(Array.isArray(data.data[responseKey]) ? data.data[responseKey] : []);
       } else {
         setProductList([]);
       }
