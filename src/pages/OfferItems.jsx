@@ -2,15 +2,23 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 
+const CATEGORIES = [
+  { value: 'installment', label: 'Installment' },
+  { value: 'loan', label: 'Loan' },
+  { value: 'property', label: 'Property' },
+  { value: 'insurance', label: 'Insurance' },
+];
+
 const OfferItems = () => {
   const navigate = useNavigate();
   const [items, setItems] = useState([]);
-  const [products, setProducts] = useState({ installments: [], loans: [], properties: [], insurance: [] });
+  const [productList, setProductList] = useState([]);
+  const [productsLoading, setProductsLoading] = useState(false);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState({
-    productType: 'installment',
+    productType: '',
     productId: '',
     productTitle: '',
     saleEndAt: '',
@@ -36,13 +44,26 @@ const OfferItems = () => {
     }
   };
 
-  const fetchProducts = async (type) => {
+  const fetchProductsForCategory = async (type) => {
+    if (!type) {
+      setProductList([]);
+      return;
+    }
+    setProductsLoading(true);
+    setProductList([]);
     try {
-      const res = await fetch(`${ApiBaseUrl}/admin/offer-items/products${type ? `?type=${type}` : ''}`, { headers: headers() });
+      const res = await fetch(`${ApiBaseUrl}/admin/offer-items/products?type=${type}`, { headers: headers() });
       const data = await res.json();
-      if (data.success && data.data) setProducts(data.data);
+      if (data.success && data.data && data.data[type]) {
+        setProductList(data.data[type] || []);
+      } else {
+        setProductList([]);
+      }
     } catch (e) {
       console.error(e);
+      setProductList([]);
+    } finally {
+      setProductsLoading(false);
     }
   };
 
@@ -50,20 +71,24 @@ const OfferItems = () => {
     fetchItems();
   }, []);
 
-  useEffect(() => {
-    if (modalOpen) fetchProducts(form.productType);
-  }, [modalOpen, form.productType]);
+  const onCategoryChange = (category) => {
+    setForm((prev) => ({ ...prev, productType: category, productId: '', productTitle: '' }));
+    setProductList([]);
+    if (category) fetchProductsForCategory(category);
+  };
 
   const openAdd = () => {
     setEditingId(null);
     setForm({
-      productType: 'installment',
+      productType: '',
       productId: '',
       productTitle: '',
       saleEndAt: '',
       displayOrder: 0,
       isActive: true,
     });
+    setProductList([]);
+    setProductsLoading(false);
     setModalOpen(true);
   };
 
@@ -78,12 +103,17 @@ const OfferItems = () => {
       isActive: item.isActive !== false,
     });
     setModalOpen(true);
+    fetchProductsForCategory(item.productType);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!form.productType) {
+      alert('Please select a category first.');
+      return;
+    }
     if (!form.productId || !form.saleEndAt) {
-      alert('Product and Sale end date are required.');
+      alert('Please select a product and set sale end date.');
       return;
     }
     try {
@@ -125,7 +155,6 @@ const OfferItems = () => {
     }
   };
 
-  const productList = products[form.productType] || [];
   const selectedProduct = productList.find((p) => p.id === form.productId);
 
   return (
@@ -188,32 +217,42 @@ const OfferItems = () => {
           <div className="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
             <h2 className="text-lg font-bold text-gray-900 mb-4">{editingId ? 'Edit Offer Item' : 'Add Offer Item'}</h2>
             <form onSubmit={handleSubmit} className="space-y-4">
+              <p className="text-xs text-gray-500 mb-2">First choose a category, then select the product to add as offer.</p>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Product type</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 1 — Category</label>
                 <select
                   value={form.productType}
-                  onChange={(e) => setForm({ ...form, productType: e.target.value, productId: '' })}
+                  onChange={(e) => onCategoryChange(e.target.value)}
                   className="w-full border border-gray-300 rounded-lg px-3 py-2"
                   required
                 >
-                  <option value="installment">Installment</option>
-                  <option value="loan">Loan</option>
-                  <option value="property">Property</option>
-                  <option value="insurance">Insurance</option>
+                  <option value="">Select category</option>
+                  {CATEGORIES.map((c) => (
+                    <option key={c.value} value={c.value}>{c.label}</option>
+                  ))}
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Product</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 2 — Product</label>
                 <select
                   value={form.productId}
                   onChange={(e) => {
                     const p = productList.find((x) => x.id === e.target.value);
                     setForm({ ...form, productId: e.target.value, productTitle: p?.title || '' });
                   }}
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2"
+                  disabled={!form.productType || productsLoading}
+                  className="w-full border border-gray-300 rounded-lg px-3 py-2 disabled:bg-gray-100 disabled:cursor-not-allowed"
                   required
                 >
-                  <option value="">Select product</option>
+                  <option value="">
+                    {!form.productType
+                      ? 'Select category first'
+                      : productsLoading
+                        ? 'Loading products…'
+                        : productList.length === 0
+                          ? 'No products in this category'
+                          : 'Select product'}
+                  </option>
                   {productList.map((p) => (
                     <option key={p.id} value={p.id}>{p.title || p.id}</option>
                   ))}
