@@ -556,6 +556,7 @@ const PropertyAdd = () => {
                     // Project type
                     setPropertyType('Project');
                     setProjectData({
+                        propertyId: projectData.propertyId || '',
                         projectName: projectData.projectName || '',
                         city: projectData.city || '',
                         district: projectData.district || '',
@@ -645,6 +646,7 @@ const PropertyAdd = () => {
                     // Individual property type
                     setPropertyType('Individual');
                     setIndividualData({
+                        propertyId: individualData.propertyId || '',
                         title: individualData.title || '',
                         description: individualData.description || '',
                         propertyType: individualData.propertyType || 'Apartment / Flat',
@@ -970,6 +972,11 @@ const PropertyAdd = () => {
                 project: propertyType === 'Project' ? cleanEnumFields(projectData) : undefined,
                 individualProperty: propertyType === 'Individual' ? individualData : undefined,
             };
+            // Backend updateProperty finds by data.propertyId (no :id in URL)
+            if (id) {
+                const pid = propertyType === 'Project' ? projectData.propertyId : individualData.propertyId;
+                if (pid) propertyData.propertyId = pid;
+            }
 
             // Wrap in 'data' property as backend expects req.body.data
             const payload = {
@@ -981,7 +988,7 @@ const PropertyAdd = () => {
                 payload.userId = userFound.userId;
             }
 
-            const url = id ? `${ApiBaseUrl}/updateProperty/${id}` : `${ApiBaseUrl}/createProperty`;
+            const url = id ? `${ApiBaseUrl}/updateProperty` : `${ApiBaseUrl}/createProperty`;
             const method = id ? 'PUT' : 'POST';
 
             const response = await fetch(url, {
