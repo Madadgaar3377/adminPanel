@@ -1417,11 +1417,11 @@ const PropertyAdd = () => {
                                             className="w-full px-3 xs:px-4 py-2.5 xs:py-3 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-lg xs:rounded-xl text-xs xs:text-sm font-bold transition-all outline-none"
                                         >
                                             <option value="">Select City</option>
-                                            <option value="Karachi">Karachi</option>
-                                            <option value="Lahore">Lahore</option>
-                                            <option value="Islamabad">Islamabad</option>
-                                            <option value="Peshawar">Peshawar</option>
-                                            <option value="Quetta">Quetta</option>
+                                            {cities.map((city) => (
+                                                <option key={city.value} value={city.value}>
+                                                    {city.title || city.value}
+                                                </option>
+                                            ))}
                                             <option value="Other">Other</option>
                                         </select>
                         </div>
