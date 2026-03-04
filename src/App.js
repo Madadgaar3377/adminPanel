@@ -49,6 +49,7 @@ import InsuranceApplicationDetails from "./pages/InsuranceApplicationDetails";
 import InsuranceClaimsList from "./pages/InsuranceClaimsList";
 import InsurancePlanAdd from "./pages/InsurancePlanAdd";
 import AgentWithdrawals from "./pages/AgentWithdrawals";
+import ContactSubmissions from "./pages/ContactSubmissions";
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -334,6 +335,12 @@ function App() {
           <Route
             path="/system/tax-settings"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><TaxSettings /></Layout> : <Navigate to="/login" />}
+          />
+
+          {/* Contact Submissions Route */}
+          <Route
+            path="/system/contact-submissions"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><ContactSubmissions /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Catch all / Redirect */}
