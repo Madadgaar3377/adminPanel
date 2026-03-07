@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import ApiBaseUrl from "../constants/apiUrl";
+import { openWithdrawalInvoice, openWithdrawalInvoicesAll } from "../utils/withdrawalInvoice";
 
 const AgentWithdrawals = () => {
   const [requests, setRequests] = useState([]);
@@ -113,11 +114,23 @@ const AgentWithdrawals = () => {
     setAdminNote("");
   };
 
+  const approvedRequests = requests.filter((r) => r.status === "approved");
+
   return (
     <div className="p-4 sm:p-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
         <h1 className="text-xl sm:text-2xl font-bold text-gray-800">Agent Withdrawal Requests</h1>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {approvedRequests.length > 0 && (
+            <button
+              type="button"
+              onClick={() => openWithdrawalInvoicesAll(requests)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-semibold text-sm transition"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+              Download all invoices
+            </button>
+          )}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -205,6 +218,16 @@ const AgentWithdrawals = () => {
                         >
                           View Details
                         </button>
+                        {r.status === "approved" && (
+                          <button
+                            type="button"
+                            onClick={() => openWithdrawalInvoice(r)}
+                            className="px-3 py-1.5 bg-gray-800 hover:bg-gray-900 text-white rounded-lg text-sm font-medium transition inline-flex items-center gap-1.5"
+                          >
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                            Invoice
+                          </button>
+                        )}
                         {r.status === "pending" && (
                           <>
                             <button
@@ -301,8 +324,35 @@ const AgentWithdrawals = () => {
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Amount requested</p>
-                <p className="text-xl font-bold text-gray-800">PKR {Number(detailModal.amount).toLocaleString()}</p>
+                <p className="text-xl font-bold text-gray-800">{detailModal.deductionBreakdown?.currencyCode || "PKR"} {Number(detailModal.amount).toLocaleString()}</p>
               </div>
+              {detailModal.deductionBreakdown && (
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Deductions (taxes applied)</p>
+                  {detailModal.deductionBreakdown.deductions && detailModal.deductionBreakdown.deductions.length > 0 ? (
+                    <div className="space-y-2">
+                      <ul className="space-y-1.5 text-sm text-gray-700">
+                        {detailModal.deductionBreakdown.deductions.map((d, i) => (
+                          <li key={i} className="flex justify-between">
+                            <span>{d.name}{d.percent ? ` (${d.percent}%)` : ""}{d.description ? ` — ${d.description}` : ""}</span>
+                            <span className="font-medium">{detailModal.deductionBreakdown.currencyCode || "PKR"} {Number(d.amount).toLocaleString()}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      <div className="border-t border-gray-200 pt-2 flex justify-between text-sm font-medium text-gray-800">
+                        <span>Total deductions</span>
+                        <span>{detailModal.deductionBreakdown.currencyCode || "PKR"} {Number(detailModal.deductionBreakdown.totalDeductions).toLocaleString()}</span>
+                      </div>
+                      <div className="flex justify-between text-base font-bold text-gray-900 pt-1">
+                        <span>Final pay amount</span>
+                        <span>{detailModal.deductionBreakdown.currencyCode || "PKR"} {Number(detailModal.deductionBreakdown.finalPayAmount).toLocaleString()}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-600">No deductions. Final pay: {detailModal.deductionBreakdown.currencyCode || "PKR"} {Number(detailModal.amount).toLocaleString()}.</p>
+                  )}
+                </div>
+              )}
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bank details (complete)</p>
                 <ul className="space-y-1.5 text-sm text-gray-700">
@@ -357,6 +407,16 @@ const AgentWithdrawals = () => {
               >
                 Close
               </button>
+              {detailModal.status === "approved" && (
+                <button
+                  type="button"
+                  onClick={() => openWithdrawalInvoice(detailModal)}
+                  className="px-4 py-2 bg-gray-800 hover:bg-gray-900 text-white rounded-lg font-medium inline-flex items-center gap-2"
+                >
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                  Download Invoice
+                </button>
+              )}
               {detailModal.status === "pending" && (
                 <>
                   <button

@@ -59,10 +59,14 @@ const TaxSettings = () => {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          gstPercent: Number(form.gstPercent),
-          saleTaxPercent: Number(form.saleTaxPercent),
-          currencyCode: form.currencyCode,
-          additionalTaxes: form.additionalTaxes,
+          gstPercent: parseFloat(form.gstPercent) || 0,
+          saleTaxPercent: parseFloat(form.saleTaxPercent) || 0,
+          currencyCode: form.currencyCode || "PKR",
+          additionalTaxes: Array.isArray(form.additionalTaxes) ? form.additionalTaxes.map((t) => ({
+            name: t.name || "",
+            percent: parseFloat(t.percent) || 0,
+            description: t.description || "",
+          })) : [],
         }),
       });
       const data = await res.json();
