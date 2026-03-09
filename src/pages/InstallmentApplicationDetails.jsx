@@ -6,6 +6,7 @@ const InstallmentApplicationDetails = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const [application, setApplication] = useState(null);
+    const [installmentPlanDetails, setInstallmentPlanDetails] = useState(null);
     const [loading, setLoading] = useState(true);
     const [updating, setUpdating] = useState(false);
     const [error, setError] = useState(null);
@@ -19,8 +20,6 @@ const InstallmentApplicationDetails = () => {
         setLoading(true);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            // Backend endpoint: /getApplication/:applicationId
-            // Note: If your backend uses the MongoDB _id for this route, ensure consistency
             const res = await fetch(`${ApiBaseUrl}/getApplication/${id}`, {
                 headers: {
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
@@ -29,6 +28,7 @@ const InstallmentApplicationDetails = () => {
             const data = await res.json();
             if (data.success) {
                 setApplication(data.data);
+                setInstallmentPlanDetails(null);
             } else {
                 setError(data.message);
             }
@@ -38,6 +38,21 @@ const InstallmentApplicationDetails = () => {
             setLoading(false);
         }
     };
+
+    // Fetch plan details by installmentPlanId so we can show price/down/monthly/duration/interest
+    // (application.PlanInfo only stores planType/planPrice/planpic due to schema; finance fields are not saved)
+    useEffect(() => {
+        if (!application?.installmentPlanId) return;
+        let cancelled = false;
+        (async () => {
+            try {
+                const res = await fetch(`${ApiBaseUrl}/getInstallment/${application.installmentPlanId}`);
+                const data = await res.json();
+                if (!cancelled && data.success && data.data) setInstallmentPlanDetails(data.data);
+            } catch (_) { /* ignore */ }
+        })();
+        return () => { cancelled = true; };
+    }, [application?.installmentPlanId]);
 
     const handleStatusUpdate = async (newStatus) => {
         setUpdating(true);
@@ -82,151 +97,299 @@ const InstallmentApplicationDetails = () => {
     const user = application.UserInfo?.[0] || {};
     const plan = application.PlanInfo?.[0] || {};
     const fin = application.PlanInfo?.[1] || {};
+    // Match application's plan type to plan's paymentPlans (backend schema only stores planType/planPrice/planpic in PlanInfo[0])
+    const paymentPlans = installmentPlanDetails?.paymentPlans || [];
+    const selectedPaymentPlan = paymentPlans.find((p) => (p.planName || '').trim() === (plan.planType || '').trim())
+        || paymentPlans[0];
+    const downPayment = fin.downPayment ?? plan.downPayment ?? selectedPaymentPlan?.downPayment ?? installmentPlanDetails?.downpayment;
+    const monthlyInstallment = fin.monthlyInstallment ?? plan.monthlyInstallment ?? selectedPaymentPlan?.monthlyInstallment ?? installmentPlanDetails?.installment;
+    const tenureMonths = fin.tenureMonths ?? plan.tenureMonths ?? selectedPaymentPlan?.tenureMonths;
+    const interestRatePercent = fin.interestRatePercent ?? plan.interestRatePercent ?? selectedPaymentPlan?.interestRatePercent;
+    const interestType = fin.interestType ?? plan.interestType ?? selectedPaymentPlan?.interestType;
+    const planPrice = plan.planPrice ?? selectedPaymentPlan?.installmentPrice ?? installmentPlanDetails?.price;
+    const planPic = plan.planpic || installmentPlanDetails?.productImages?.[0];
+    const agent = application.agentDetails || null;
+    const partner = application.partnerDetails || null;
+    const formatDate = (d) => d ? new Date(d).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
+    const formatPkr = (n) => (n != null && n !== '') ? `PKR ${Number(n).toLocaleString()}` : '—';
+
+    const hasPlanData = !!(
+        application.installmentPlanId ||
+        plan.planType ||
+        (planPrice != null && planPrice !== '') ||
+        planPic ||
+        (downPayment != null && downPayment !== '') ||
+        (monthlyInstallment != null && monthlyInstallment !== '') ||
+        (tenureMonths != null && tenureMonths !== '') ||
+        (interestRatePercent != null && interestRatePercent !== '')
+    );
+
+    const handlePrint = () => {
+        window.print();
+    };
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6 pb-20">
-            {/* Header */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                    <div className="flex items-center gap-3">
-                        <button onClick={() => navigate(-1)} className="p-2 hover:bg-gray-50 rounded-lg transition-all text-gray-400">
-                            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-                        </button>
-                        <h1 className="text-2xl font-bold text-gray-900">Application Details</h1>
+        <div className="min-h-screen bg-slate-50/80 print:bg-white">
+            <style>{`
+                @media print {
+                    body * { visibility: hidden; }
+                    .print-area, .print-area * { visibility: visible; }
+                    .print-area { position: absolute; left: 0; top: 0; width: 100%; background: white; padding: 0; }
+                    .no-print { display: none !important; }
+                    .print\\:block { display: block !important; }
+                    .print-area .shadow-sm { box-shadow: none !important; border: 1px solid #e2e8f0 !important; }
+                }
+            `}</style>
+            <div className="max-w-5xl mx-auto py-6 px-4 sm:px-6 space-y-6 pb-20 print-area">
+                {/* Header layer */}
+                <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                    <div className="px-6 py-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                        <div className="flex items-start gap-4">
+                            <button
+                                type="button"
+                                onClick={() => navigate(-1)}
+                                className="no-print p-2.5 rounded-lg border border-slate-200 text-slate-500 hover:bg-slate-50 hover:border-slate-300 transition-all shrink-0"
+                                aria-label="Back"
+                            >
+                                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+                            </button>
+                            <div>
+                                <h1 className="text-xl font-bold text-slate-900 tracking-tight">Application Details</h1>
+                                <p className="text-sm text-slate-500 mt-0.5">ID: <span className="font-mono text-slate-700">{application.applicationId}</span></p>
+                                <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-slate-400">
+                                    <span>Created {formatDate(application.createdAt)}</span>
+                                    {application.updatedAt && <span>Updated {formatDate(application.updatedAt)}</span>}
+                                    {application.userId && <span>User: {application.userId}</span>}
+                                </div>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-3 shrink-0">
+                            <button
+                                type="button"
+                                onClick={handlePrint}
+                                className="no-print flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-700 text-sm font-medium hover:bg-slate-50 hover:border-slate-400 transition-all"
+                            >
+                                <svg className="w-5 h-5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6v2m0-8V4a2 2 0 012-2h2a2 2 0 012 2v8a2 2 0 01-2 2h-2m-4-6h8m-4-6H5a2 2 0 00-2 2v6a2 2 0 002 2h2" />
+                                </svg>
+                                Print / Save as PDF
+                            </button>
+                            <span className={`no-print px-3 py-1.5 rounded-md text-sm font-semibold capitalize border ${
+                                application.status === 'approved' || application.status === 'completed' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                                application.status === 'rejected' || application.status === 'cancelled' ? 'bg-red-50 text-red-700 border-red-200' :
+                                'bg-amber-50 text-amber-700 border-amber-200'
+                            }`}>
+                                {application.status}
+                            </span>
+                            <select
+                                value={application.status}
+                                disabled={updating}
+                                onChange={(e) => handleStatusUpdate(e.target.value)}
+                                className="no-print px-4 py-2 rounded-lg border border-slate-300 bg-white text-slate-800 text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none cursor-pointer"
+                            >
+                                <option value="pending">Pending</option>
+                                <option value="in_progress">In Progress</option>
+                                <option value="approved">Approved</option>
+                                <option value="rejected">Rejected</option>
+                                <option value="cancelled">Cancelled</option>
+                                <option value="completed">Completed</option>
+                            </select>
+                        </div>
                     </div>
-                    <p className="text-sm text-gray-500 mt-1 ml-10">ID: {application.applicationId}</p>
                 </div>
-                <div className="flex gap-3">
-                    <select
-                        value={application.status}
-                        disabled={updating}
-                        onChange={(e) => handleStatusUpdate(e.target.value)}
-                        className="px-4 py-2 bg-red-600 text-white border-none rounded-lg text-sm font-medium outline-none cursor-pointer hover:bg-red-700 transition-all"
-                    >
-                        <option value="pending">Pending</option>
-                        <option value="in_progress">In Progress</option>
-                        <option value="approved">Approved</option>
-                        <option value="rejected">Rejected</option>
-                        <option value="cancelled">Cancelled</option>
-                        <option value="completed">Completed</option>
-                    </select>
-                </div>
-            </div>
 
-            {message && <div className="p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg text-sm text-center">{message}</div>}
-            {error && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-lg text-sm text-center">{error}</div>}
+                {message && <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 rounded-xl text-sm font-medium text-center">{message}</div>}
+                {error && <div className="p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl text-sm text-center">{error}</div>}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Applicant Information */}
-                <div className="lg:col-span-2 space-y-6">
-                    <section className="bg-white rounded-2xl p-6 border border-gray-100 shadow-sm space-y-6">
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                                </svg>
-                                Personal Information
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InfoItem label="Name" value={user.name} />
-                                <InfoItem label="Email" value={user.email} />
-                                <InfoItem label="Phone" value={user.phone} />
-                                <InfoItem label="City" value={user.city} />
-                                <InfoItem label="Address" value={user.address} className="md:col-span-2" />
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Left column: form layers */}
+                    <div className="lg:col-span-2 space-y-6">
+                        {/* Layer 1: Personal Information */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-red-500 rounded-full" />
+                                    Personal Information
+                                </h2>
+                            </div>
+                            <div className="p-5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+                                    {[
+                                        { label: 'Name', value: user.name },
+                                        { label: 'Email', value: user.email },
+                                        { label: 'Phone', value: user.phone },
+                                        { label: 'City', value: user.city },
+                                        { label: 'State / Province', value: user.state },
+                                        { label: 'Postal / Zip', value: user.zip },
+                                        { label: 'Country', value: user.country },
+                                    ].map(({ label, value }) => (
+                                        <FormRow key={label} label={label} value={value} />
+                                    ))}
+                                </div>
+                                <div className="mt-4">
+                                    <FormRow label="Address" value={user.address} fullWidth />
+                                </div>
                             </div>
                         </div>
 
-                        <div className="pt-6 border-t border-gray-100">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4 flex items-center gap-2">
-                                <svg className="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                </svg>
-                                Employment Details
-                            </h2>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <InfoItem label="Occupation" value={user.occupation} />
-                                <InfoItem label="Monthly Income" value={user.monthlyIncome} highlight />
-                                <InfoItem label="Employer" value={user.employerName} />
-                                <InfoItem label="Job Title" value={user.jobTitle} />
-                                <InfoItem label="Work Phone" value={user.workContactNumber} />
-                                <InfoItem label="Other Income" value={user.otherIncomeSources} />
+                        {/* Layer 2: Employment Details */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-red-500 rounded-full" />
+                                    Employment Details
+                                </h2>
+                            </div>
+                            <div className="p-5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-0 divide-y sm:divide-y-0 sm:divide-x divide-slate-100 border border-slate-100 rounded-lg overflow-hidden">
+                                    {[
+                                        { label: 'Occupation', value: user.occupation },
+                                        { label: 'Monthly Income', value: user.monthlyIncome, highlight: true },
+                                        { label: 'Employer', value: user.employerName },
+                                        { label: 'Job Title', value: user.jobTitle },
+                                        { label: 'Work Phone', value: user.workContactNumber },
+                                        { label: 'Other Income', value: user.otherIncomeSources },
+                                    ].map(({ label, value, highlight }) => (
+                                        <FormRow key={label} label={label} value={value} highlight={highlight} />
+                                    ))}
+                                </div>
+                                <div className="mt-4">
+                                    <FormRow label="Employer Address" value={user.employerAddress} fullWidth />
+                                </div>
                             </div>
                         </div>
-                    </section>
 
-                    {application.applicationNote && (
-                        <section className="bg-gray-50 rounded-2xl p-6 border border-gray-200">
-                            <h2 className="text-lg font-bold text-gray-900 mb-3">Notes</h2>
-                            <p className="text-gray-600 text-sm leading-relaxed">
-                                {application.applicationNote}
-                            </p>
-                        </section>
-                    )}
-                </div>
+                        {application.applicationNote && (
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                                <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                                    <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-red-500 rounded-full" />
+                                        Application Notes
+                                    </h2>
+                                </div>
+                                <div className="p-5">
+                                    <p className="text-slate-600 text-sm leading-relaxed">{application.applicationNote}</p>
+                                </div>
+                            </div>
+                        )}
+                    </div>
 
-                {/* Financial Summary */}
-                <div className="space-y-6">
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="bg-red-600 p-5 text-white">
-                            <p className="text-xs text-white/80 mb-1">Selected Plan</p>
-                            <h3 className="text-xl font-bold">{plan.planType || "N/A"}</h3>
+                    {/* Right column: sidebar layers */}
+                    <div className="space-y-6">
+                        {/* Plan layer – only show when we have real plan/finance data */}
+                        {hasPlanData && (
+                            <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                                <div className="bg-red-600 px-5 py-4">
+                                    <p className="text-xs text-red-100 uppercase tracking-wider font-semibold">Selected Plan</p>
+                                    <p className="text-lg font-bold text-white mt-0.5">{plan.planType || "N/A"}</p>
+                                </div>
+                                {planPic && (
+                                    <div className="p-3 border-b border-slate-100">
+                                        <img src={Array.isArray(planPic) ? planPic[0] : planPic} alt="Plan" className="w-full h-36 object-contain rounded-lg bg-slate-50" onError={(e) => e.target.style.display = 'none'} />
+                                    </div>
+                                )}
+                                <div className="p-5 space-y-3">
+                                    <FormRow label="Price" value={formatPkr(planPrice)} />
+                                    <FormRow label="Down Payment" value={formatPkr(downPayment)} />
+                                    <div className="py-2 border-t border-slate-100">
+                                        <FormRow label="Monthly Payment" value={formatPkr(monthlyInstallment)} highlight />
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-3 pt-1">
+                                        <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-center">
+                                            <p className="text-xs text-slate-500 font-medium">Duration</p>
+                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{tenureMonths != null && tenureMonths !== '' ? `${tenureMonths} mo` : '—'}</p>
+                                        </div>
+                                        <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-center">
+                                            <p className="text-xs text-slate-500 font-medium">Interest</p>
+                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{interestRatePercent != null && interestRatePercent !== '' ? `${interestRatePercent}%` : '—'}</p>
+                                        </div>
+                                    </div>
+                                    {interestType && <p className="text-xs text-slate-500 pt-1">Type: {interestType}</p>}
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Application Info layer */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-slate-400 rounded-full" />
+                                    Application Info
+                                </h2>
+                            </div>
+                            <div className="p-5 space-y-0 divide-y divide-slate-100">
+                                <FormRow label="Application ID" value={application.applicationId} compact />
+                                <FormRow label="Plan ID" value={application.installmentPlanId} compact />
+                                <FormRow label="User ID" value={application.userId} compact />
+                                {application.createdBy && <FormRow label="Created By" value={application.createdBy} compact />}
+                                {application.updatedBy && <FormRow label="Updated By" value={application.updatedBy} compact />}
+                            </div>
                         </div>
-                        <div className="p-5 space-y-4">
-                            <div className="space-y-3">
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-500">Price</span>
-                                    <span className="text-sm font-semibold text-gray-900">PKR {plan.planPrice?.toLocaleString()}</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                    <span className="text-sm text-gray-500">Down Payment</span>
-                                    <span className="text-sm font-semibold text-gray-900">PKR {fin.downPayment?.toLocaleString()}</span>
-                                </div>
-                                <div className="h-px bg-gray-200"></div>
-                                <div className="flex justify-between items-center py-2">
-                                    <span className="text-sm font-medium text-red-600">Monthly Payment</span>
-                                    <span className="text-lg font-bold text-gray-900">PKR {fin.monthlyInstallment?.toLocaleString()}</span>
-                                </div>
-                                <div className="grid grid-cols-2 gap-3 pt-2">
-                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
-                                        <p className="text-xs text-gray-500 mb-1">Duration</p>
-                                        <p className="text-sm font-semibold text-gray-900">{fin.tenureMonths} Months</p>
+
+                        {/* Agent layer */}
+                        <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
+                            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/50">
+                                <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                    <span className="w-1 h-4 bg-blue-500 rounded-full" />
+                                    Assigned Agent
+                                </h2>
+                            </div>
+                            <div className="p-5">
+                                {agent ? (
+                                    <div className="space-y-0 divide-y divide-slate-100">
+                                        <FormRow label="Name" value={agent.name} compact />
+                                        <FormRow label="Agent ID" value={agent.userId || application.assigenAgent} compact />
+                                        <FormRow label="Email" value={agent.email} compact />
+                                        <FormRow label="Phone" value={agent.phoneNumber} compact />
+                                        <FormRow label="WhatsApp" value={agent.WhatsappNumber} compact />
+                                        {agent.Address && <FormRow label="Address" value={agent.Address} compact fullWidth />}
                                     </div>
-                                    <div className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-center">
-                                        <p className="text-xs text-gray-500 mb-1">Interest</p>
-                                        <p className="text-sm font-semibold text-gray-900">
-                                            {fin.interestRatePercent}%
-                                        </p>
-                                    </div>
-                                </div>
-                                {fin.interestType && (
-                                    <div className="pt-2">
-                                        <p className="text-xs text-gray-500">Type: {fin.interestType}</p>
-                                    </div>
+                                ) : (
+                                    <p className="text-sm text-slate-500">{application.assigenAgent ? `Agent ID: ${application.assigenAgent}` : 'Not Assigned'}</p>
                                 )}
                             </div>
                         </div>
-                    </div>
 
-                    {/* Additional Info */}
-                    <div className="bg-gray-50 rounded-2xl p-5 border border-gray-200 space-y-3">
-                        <h4 className="text-sm font-bold text-gray-900">Additional Information</h4>
-                        <div className="space-y-2">
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-500">Assigned Agent</span>
-                                <span className="text-xs font-medium text-gray-900">{application.assigenAgent || "Not Assigned"}</span>
-                            </div>
-                            <div className="flex justify-between items-center">
-                                <span className="text-xs text-gray-500">Plan ID</span>
-                                <span className="text-xs font-medium text-gray-900">{application.installmentPlanId}</span>
-                            </div>
-                            {application.approval?.[0] && (
-                                <div className="pt-3 mt-3 border-t border-gray-300">
-                                    <p className="text-xs text-green-600 font-medium mb-1">Approved By</p>
-                                    <p className="text-xs text-gray-900">{application.approval[0].approvedBy}</p>
-                                    <p className="text-xs text-gray-500">{new Date(application.approval[0].approvedAt).toLocaleDateString()}</p>
+                        {partner && (
+                            <div className="bg-white rounded-xl shadow-sm border border-amber-200/80 overflow-hidden">
+                                <div className="px-5 py-4 border-b border-amber-100 bg-amber-50/50">
+                                    <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-amber-500 rounded-full" />
+                                        Partner / Creator
+                                    </h2>
                                 </div>
-                            )}
-                        </div>
+                                <div className="p-5 space-y-0 divide-y divide-slate-100">
+                                    <FormRow label="Name" value={partner.name} compact />
+                                    <FormRow label="User ID" value={partner.userId} compact />
+                                    <FormRow label="Email" value={partner.email} compact />
+                                    <FormRow label="Phone" value={partner.phoneNumber} compact />
+                                    <FormRow label="WhatsApp" value={partner.WhatsappNumber} compact />
+                                    {partner.Address && <FormRow label="Address" value={partner.Address} compact fullWidth />}
+                                    {partner.companyDetails?.RegisteredCompanyName && <FormRow label="Company" value={partner.companyDetails.RegisteredCompanyName} compact />}
+                                </div>
+                            </div>
+                        )}
+
+                        {application.approval?.length > 0 && (
+                            <div className="bg-white rounded-xl shadow-sm border border-emerald-200/80 overflow-hidden">
+                                <div className="px-5 py-4 border-b border-emerald-100 bg-emerald-50/50">
+                                    <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                                        <span className="w-1 h-4 bg-emerald-500 rounded-full" />
+                                        Approval History
+                                    </h2>
+                                </div>
+                                <div className="p-5 space-y-4">
+                                    {application.approval.map((a, i) => (
+                                        <div key={i} className="rounded-lg border border-emerald-100 bg-emerald-50/30 p-3 text-sm">
+                                            <p className="font-semibold text-slate-900">Approved by: {a.approvedBy || '—'}</p>
+                                            <p className="text-slate-500 text-xs mt-1">{formatDate(a.approvedAt)}</p>
+                                            {a.commissionProcessed != null && <p className="text-slate-600 text-xs mt-1">Commission processed: {a.commissionProcessed ? 'Yes' : 'No'}</p>}
+                                            {a.commissionAmount != null && a.commissionAmount > 0 && <p className="text-emerald-700 text-xs font-medium mt-1">Commission: PKR {Number(a.commissionAmount).toLocaleString()}</p>}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
@@ -234,12 +397,12 @@ const InstallmentApplicationDetails = () => {
     );
 };
 
-const InfoItem = ({ label, value, highlight = false, className = "" }) => (
-    <div className={`${className}`}>
-        <label className="block text-sm text-gray-500 mb-1">{label}</label>
-        <div className={`px-4 py-3 bg-gray-50 rounded-lg border font-medium text-sm ${highlight ? 'text-red-600 border-red-200 bg-red-50' : 'text-gray-900 border-gray-200'}`}>
-            {value || "N/A"}
-        </div>
+const FormRow = ({ label, value, highlight = false, compact = false, fullWidth = false }) => (
+    <div className={`flex ${compact ? 'flex-row items-center gap-3 py-2.5 px-0' : 'flex-col gap-1 p-4'} ${fullWidth ? 'sm:col-span-2' : ''}`}>
+        <span className={`${compact ? 'text-slate-500 text-sm w-28 shrink-0' : 'text-xs font-medium text-slate-500 uppercase tracking-wider'}`}>{label}</span>
+        <span className={`font-medium text-slate-900 ${highlight ? 'text-red-600' : ''} ${compact ? 'text-sm' : 'text-sm'}`}>
+            {value || "—"}
+        </span>
     </div>
 );
 
