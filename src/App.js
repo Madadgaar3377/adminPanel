@@ -30,6 +30,8 @@ import LoanAdd from "./pages/LoanAdd";
 import LoanList from "./pages/LoanList";
 import LoanEdit from "./pages/LoanEdit";
 import LoanView from "./pages/LoanView";
+import LoanApplications from "./pages/LoanApplications";
+import LoanApplicationDetails from "./pages/LoanApplicationDetails";
 import InstallmentView from "./pages/InstallmentView";
 import PropertyView from "./pages/PropertyView";
 import Notifications from "./pages/Notifications";
@@ -243,6 +245,14 @@ function App() {
           <Route
             path="/loan/all"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanList /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/loan/all-applications"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanApplications /></Layout> : <Navigate to="/login" />}
+          />
+          <Route
+            path="/loan/application/:id"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><LoanApplicationDetails /></Layout> : <Navigate to="/login" />}
           />
           <Route
             path="/loan/add"
