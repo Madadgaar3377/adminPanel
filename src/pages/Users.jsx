@@ -19,6 +19,9 @@ const Users = () => {
     const [isViewOpen, setIsViewOpen] = useState(false);
     const [deleteConfirm, setDeleteConfirm] = useState(null);
     const [deleting, setDeleting] = useState(false);
+    const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
+    const [passwordForm, setPasswordForm] = useState({ targetUserId: '', newPassword: '', confirmPassword: '' });
+    const [passwordUpdating, setPasswordUpdating] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -64,6 +67,42 @@ const Users = () => {
             alert('Update failed');
         } finally {
             setUpdating(false);
+        }
+    };
+
+    const handleAdminUpdatePassword = async (e) => {
+        e.preventDefault();
+        if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+            alert("Passwords do not match!");
+            return;
+        }
+
+        setPasswordUpdating(true);
+        const authData = JSON.parse(localStorage.getItem('adminAuth'));
+        try {
+            const response = await fetch(`${ApiBaseUrl}/admin/updateUserPassword`, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': `Bearer ${authData.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    targetUserId: passwordForm.targetUserId,
+                    newPassword: passwordForm.newPassword
+                })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(result.message);
+                setIsPasswordModalOpen(false);
+                setPasswordForm({ targetUserId: '', newPassword: '', confirmPassword: '' });
+            } else {
+                alert(result.message || 'Failed to update password');
+            }
+        } catch (err) {
+            alert('Network error while updating password');
+        } finally {
+            setPasswordUpdating(false);
         }
     };
 
@@ -169,195 +208,186 @@ const Users = () => {
                     </div>
                 )}
 
-                {/* Modern Header - v2.0.5 */}
-                <div className="relative overflow-hidden bg-gradient-to-r from-red-600 via-red-500 to-rose-600 rounded-2xl sm:rounded-3xl shadow-2xl p-4 sm:p-6 lg:p-8">
-                    <div className="absolute top-0 right-0 -mt-4 -mr-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
-                    <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-40 h-40 bg-white opacity-5 rounded-full blur-3xl"></div>
-                    
-                    <div className="relative flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-4">
-                        <div className="min-w-0 flex-1">
-                            <div className="flex items-center gap-2 sm:gap-3 mb-1 sm:mb-2">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 bg-white/10 backdrop-blur-sm rounded-xl sm:rounded-2xl flex items-center justify-center flex-shrink-0">
-                                    <svg className="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                                    </svg>
-                                </div>
-                                <div className="min-w-0">
-                                    <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight truncate">User Management</h1>
-                                    <p className="text-red-100 text-xs sm:text-sm font-medium mt-0.5">Manage all platform users • v2.0.5</p>
-                                </div>
-                            </div>
+                {/* Simple Header */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h1 className="text-2xl font-bold text-gray-900">User Management</h1>
+                            <p className="text-gray-500 text-sm">Manage all platform users</p>
                         </div>
-                        <div className="flex gap-2 sm:gap-3 w-full sm:w-auto">
-                            <div className="relative flex-1 sm:flex-initial sm:w-64">
+                        
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <div className="relative flex-1 sm:w-64">
                                 <input
                                     type="text"
                                     placeholder="Search users..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-2 sm:py-3 bg-white/10 backdrop-blur-sm border-2 border-white/20 text-white placeholder:text-white/60 rounded-lg sm:rounded-xl focus:border-white/40 outline-none transition-all font-medium text-sm sm:text-base"
+                                    className="w-full pl-10 pr-4 py-2 bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-all text-sm"
                                 />
-                                <svg className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                                 </svg>
                             </div>
                             <button
                                 onClick={fetchUsers}
                                 disabled={loading}
-                                className="p-2 sm:p-3 bg-white/10 backdrop-blur-sm text-white rounded-lg sm:rounded-xl hover:bg-white/20 transition-all duration-300 disabled:opacity-50 active:scale-95 flex-shrink-0"
+                                className="p-2 bg-white border border-gray-300 text-gray-600 rounded-lg hover:bg-gray-50 transition-all disabled:opacity-50 active:scale-95"
+                                title="Refresh"
                             >
-                                <svg className={`w-4 h-4 sm:w-5 sm:h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <svg className={`w-5 h-5 ${loading ? 'animate-spin' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                                 </svg>
                             </button>
                         </div>
+                    </div>
                 </div>
-            </div>
 
-                {/* Filters - v2.0.5 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-lg border border-gray-200 p-4 sm:p-6">
-                    <div className="flex flex-col lg:flex-row gap-4 sm:gap-6">
-                        <div className="flex-1">
-                            <label className="text-xs font-bold text-gray-700 mb-3 block uppercase tracking-wide flex items-center gap-2">
-                                <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
-                                </svg>
-                                User Type
-                            </label>
+                {/* Simple Filters */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">User Type</label>
                             <div className="flex flex-wrap gap-2">
-                    {['all', 'user', 'admin', 'agent', 'partner'].map((type) => (
-                        <button
-                            key={type}
-                            onClick={() => setFilterType(type)}
-                                        className={`px-4 py-2 rounded-xl text-sm font-bold transition-all duration-300 capitalize ${
+                                {['all', 'user', 'admin', 'agent', 'partner'].map((type) => (
+                                    <button
+                                        key={type}
+                                        onClick={() => setFilterType(type)}
+                                        className={`px-3 py-1.5 rounded-md text-xs font-semibold capitalize transition-all ${
                                             filterType === type 
-                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105' 
-                                                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 hover:scale-105'
+                                                ? 'bg-red-600 text-white shadow-sm' 
+                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
                                         }`}
-                        >
-                            {type}
-                        </button>
-                    ))}
-                </div>
+                                    >
+                                        {type}
+                                    </button>
+                                ))}
+                            </div>
                         </div>
-                        <div className="flex-1">
-                            <label className="text-xs font-bold text-gray-700 mb-3 block uppercase tracking-wide flex items-center gap-2">
-                                <svg className="w-4 h-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                                Status
-                            </label>
-                <select
-                    value={filterStatus}
-                    onChange={(e) => setFilterStatus(e.target.value)}
-                                className="w-full px-4 py-2.5 bg-gray-50 border-2 border-gray-200 rounded-xl text-sm font-bold outline-none focus:border-red-500 focus:bg-white transition-all"
+                        <div>
+                            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2 block">Status Filter</label>
+                            <select
+                                value={filterStatus}
+                                onChange={(e) => setFilterStatus(e.target.value)}
+                                className="w-full px-3 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm font-medium outline-none focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all"
                             >
                                 <option value="all">All Status</option>
-                                <option value="verified">✓ Verified</option>
-                                <option value="unverified">⊘ Unverified</option>
-                                <option value="blocked">✗ Blocked</option>
-                </select>
+                                <option value="verified">Verified</option>
+                                <option value="unverified">Unverified</option>
+                                <option value="blocked">Blocked</option>
+                            </select>
                         </div>
-                        <div className="flex items-end">
-                            <div className="bg-gradient-to-r from-red-50 to-rose-50 px-6 py-3 rounded-xl border border-red-200">
-                                <p className="text-xs text-gray-600 font-medium">Total Results</p>
-                                <p className="text-2xl font-black text-red-600">{filteredUsers.length}</p>
-                                <p className="text-xs text-gray-500">of {users.length} users</p>
+                        <div className="flex items-end justify-end">
+                            <div className="text-right">
+                                <p className="text-xs text-gray-500 font-medium">Showing</p>
+                                <p className="text-2xl font-bold text-gray-900">{filteredUsers.length} <span className="text-sm font-normal text-gray-500">of {users.length}</span></p>
                             </div>
                         </div>
                     </div>
-            </div>
+                </div>
 
-                {/* Users Table - v2.0.5 */}
-                <div className="bg-white/80 backdrop-blur-sm rounded-xl sm:rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
-                <div className="overflow-x-auto -mx-3 xs:-mx-4 sm:mx-0">
-                        <table className="w-full min-w-[640px]">
-                            <thead className="bg-gradient-to-r from-gray-50 to-gray-100 border-b-2 border-gray-200">
+                {/* Simple Users Table */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+                    <div className="overflow-x-auto">
+                        <table className="w-full">
+                            <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
-                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">User</th>
-                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden md:table-cell">Contact</th>
-                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider hidden lg:table-cell">Type</th>
-                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-left text-xs font-black text-gray-700 uppercase tracking-wider">Status</th>
-                                    <th className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-right text-xs font-black text-gray-700 uppercase tracking-wider">Actions</th>
-                            </tr>
-                        </thead>
-                            <tbody className="divide-y divide-gray-100">
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Type</th>
+                                    <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
+                                    <th className="px-6 py-4 text-right text-xs font-bold text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-200">
                                 {paginatedUsers.map(user => (
-                                    <tr key={user._id} className="hover:bg-gradient-to-r hover:from-red-50/50 hover:to-rose-50/50 transition-all duration-300">
-                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4">
-                                        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                                            {user.profilePic ? (
-                                                    <img src={user.profilePic} alt="" className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl object-cover ring-2 ring-gray-200 flex-shrink-0" />
-                                            ) : (
-                                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-red-500 to-rose-600 rounded-lg sm:rounded-xl flex items-center justify-center text-white font-black text-base sm:text-lg shadow-lg flex-shrink-0">
-                                                    {user.name?.charAt(0).toUpperCase()}
+                                    <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-3">
+                                                {user.profilePic ? (
+                                                    <img src={user.profilePic} alt="" className="w-10 h-10 rounded-full object-cover border border-gray-200" />
+                                                ) : (
+                                                    <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center text-red-600 font-bold text-sm">
+                                                        {user.name?.charAt(0).toUpperCase()}
+                                                    </div>
+                                                )}
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 text-sm">{user.name}</p>
+                                                    <p className="text-xs text-gray-500">ID: {user.userId}</p>
                                                 </div>
-                                            )}
-                                            <div className="min-w-0">
-                                                    <p className="font-bold text-gray-900 text-sm sm:text-base truncate">{user.name}</p>
-                                                    <p className="text-xs text-gray-500 font-medium truncate">ID: {user.userId}</p>
-                                                </div>
-                                        </div>
-                                    </td>
-                                        <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 hidden md:table-cell">
-                                            <p className="text-sm text-gray-900 font-semibold truncate">{user.email}</p>
-                                            <p className="text-xs text-gray-500 font-medium truncate">{user.phoneNumber || 'N/A'}</p>
-                                    </td>
-                                        <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 hidden lg:table-cell">
-                                            <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg text-xs font-bold capitalize shadow-sm inline-block">
-                                            {user.UserType}
-                                        </span>
-                                    </td>
-                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4">
-                                            <div className="flex flex-wrap gap-1.5 sm:gap-2">
-                                                <span className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg text-xs font-bold shadow-sm whitespace-nowrap ${
-                                                    user.isVerified 
-                                                        ? 'bg-gradient-to-r from-green-100 to-emerald-100 text-green-700 border border-green-200' 
-                                                        : 'bg-gradient-to-r from-yellow-100 to-amber-100 text-yellow-700 border border-yellow-200'
-                                                }`}>
-                                                    {user.isVerified ? '✓ Verified' : '⏳ Pending'}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 hidden md:table-cell">
+                                            <p className="text-sm text-gray-700">{user.email}</p>
+                                            <p className="text-xs text-gray-500">{user.phoneNumber || 'N/A'}</p>
+                                        </td>
+                                        <td className="px-6 py-4 hidden lg:table-cell">
+                                            <span className="px-2 py-1 bg-gray-100 text-gray-600 rounded text-[10px] font-bold uppercase tracking-wider">
+                                                {user.UserType}
                                             </span>
-                                            {user.isBlocked && (
-                                                    <span className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-700 rounded-lg text-xs font-bold shadow-sm border border-red-200 whitespace-nowrap">
-                                                        ✗ Blocked
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex items-center gap-2">
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                    user.isVerified 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-yellow-100 text-yellow-700'
+                                                }`}>
+                                                    {user.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
+                                                {user.isBlocked && (
+                                                    <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
+                                                        Blocked
                                                     </span>
-                                            )}
-                                        </div>
-                                    </td>
-                                    <td className="px-3 xs:px-4 sm:px-6 py-3 sm:py-4 text-right">
-                                        <div className="flex justify-end gap-1.5 sm:gap-2">
-                                            <button
-                                                onClick={() => openView(user)}
-                                                    className="p-1.5 sm:p-2.5 bg-gradient-to-r from-gray-100 to-gray-200 text-gray-700 rounded-lg sm:rounded-xl hover:from-gray-200 hover:to-gray-300 transition-all duration-300 shadow-sm hover:shadow active:scale-95"
-                                                    title="View Details"
-                                            >
-                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 text-right">
+                                            <div className="flex justify-end gap-2">
+                                                <button
+                                                    onClick={() => {
+                                                        setPasswordForm({ ...passwordForm, targetUserId: user.userId });
+                                                        setIsPasswordModalOpen(true);
+                                                    }}
+                                                    className="p-2 text-gray-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
+                                                    title="Reset Password"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                                                    </svg>
+                                                </button>
+                                                <button
+                                                    onClick={() => openView(user)}
+                                                    className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"
+                                                    title="View"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                                     </svg>
-                                            </button>
-                                            <button
-                                                onClick={() => openModal(user)}
-                                                    className="px-3 sm:px-4 py-1.5 sm:py-2.5 bg-gradient-to-r from-red-600 to-rose-600 text-white rounded-lg sm:rounded-xl hover:from-red-700 hover:to-rose-700 transition-all duration-300 text-xs font-bold shadow-lg shadow-red-200 hover:shadow-xl active:scale-95"
-                                            >
-                                                    <span className="hidden sm:inline">Edit</span>
-                                                    <svg className="w-4 h-4 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                </button>
+                                                <button
+                                                    onClick={() => openModal(user)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Edit"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                                     </svg>
-                                            </button>
-                                            <button
-                                                onClick={() => setDeleteConfirm(user)}
-                                                    className="p-1.5 sm:p-2.5 bg-gradient-to-r from-red-100 to-rose-100 text-red-600 rounded-lg sm:rounded-xl hover:from-red-200 hover:to-rose-200 transition-all duration-300 shadow-sm hover:shadow active:scale-95"
-                                                    title="Delete User"
-                                            >
-                                                    <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                </button>
+                                                <button
+                                                    onClick={() => setDeleteConfirm(user)}
+                                                    className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"
+                                                    title="Delete"
+                                                >
+                                                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                                     </svg>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
                             </tbody>
                         </table>
                         {filteredUsers.length === 0 && (
@@ -1047,6 +1077,66 @@ const Users = () => {
                                     </button>
                                 </div>
                             </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Password Reset Modal */}
+                {isPasswordModalOpen && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                        <div className="bg-white rounded-xl shadow-xl w-full max-w-md overflow-hidden border border-gray-200">
+                            <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">Reset Password</h2>
+                                    <p className="text-sm text-gray-500">Update credentials for UID: {passwordForm.targetUserId}</p>
+                                </div>
+                                <button
+                                    onClick={() => setIsPasswordModalOpen(false)}
+                                    className="p-2 hover:bg-gray-100 rounded-lg transition-all"
+                                >
+                                    <svg className="w-5 h-5 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                            </div>
+
+                            <form onSubmit={handleAdminUpdatePassword} className="p-6 space-y-4">
+                                <div className="space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">New Password</label>
+                                        <input
+                                            required
+                                            type="password"
+                                            placeholder="Enter new password"
+                                            value={passwordForm.newPassword}
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
+                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        />
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-semibold text-gray-600 uppercase tracking-wider">Confirm Password</label>
+                                        <input
+                                            required
+                                            type="password"
+                                            placeholder="Confirm new password"
+                                            value={passwordForm.confirmPassword}
+                                            onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
+                                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none transition-all"
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={passwordUpdating}
+                                        className="w-full py-3 bg-red-600 text-white rounded-lg font-bold uppercase text-xs tracking-widest hover:bg-red-700 transition-all disabled:opacity-50"
+                                    >
+                                        {passwordUpdating ? 'Updating...' : 'Update Password'}
+                                    </button>
+                                </div>
+                            </form>
                         </div>
                     </div>
                 )}
