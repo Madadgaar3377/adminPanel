@@ -63,6 +63,7 @@ const defaultPlan = {
         financeInfo: "",
     },
     hasFinance: false,
+    cashPrice: 0,
 };
 
 const CATEGORY_OPTIONS = [
@@ -344,10 +345,10 @@ const InstallmentsEdit = () => {
             const pp = [...f.paymentPlans];
             const p = { ...pp[index] };
 
-            let cashPrice = Number(f.price) || 0;
+            let cashPrice = Number(p.cashPrice) || Number(f.price) || 0;
             // If plan is assigned to a specific variant, use variant's cash price
             if (p.variantIndex !== undefined && p.variantIndex !== null && p.variantIndex !== -1 && f.variants?.[p.variantIndex]) {
-                cashPrice = Number(f.variants[p.variantIndex].price) || 0;
+                cashPrice = Number(p.cashPrice) || Number(f.variants[p.variantIndex].price) || 0;
             }
 
             const downPayment = Number(p.downPayment) || 0;
@@ -485,6 +486,7 @@ const InstallmentsEdit = () => {
                                 .filter(p => p.variantIndex === vIdx)
                                 .map(p => ({
                                     ...p,
+                                    cashPrice: Number(p.cashPrice) || 0,
                                     installmentPrice: Number(p.installmentPrice),
                                     downPayment: Number(p.downPayment),
                                     monthlyInstallment: Number(p.monthlyInstallment)
@@ -494,6 +496,7 @@ const InstallmentsEdit = () => {
                             .filter(p => p.variantIndex === null || p.variantIndex === undefined || p.variantIndex === -1)
                             .map(p => ({
                                 ...p,
+                                cashPrice: Number(p.cashPrice) || 0,
                                 installmentPrice: Number(p.installmentPrice),
                                 downPayment: Number(p.downPayment),
                                 monthlyInstallment: Number(p.monthlyInstallment)
@@ -960,6 +963,13 @@ const InstallmentsEdit = () => {
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                 }} placeholder="e.g. Premium 12M" />
 
+                                                <InputField label="Partner Cash Price (PKR)" type="number" value={p.cashPrice} onChange={v => {
+                                                    const pp = [...form.paymentPlans];
+                                                    pp[idx].cashPrice = v;
+                                                    setForm(f => ({ ...f, paymentPlans: pp }));
+                                                    setTimeout(() => recalcPlan(idx), 0);
+                                                }} placeholder="Override base price..." />
+
                                                 <div className="space-y-2">
                                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
                                                     <select value={p.interestType} onChange={e => {
@@ -1078,7 +1088,7 @@ const InstallmentsEdit = () => {
                                                         <SummaryItem label="Total Markup Amount" value={p.markup} />
                                                         <SummaryItem label="Total Payable" value={p.installmentPrice} />
                                                         <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
-                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
+                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (p.cashPrice || (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? parseFloat(form.variants[p.variantIndex].price) : parseFloat(form.price) || 0)) - (p.downPayment || 0))} border={false} />
                                                     </div>
                                                     {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                                 </div>
