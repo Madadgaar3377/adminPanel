@@ -49,6 +49,31 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
+const VARIANT_CATEGORIES = ['smartphones', 'tablets', 'laptops', 'gaming_consoles'];
+
+const getVariantEffectivePrice = (variant) => {
+    if (!variant) return 0;
+    const base = Number(variant.price) || 0;
+    const disc = Math.min(100, Math.max(0, Number(variant.discountPercent) || 0));
+    return Math.round(base * (1 - disc / 100));
+};
+
+const deriveProductPrice = (variants, fallback = 0) => {
+    if (variants?.length) {
+        const prices = variants.map(getVariantEffectivePrice).filter((p) => p > 0);
+        if (prices.length) return Math.min(...prices);
+    }
+    return Number(fallback) || 0;
+};
+
+const collectPartnerPlans = (product, partnerId) => {
+    if (!product || !partnerId) return [];
+    const match = (p) => p?.partnerId && String(p.partnerId) === String(partnerId);
+    const root = (product.paymentPlans || []).filter(match);
+    const fromVariants = (product.variants || []).flatMap((v) => (v.paymentPlans || []).filter(match));
+    return [...root, ...fromVariants];
+};
+
 const defaultPlan = {
     planName: "",
     installmentPrice: 0,
@@ -119,6 +144,7 @@ const InstallmentsAdd = () => {
                 productName: "",
                 city: "",
                 price: "",
+                partnerBasePrice: "",
                 downpayment: "",
                 installment: "",
                 tenure: "",
@@ -130,19 +156,22 @@ const InstallmentsAdd = () => {
                 category: "",
                 customCategory: "",
                 productImages: [],
-                productSpecifications: { category: "", subCategory: "", specifications: [] }
+                productSpecifications: { category: "", subCategory: "", specifications: [] },
+                variants: [],
             }));
             return;
         }
 
         const product = existingProducts.find(p => p.installmentPlanId === productId);
         if (product) {
-            setExistingPlans(product.paymentPlans || []);
-            setForm(prev => ({
+            setForm(prev => {
+            setExistingPlans(collectPartnerPlans(product, prev.userId));
+            return {
                 ...prev,
                 productName: product.productName || "",
                 city: product.city || "",
                 price: product.price || "",
+                partnerBasePrice: "",
                 downpayment: product.downpayment || "",
                 installment: product.installment || "",
                 tenure: product.tenure || "",
@@ -154,8 +183,10 @@ const InstallmentsAdd = () => {
                 category: product.category || "",
                 customCategory: product.customCategory || "",
                 productImages: product.productImages || [],
-                productSpecifications: product.productSpecifications || { category: "", subCategory: "", specifications: [] }
-            }));
+                productSpecifications: product.productSpecifications || { category: "", subCategory: "", specifications: [] },
+                variants: [],
+            };
+            });
             showToast("Existing product details loaded.", "success");
         }
     };
@@ -170,6 +201,7 @@ const InstallmentsAdd = () => {
         productName: "",
         city: "",
         price: "",
+        partnerBasePrice: "",
         downpayment: "",
         installment: "",
         tenure: "",
@@ -311,10 +343,11 @@ const InstallmentsAdd = () => {
             const pp = [...f.paymentPlans];
             const p = { ...pp[index] };
 
-            let cashPrice = Number(p.cashPrice) || Number(f.price) || 0;
-            // New: If plan is assigned to a specific variant, use variant's cash price for calculations
+            let cashPrice = 0;
             if (p.variantIndex !== undefined && p.variantIndex !== null && p.variantIndex !== -1 && f.variants?.[p.variantIndex]) {
-                cashPrice = Number(p.cashPrice) || Number(f.variants[p.variantIndex].price) || 0;
+                cashPrice = getVariantEffectivePrice(f.variants[p.variantIndex]);
+            } else {
+                cashPrice = deriveProductPrice(f.variants, f.price);
             }
 
             const downPayment = Number(p.downPayment) || 0;
@@ -366,7 +399,7 @@ const InstallmentsAdd = () => {
         if (form.paymentPlans.length) {
             form.paymentPlans.forEach((_, idx) => recalcPlan(idx));
         }
-    }, [form.price]);
+    }, [form.price, form.variants]);
 
     // Fetch user data when userId is provided
     const fetchUserData = async (userId) => {
@@ -480,18 +513,50 @@ const InstallmentsAdd = () => {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             
             if (selectedProductId) {
-                // Submit each payment plan to the add-plan endpoint
+                const product = existingProducts.find((p) => p.installmentPlanId === selectedProductId);
+                const variantOffset = (product?.variants || []).length;
+
+                if (form.variants?.length > 0 && product) {
+                    const mergedVariants = [
+                        ...(product.variants || []),
+                        ...form.variants.map((v) => ({
+                            variantName: v.variantName,
+                            price: Number(v.price),
+                            discountPercent: Number(v.discountPercent) || 0,
+                            paymentPlans: [],
+                            status: v.status || "active",
+                        })),
+                    ];
+                    const variantRes = await fetch(`${ApiBaseUrl}/updateInstallment/${selectedProductId}`, {
+                        method: "PUT",
+                        headers: {
+                            "Content-Type": "application/json",
+                            ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
+                        },
+                        body: JSON.stringify({ variants: mergedVariants }),
+                    });
+                    const variantData = await variantRes.json();
+                    if (!variantData.success) {
+                        throw new Error(variantData.message || "Failed to save product variants.");
+                    }
+                }
+
+                const partnerBasePrice = deriveProductPrice(form.variants, form.price);
                 let successCount = 0;
                 for (const plan of form.paymentPlans) {
-                    const variantIdx =
+                    let variantIdx =
                         plan.variantIndex === null || plan.variantIndex === undefined || plan.variantIndex === "" || plan.variantIndex === -1 || plan.variantIndex === "-1"
                             ? null
                             : Number(plan.variantIndex);
+                    if (variantIdx !== null && Number.isFinite(variantIdx)) {
+                        variantIdx = variantOffset + variantIdx;
+                    }
                     const planPayload = {
                         ...plan,
-                        userId: form.userId, // Inject user ID so backend assigns it to this user
+                        userId: form.userId,
                         variantIndex: variantIdx,
-                        cashPrice: Number(plan.cashPrice) || 0,
+                        cashPrice: cashPriceForPlan(plan),
+                        partnerBasePrice,
                         installmentPrice: Number(plan.installmentPrice),
                         downPayment: Number(plan.downPayment),
                         monthlyInstallment: Number(plan.monthlyInstallment),
@@ -521,7 +586,7 @@ const InstallmentsAdd = () => {
                 setTimeout(() => navigate('/'), 1500);
 
             } else {
-                // Original logic
+                const productPrice = deriveProductPrice(form.variants, form.price);
                 const res = await fetch(`${ApiBaseUrl}/createInstallmentPlan`, {
                     method: "POST",
                     headers: {
@@ -531,28 +596,28 @@ const InstallmentsAdd = () => {
                     body: JSON.stringify({
                         ...form,
                         category: form.category === "other" ? form.customCategory : form.category,
-                        price: Number(form.price),
+                        price: productPrice,
                         downpayment: Number(form.downpayment),
                         variants: form.variants.map((v, vIdx) => ({
-                            ...v,
+                            variantName: v.variantName,
                             price: Number(v.price),
-                            // Filter plans that belong specifically to this variant
+                            discountPercent: Number(v.discountPercent) || 0,
+                            status: v.status || "active",
                             paymentPlans: form.paymentPlans
                                 .filter(p => p.variantIndex === vIdx)
                                 .map(p => ({
                                     ...p,
-                                    cashPrice: Number(p.cashPrice) || 0,
+                                    cashPrice: getVariantEffectivePrice(v),
                                     installmentPrice: Number(p.installmentPrice),
                                     downPayment: Number(p.downPayment),
                                     monthlyInstallment: Number(p.monthlyInstallment)
                                 }))
                         })),
-                        // Only keep global plans in the root paymentPlans array
                         paymentPlans: form.paymentPlans
                             .filter(p => p.variantIndex === null || p.variantIndex === undefined || p.variantIndex === -1)
                             .map(p => ({
                                 ...p,
-                                cashPrice: Number(p.cashPrice) || 0,
+                                cashPrice: productPrice,
                                 installmentPrice: Number(p.installmentPrice),
                                 downPayment: Number(p.downPayment),
                                 monthlyInstallment: Number(p.monthlyInstallment)
@@ -579,6 +644,16 @@ const InstallmentsAdd = () => {
         } finally {
             setLoading(false);
         }
+    };
+
+    const showVariantSection = VARIANT_CATEGORIES.includes(form.category);
+
+    const cashPriceForPlan = (plan) => {
+        const vIdx = plan.variantIndex;
+        if (vIdx !== undefined && vIdx !== null && vIdx !== -1 && form.variants?.[vIdx]) {
+            return getVariantEffectivePrice(form.variants[vIdx]);
+        }
+        return deriveProductPrice(form.variants, form.price);
     };
 
     return (
@@ -639,10 +714,7 @@ const InstallmentsAdd = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <InputField label="Product Name" value={form.productName} onChange={v => updateForm('productName', v)} placeholder="Full product title..." readOnly={!!selectedProductId} />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <InputField label="City" value={form.city} onChange={v => updateForm('city', v)} readOnly={!!selectedProductId} />
-                                            <InputField label="Base Price (PKR)" type="number" value={form.price} onChange={v => updateForm('price', v)} readOnly={!!selectedProductId} />
-                                        </div>
+                                        <InputField label="City" value={form.city} onChange={v => updateForm('city', v)} readOnly={!!selectedProductId} />
                                         <div className="space-y-2">
                                             <label className="flex items-center gap-2 text-[10px] font-black text-gray-700 uppercase tracking-widest ml-1">
                                                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -802,7 +874,7 @@ const InstallmentsAdd = () => {
                                 )}
 
                                 {/* Product Variants Section (for Smartphones/Tablets/Laptops) */}
-                                {form.category && ['smartphones', 'tablets', 'laptops', 'gaming_consoles'].includes(form.category) && (
+                                {false && form.category && ['smartphones', 'tablets', 'laptops', 'gaming_consoles'].includes(form.category) && (
                                     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                         <div className="flex items-center justify-between border-l-8 border-blue-600 pl-4">
                                             <div>
@@ -939,7 +1011,7 @@ const InstallmentsAdd = () => {
                                     <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
                                         <div className="flex flex-col">
                                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cash Price</span>
-                                            <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
+                                            <span className="text-lg font-black text-white tracking-tighter">PKR {deriveProductPrice(form.variants, form.price).toLocaleString()}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -1021,6 +1093,43 @@ const InstallmentsAdd = () => {
                                 {/* Installments Tab Content */}
                                 {step4Tab === 'installments' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {showVariantSection && (
+                                            <div className="space-y-4 p-6 bg-blue-50 border-2 border-blue-200 rounded-[2rem]">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">Product Variants</h3>
+                                                        <p className="text-xs text-blue-700 font-medium mt-1">Cash price + discount % (applied to cash price) per variant.</p>
+                                                    </div>
+                                                    <button type="button" onClick={() => setForm(f => ({ ...f, variants: [...f.variants, { variantName: "", price: "", discountPercent: 0, paymentPlans: [], status: "active" }] }))} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">+ Add Variant</button>
+                                                </div>
+                                                {form.variants.length === 0 ? (
+                                                    <p className="text-sm text-gray-500 text-center py-4">Add at least one variant before payment plans.</p>
+                                                ) : (
+                                                    <div className="space-y-4">
+                                                        {form.variants.map((variant, vIdx) => (
+                                                            <div key={vIdx} className="bg-white p-6 rounded-2xl border border-blue-100 relative">
+                                                                <button type="button" onClick={() => setForm(f => ({ ...f, variants: f.variants.filter((_, i) => i !== vIdx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600">✕</button>
+                                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
+                                                                    <InputField label="Variant Name" value={variant.variantName} onChange={v => { const nv = [...form.variants]; nv[vIdx].variantName = v; setForm(f => ({ ...f, variants: nv })); }} placeholder="e.g. 12GB / 256GB" />
+                                                                    <InputField label="Cash Price (PKR)" type="number" value={variant.price} onChange={v => { const nv = [...form.variants]; nv[vIdx].price = v; setForm(f => ({ ...f, variants: nv })); }} />
+                                                                    <InputField label="Discount (%)" type="number" value={variant.discountPercent ?? ""} onChange={v => { const nv = [...form.variants]; nv[vIdx].discountPercent = v; setForm(f => ({ ...f, variants: nv })); }} placeholder="0" />
+                                                                    <div className="flex flex-col justify-end">
+                                                                        <span className="text-[10px] font-black text-gray-400 uppercase">Effective Price</span>
+                                                                        <span className="text-lg font-black text-red-600">PKR {getVariantEffectivePrice(variant).toLocaleString()}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {!showVariantSection && (
+                                            <InputField label={selectedProductId ? "Your Cash Price (PKR)" : "Cash Price (PKR)"} type="number" value={form.price} onChange={v => updateForm('price', v)} />
+                                        )}
+                                        {selectedProductId && existingPlans.length === 0 && (
+                                            <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-xl p-4 font-medium">No plans from this partner on the product yet. Other companies&apos; plans are hidden.</p>
+                                        )}
                                         <div className="flex justify-end">
                                             <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
                                 </div>
@@ -1039,7 +1148,6 @@ const InstallmentsAdd = () => {
                                                 </div>
                                                 <InputField label="Duration (Months)" type="number" value={p.tenureMonths} onChange={() => {}} readOnly={true} />
                                                 <InputField label="Down Payment (PKR)" type="number" value={p.downPayment} onChange={() => {}} readOnly={true} />
-                                                <InputField label="Partner Cash Price (PKR)" type="number" value={p.cashPrice || 0} onChange={() => {}} readOnly={true} />
                                             </div>
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
                                                 <InputField label="Interest Rate / Markup" type="number" value={p.interestType === "Profit-Based (Islamic/Shariah)" ? p.markup : p.interestRatePercent} onChange={() => {}} readOnly={true} />
@@ -1050,7 +1158,7 @@ const InstallmentsAdd = () => {
                                                 <SummaryItem label="Total Markup Amount" value={p.markup} />
                                                 <SummaryItem label="Total Payable" value={p.installmentPrice} />
                                                 <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
-                                                <SummaryItem label="Loan Amount" value={Math.max(0, (p.cashPrice || (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? parseFloat(form.variants[p.variantIndex].price) : parseFloat(form.price) || 0)) - (p.downPayment || 0))} border={false} />
+                                                <SummaryItem label="Loan Amount" value={Math.max(0, (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? getVariantEffectivePrice(form.variants[p.variantIndex]) : deriveProductPrice(form.variants, form.price)) - (p.downPayment || 0))} border={false} />
                                             </div>
                                         </div>
                                     ))}
@@ -1076,7 +1184,7 @@ const InstallmentsAdd = () => {
                                                         >
                                                             <option value="-1">All Variants / Standard</option>
                                                             {form.variants.map((v, vIdx) => (
-                                                                <option key={vIdx} value={vIdx}>{v.variantName} (PKR {v.price})</option>
+                                                                <option key={vIdx} value={vIdx}>{v.variantName} (PKR {getVariantEffectivePrice(v).toLocaleString()})</option>
                                                             ))}
                                                         </select>
                                                     </div>
@@ -1087,13 +1195,6 @@ const InstallmentsAdd = () => {
                                                     pp[idx].planName = v;
                                                     setForm(f => ({ ...f, paymentPlans: pp }));
                                                 }} placeholder="e.g. Premium 12M" />
-
-                                                <InputField label="Partner Cash Price (PKR)" type="number" value={p.cashPrice} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].cashPrice = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} placeholder="Override base price..." />
 
                                                 <div className="space-y-2">
                                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
@@ -1213,7 +1314,7 @@ const InstallmentsAdd = () => {
                                                         <SummaryItem label="Total Markup Amount" value={p.markup} />
                                                         <SummaryItem label="Total Payable" value={p.installmentPrice} />
                                                         <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
-                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (p.cashPrice || (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? parseFloat(form.variants[p.variantIndex].price) : parseFloat(form.price) || 0)) - (p.downPayment || 0))} border={false} />
+                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? getVariantEffectivePrice(form.variants[p.variantIndex]) : deriveProductPrice(form.variants, form.price)) - (p.downPayment || 0))} border={false} />
                                                     </div>
                                                     {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                                 </div>
@@ -1465,7 +1566,7 @@ const InstallmentsAdd = () => {
                                                 <OverviewItem label="Category" value={form.category || form.customCategory} />
                                                 <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
                                                 <OverviewItem label="City" value={form.city} />
-                                                <OverviewItem label="Base Price" value={`PKR ${Number(form.price || 0).toLocaleString()}`} highlight />
+                                                <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price).toLocaleString()}`} highlight />
                                                 {form.description && (
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500 mb-1 block">Description</label>
