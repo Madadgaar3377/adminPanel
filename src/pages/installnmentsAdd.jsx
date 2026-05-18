@@ -49,8 +49,6 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-const VARIANT_CATEGORIES = ['smartphones', 'tablets', 'laptops', 'gaming_consoles'];
-
 const getVariantEffectivePrice = (variant) => {
     if (!variant) return 0;
     const base = Number(variant.price) || 0;
@@ -73,6 +71,45 @@ const collectPartnerPlans = (product, partnerId) => {
     const fromVariants = (product.variants || []).flatMap((v) => (v.paymentPlans || []).filter(match));
     return [...root, ...fromVariants];
 };
+
+const mapProductVariantsForPartner = (product, partnerId) => {
+    const partnerEntry = (product?.partnerPricing || []).find(
+        (p) => p?.partnerId && String(p.partnerId) === String(partnerId)
+    );
+    const overrides = partnerEntry?.variantOverrides || [];
+    return (product?.variants || []).map((v, i) => {
+        const ov = overrides.find((o) => Number(o.variantIndex) === i);
+        return {
+            variantName: v.variantName || `Variant ${i + 1}`,
+            listingPrice: v.price,
+            price: ov?.cashPrice ?? "",
+            discountPercent: ov?.discountPercent ?? 0,
+            isCatalogVariant: true,
+            sourceVariantIndex: i,
+            status: v.status || "active",
+        };
+    });
+};
+
+const resolvePlanVariantIndex = (plan, variants) => {
+    const vIdx = plan.variantIndex;
+    if (vIdx === null || vIdx === undefined || vIdx === "" || vIdx === -1 || vIdx === "-1") return null;
+    const variant = variants?.[Number(vIdx)];
+    if (variant?.isCatalogVariant && variant.sourceVariantIndex != null) {
+        return Number(variant.sourceVariantIndex);
+    }
+    return Number(vIdx);
+};
+
+const buildPartnerVariantPricing = (variants) =>
+    (variants || [])
+        .filter((v) => v.isCatalogVariant && Number.isFinite(Number(v.sourceVariantIndex)))
+        .map((v) => ({
+            variantIndex: Number(v.sourceVariantIndex),
+            cashPrice: Number(v.price) || 0,
+            discountPercent: Number(v.discountPercent) || 0,
+        }))
+        .filter((v) => v.cashPrice > 0);
 
 const defaultPlan = {
     planName: "",
@@ -184,7 +221,7 @@ const InstallmentsAdd = () => {
                 customCategory: product.customCategory || "",
                 productImages: product.productImages || [],
                 productSpecifications: product.productSpecifications || { category: "", subCategory: "", specifications: [] },
-                variants: [],
+                variants: mapProductVariantsForPartner(product, prev.userId),
             };
             });
             showToast("Existing product details loaded.", "success");
@@ -513,50 +550,18 @@ const InstallmentsAdd = () => {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
             
             if (selectedProductId) {
-                const product = existingProducts.find((p) => p.installmentPlanId === selectedProductId);
-                const variantOffset = (product?.variants || []).length;
-
-                if (form.variants?.length > 0 && product) {
-                    const mergedVariants = [
-                        ...(product.variants || []),
-                        ...form.variants.map((v) => ({
-                            variantName: v.variantName,
-                            price: Number(v.price),
-                            discountPercent: Number(v.discountPercent) || 0,
-                            paymentPlans: [],
-                            status: v.status || "active",
-                        })),
-                    ];
-                    const variantRes = await fetch(`${ApiBaseUrl}/updateInstallment/${selectedProductId}`, {
-                        method: "PUT",
-                        headers: {
-                            "Content-Type": "application/json",
-                            ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
-                        },
-                        body: JSON.stringify({ variants: mergedVariants }),
-                    });
-                    const variantData = await variantRes.json();
-                    if (!variantData.success) {
-                        throw new Error(variantData.message || "Failed to save product variants.");
-                    }
-                }
-
                 const partnerBasePrice = deriveProductPrice(form.variants, form.price);
+                const partnerVariantPricing = buildPartnerVariantPricing(form.variants);
                 let successCount = 0;
                 for (const plan of form.paymentPlans) {
-                    let variantIdx =
-                        plan.variantIndex === null || plan.variantIndex === undefined || plan.variantIndex === "" || plan.variantIndex === -1 || plan.variantIndex === "-1"
-                            ? null
-                            : Number(plan.variantIndex);
-                    if (variantIdx !== null && Number.isFinite(variantIdx)) {
-                        variantIdx = variantOffset + variantIdx;
-                    }
+                    const variantIdx = resolvePlanVariantIndex(plan, form.variants);
                     const planPayload = {
                         ...plan,
                         userId: form.userId,
                         variantIndex: variantIdx,
                         cashPrice: cashPriceForPlan(plan),
                         partnerBasePrice,
+                        partnerVariantPricing,
                         installmentPrice: Number(plan.installmentPrice),
                         downPayment: Number(plan.downPayment),
                         monthlyInstallment: Number(plan.monthlyInstallment),
@@ -646,7 +651,7 @@ const InstallmentsAdd = () => {
         }
     };
 
-    const showVariantSection = VARIANT_CATEGORIES.includes(form.category);
+    const showVariantSection = Boolean(form.category);
 
     const cashPriceForPlan = (plan) => {
         const vIdx = plan.variantIndex;
@@ -1095,21 +1100,37 @@ const InstallmentsAdd = () => {
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                         {showVariantSection && (
                                             <div className="space-y-4 p-6 bg-blue-50 border-2 border-blue-200 rounded-[2rem]">
+                                                {!selectedProductId && (
                                                 <div className="flex items-center justify-between">
                                                     <div>
-                                                        <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">Product Variants</h3>
-                                                        <p className="text-xs text-blue-700 font-medium mt-1">Cash price + discount % (applied to cash price) per variant.</p>
+                                                        <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">Create Product Variants</h3>
+                                                        <p className="text-xs text-blue-700 font-medium mt-1">Cash price + discount % per variant.</p>
                                                     </div>
                                                     <button type="button" onClick={() => setForm(f => ({ ...f, variants: [...f.variants, { variantName: "", price: "", discountPercent: 0, paymentPlans: [], status: "active" }] }))} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">+ Add Variant</button>
                                                 </div>
+                                                )}
                                                 {form.variants.length === 0 ? (
-                                                    <p className="text-sm text-gray-500 text-center py-4">Add at least one variant before payment plans.</p>
+                                                    <p className="text-sm text-gray-500 text-center py-4">{selectedProductId ? "No variants on this product. Use cash price below." : "Add at least one variant before payment plans."}</p>
                                                 ) : (
                                                     <div className="space-y-4">
                                                         {form.variants.map((variant, vIdx) => (
                                                             <div key={vIdx} className="bg-white p-6 rounded-2xl border border-blue-100 relative">
+                                                                {!selectedProductId && (
                                                                 <button type="button" onClick={() => setForm(f => ({ ...f, variants: f.variants.filter((_, i) => i !== vIdx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600">✕</button>
-                                                                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pr-8">
+                                                                )}
+                                                                {selectedProductId ? (
+                                                                    <div className="space-y-4">
+                                                                        <div className="space-y-1">
+                                                                            <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Product variant (from listing — not editable)</span>
+                                                                            <p className="text-base font-bold text-gray-900 bg-gray-50 border-2 border-gray-200 rounded-xl px-4 py-3 cursor-default">{variant.variantName || `Variant ${vIdx + 1}`}</p>
+                                                                        </div>
+                                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                                            <InputField label="Your Cash Price (PKR) *" type="number" value={variant.price} onChange={v => { const nv = [...form.variants]; nv[vIdx].price = v; setForm(f => ({ ...f, variants: nv })); }} />
+                                                                            <InputField label="Your Discount (%)" type="number" value={variant.discountPercent ?? ""} onChange={v => { const nv = [...form.variants]; nv[vIdx].discountPercent = v; setForm(f => ({ ...f, variants: nv })); }} placeholder="0" />
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                <div className="grid grid-cols-1 gap-4 md:grid-cols-4 pr-8">
                                                                     <InputField label="Variant Name" value={variant.variantName} onChange={v => { const nv = [...form.variants]; nv[vIdx].variantName = v; setForm(f => ({ ...f, variants: nv })); }} placeholder="e.g. 12GB / 256GB" />
                                                                     <InputField label="Cash Price (PKR)" type="number" value={variant.price} onChange={v => { const nv = [...form.variants]; nv[vIdx].price = v; setForm(f => ({ ...f, variants: nv })); }} />
                                                                     <InputField label="Discount (%)" type="number" value={variant.discountPercent ?? ""} onChange={v => { const nv = [...form.variants]; nv[vIdx].discountPercent = v; setForm(f => ({ ...f, variants: nv })); }} placeholder="0" />
@@ -1118,6 +1139,7 @@ const InstallmentsAdd = () => {
                                                                         <span className="text-lg font-black text-red-600">PKR {getVariantEffectivePrice(variant).toLocaleString()}</span>
                                                                     </div>
                                                                 </div>
+                                                                )}
                                                             </div>
                                                         ))}
                                                     </div>
