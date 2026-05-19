@@ -730,7 +730,7 @@ const InstallmentsEdit = () => {
                                 )}
 
                                 {/* Product Variants Section */}
-                                {form.category && ['smartphones', 'tablets', 'laptops', 'gaming_consoles'].includes(form.category) && (
+                                {form.category && (
                                     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                         <div className="flex items-center justify-between border-l-8 border-blue-600 pl-4">
                                             <div>
@@ -743,7 +743,8 @@ const InstallmentsEdit = () => {
                                                     ...f,
                                                     variants: [...f.variants, { 
                                                         variantName: "", 
-                                                        price: f.price || 0, 
+                                                        price: f.price || 0,
+                                                        discountPercent: 0,
                                                         paymentPlans: [],
                                                         status: "active" 
                                                     }]
@@ -769,7 +770,7 @@ const InstallmentsEdit = () => {
                                                         <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                                                     </button>
 
-                                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                                                         <div className="space-y-2">
                                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Variant Name</label>
                                                             <input 
