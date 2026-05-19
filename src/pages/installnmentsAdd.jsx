@@ -4,6 +4,7 @@ import Navbar from '../compontents/Navbar';
 import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 import RichTextEditor from '../compontents/RichTextEditor';
+import SearchableProductSelect from '../compontents/SearchableProductSelect';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -193,13 +194,16 @@ const InstallmentsAdd = () => {
                 category: "",
                 customCategory: "",
                 productImages: [],
+                paymentPlans: [{ ...defaultPlan }],
                 productSpecifications: { category: "", subCategory: "", specifications: [] },
                 variants: [],
             }));
             return;
         }
 
-        const product = existingProducts.find(p => p.installmentPlanId === productId);
+        const product = existingProducts.find(
+            (p) => (p.installmentPlanId || p._id) === productId
+        );
         if (product) {
             setForm(prev => {
             setExistingPlans(collectPartnerPlans(product, prev.userId));
@@ -220,6 +224,7 @@ const InstallmentsAdd = () => {
                 category: product.category || "",
                 customCategory: product.customCategory || "",
                 productImages: product.productImages || [],
+                paymentPlans: [{ ...defaultPlan }],
                 productSpecifications: product.productSpecifications || { category: "", subCategory: "", specifications: [] },
                 variants: mapProductVariantsForPartner(product, prev.userId),
             };
@@ -653,6 +658,38 @@ const InstallmentsAdd = () => {
 
     const showVariantSection = Boolean(form.category);
 
+    const isStepValid = () => {
+        if (step === 1) {
+            if (selectedProductId) return Boolean(form.userId?.trim());
+            return Boolean(form.productName?.trim() && form.city?.trim() && form.category);
+        }
+        if (step === 3 && !selectedProductId) return form.productImages.length > 0;
+        if (step === 4) {
+            if (!form.paymentPlans.length) return false;
+            if (showVariantSection && !selectedProductId) {
+                if (form.variants.length === 0) return false;
+                if (form.variants.some((v) => !v.variantName || !Number(v.price))) return false;
+            }
+            if (showVariantSection && selectedProductId) {
+                const planVariantIdxs = form.paymentPlans
+                    .map((p) => p.variantIndex)
+                    .filter((ix) => ix !== null && ix !== undefined && ix !== -1 && ix !== "");
+                if (form.variants.length > 0 && planVariantIdxs.length > 0) {
+                    if (!planVariantIdxs.every((ix) => Number(form.variants[Number(ix)]?.price) > 0)) return false;
+                } else if (form.variants.length > 0) {
+                    if (!form.variants.some((v) => Number(v.price) > 0)) return false;
+                } else if (!Number(form.price)) {
+                    return false;
+                }
+            }
+            if (!showVariantSection && !selectedProductId && !Number(form.price)) return false;
+            if (!showVariantSection && selectedProductId && !Number(form.price)) return false;
+            return true;
+        }
+        if (step === 5 && selectedProductId) return Boolean(form.userId?.trim());
+        return true;
+    };
+
     const cashPriceForPlan = (plan) => {
         const vIdx = plan.variantIndex;
         if (vIdx !== undefined && vIdx !== null && vIdx !== -1 && form.variants?.[vIdx]) {
@@ -697,22 +734,17 @@ const InstallmentsAdd = () => {
                                 
                                 <div className="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 mb-6">
                                     <label className="text-[10px] font-black text-blue-800 uppercase tracking-widest pl-1 mb-2 block">
-                                        Attach to Existing Product (Optional)
+                                        Find existing product (optional)
                                     </label>
-                                    <select 
+                                    <SearchableProductSelect
+                                        products={existingProducts}
                                         value={selectedProductId}
-                                        onChange={(e) => handleSelectExistingProduct(e.target.value)}
-                                        className="w-full px-5 py-4 bg-white border-2 border-blue-200 focus:border-blue-500 focus:bg-blue-50/30 hover:border-blue-300 rounded-2xl text-sm font-semibold outline-none transition-all shadow-sm focus:shadow-md cursor-pointer appearance-none"
-                                    >
-                                        <option value="">-- Create from Scratch --</option>
-                                        {existingProducts.map(p => (
-                                            <option key={p.installmentPlanId} value={p.installmentPlanId}>
-                                                {p.productName} ({p.installmentPlanId})
-                                            </option>
-                                        ))}
-                                    </select>
+                                        onChange={handleSelectExistingProduct}
+                                        placeholder="Type to search — e.g. Samsung, Lahore, product ID..."
+                                        createNewLabel="-- Create new product from scratch --"
+                                    />
                                     <p className="text-xs text-blue-600 mt-2 font-medium">
-                                        Selecting an existing product will lock the details and allow you to append new payment plans.
+                                        Search by name, brand, city, or ID. Selecting a product locks details so you can add your payment plans and variant prices.
                                     </p>
                                 </div>
 
@@ -1204,7 +1236,7 @@ const InstallmentsAdd = () => {
                                                             }}
                                                             className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none border-blue-100 focus:border-blue-500 shadow-sm transition-all"
                                                         >
-                                                            <option value="-1">All Variants / Standard</option>
+                                                            <option value="-1">{selectedProductId && form.variants.length > 0 ? "— Select variant —" : "Standard (no variant)"}</option>
                                                             {form.variants.map((v, vIdx) => (
                                                                 <option key={vIdx} value={vIdx}>{v.variantName} (PKR {getVariantEffectivePrice(v).toLocaleString()})</option>
                                                             ))}
@@ -1729,9 +1761,9 @@ const InstallmentsAdd = () => {
                         <button onClick={() => setStep(s => Math.max(1, s - 1))} className={`px-10 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}>Previous</button>
                         <div className="flex gap-4">
                             {step < 5 ?
-                                <button onClick={() => setStep(s => s + 1)} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all">Next Phase Matrix</button>
+                                <button onClick={() => setStep(s => s + 1)} disabled={!isStepValid()} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">Next Phase Matrix</button>
                                 :
-                                <button onClick={handleSubmit} disabled={loading} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95">
+                                <button onClick={handleSubmit} disabled={loading || !isStepValid()} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                                     {loading ? 'Creating Plan...' : 'Create Plan'}
                                 </button>
                             }
