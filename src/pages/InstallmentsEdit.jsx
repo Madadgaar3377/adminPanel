@@ -3,6 +3,13 @@ import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate, useParams } from 'react-router-dom';
 import RichTextEditor from '../compontents/RichTextEditor';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
+import {
+    isAttachedMultiVendor,
+    filterPlansForEditor,
+    mapVariantsForEditor,
+    processPlansForForm,
+    buildInstallmentUpdateBody,
+} from '../utils/installmentPlanEditor';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -90,12 +97,15 @@ const InstallmentsEdit = () => {
     const [step4Tab, setStep4Tab] = useState('installments'); // 'finance' or 'installments'
     const [userData, setUserData] = useState(null);
     const [loadingUser, setLoadingUser] = useState(false);
+    const [productOwnerUserId, setProductOwnerUserId] = useState("");
+    const [isAttachedProduct, setIsAttachedProduct] = useState(false);
 
     const showToast = (message, type) => {
         setToast({ message, type });
     };
 
     const [form, setForm] = useState({
+        userId: "",
         productName: "",
         city: "",
         price: "",
@@ -267,27 +277,29 @@ const InstallmentsEdit = () => {
         setFetching(true);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/getAllInstallments`, {
+            const res = await fetch(`${ApiBaseUrl}/getInstallment/${encodeURIComponent(id)}`, {
                 headers: {
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
                 }
             });
             const data = await res.json();
             if (data.success) {
-                const plan = data.data.find(d => d._id === id);
+                const plan = data.data;
                 if (plan) {
-                    // Process payment plans to add hasFinance flag
-                    const processedPaymentPlans = plan.paymentPlans && plan.paymentPlans.length > 0 
-                        ? plan.paymentPlans.map(pp => ({
-                            ...pp,
-                            hasFinance: !!(pp.finance && (pp.finance.bankName || pp.finance.financeInfo)),
-                            finance: pp.finance || { bankName: "", financeInfo: "" }
-                        }))
-                        : [{ ...defaultPlan }];
+                    const ownerId = plan.userId || "";
+                    setProductOwnerUserId(ownerId);
+                    setIsAttachedProduct(false);
+
+                    const processedPaymentPlans =
+                        plan.paymentPlans && plan.paymentPlans.length > 0
+                            ? processPlansForForm(plan.paymentPlans)
+                            : [{ ...defaultPlan }];
+                    const variantsRaw = plan.variants || [];
 
                     setForm(prev => ({
                         ...prev,
                         ...plan,
+                        userId: plan.userId || "",
                         // Ensure specs objects exist to avoid crashes
                         generalFeatures: plan.generalFeatures || prev.generalFeatures,
                         performance: plan.performance || prev.performance,
@@ -298,6 +310,7 @@ const InstallmentsEdit = () => {
                         connectivity: plan.connectivity || prev.connectivity,
                         airConditioner: plan.airConditioner || prev.airConditioner,
                         paymentPlans: processedPaymentPlans,
+                        variants: variantsRaw || [],
                         electricalBike: plan.electricalBike || prev.electricalBike,
                         mechanicalBike: plan.mechanicalBike || prev.mechanicalBike,
                         // Finance information
@@ -468,40 +481,45 @@ const InstallmentsEdit = () => {
         setError(null);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            const scopedEditorId = (form.userId || form.user || productOwnerUserId || "").trim();
+            const attached = isAttachedMultiVendor(scopedEditorId, productOwnerUserId);
+
+            const formForSave = attached
+                ? {
+                    ...form,
+                    paymentPlans: filterPlansForEditor(
+                        form.paymentPlans,
+                        scopedEditorId,
+                        productOwnerUserId
+                    ),
+                    variants: mapVariantsForEditor(
+                        form.variants,
+                        scopedEditorId,
+                        productOwnerUserId
+                    ),
+                }
+                : form;
+
+            const body = attached
+                ? buildInstallmentUpdateBody({
+                    form: formForSave,
+                    editorUserId: scopedEditorId,
+                    isAttachedProduct: true,
+                })
+                : buildInstallmentUpdateBody({
+                    form: formForSave,
+                    editorUserId: scopedEditorId,
+                    isAttachedProduct: false,
+                    includeFullForm: true,
+                });
+
             const res = await fetch(`${ApiBaseUrl}/updateInstallment/${id}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
                 },
-                    body: JSON.stringify({
-                        ...form,
-                        category: form.category === "other" ? form.customCategory : form.category,
-                        price: Number(form.price),
-                        downpayment: Number(form.downpayment),
-                        variants: form.variants.map((v, vIdx) => ({
-                            ...v,
-                            price: Number(v.price),
-                            paymentPlans: form.paymentPlans
-                                .filter(p => p.variantIndex === vIdx)
-                                .map(p => ({
-                                    ...p,
-                                    cashPrice: Number(p.cashPrice) || 0,
-                                    installmentPrice: Number(p.installmentPrice),
-                                    downPayment: Number(p.downPayment),
-                                    monthlyInstallment: Number(p.monthlyInstallment)
-                                }))
-                        })),
-                        paymentPlans: form.paymentPlans
-                            .filter(p => p.variantIndex === null || p.variantIndex === undefined || p.variantIndex === -1)
-                            .map(p => ({
-                                ...p,
-                                cashPrice: Number(p.cashPrice) || 0,
-                                installmentPrice: Number(p.installmentPrice),
-                                downPayment: Number(p.downPayment),
-                                monthlyInstallment: Number(p.monthlyInstallment)
-                            })),
-                    }),
+                body: JSON.stringify(body),
             });
             const data = await res.json();
             if (data.success) {
@@ -563,6 +581,10 @@ const InstallmentsEdit = () => {
                 {message && <div className="p-4 bg-emerald-50 border-2 border-emerald-100 text-emerald-600 rounded-2xl font-bold animate-pulse">{message}</div>}
                 {error && <div className="p-4 bg-red-50 border-2 border-red-100 text-red-600 rounded-2xl font-bold">{error}</div>}
 
+                <p className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3 font-medium">
+                    Payment plans: you see <strong>all vendors</strong> on this listing. To update only one partner&apos;s plans without removing others, set <strong>User ID</strong> to that partner (different from owner {productOwnerUserId || "—"}) before saving step 4.
+                </p>
+
                 <div className="bg-white rounded-[3rem] shadow-xl border border-gray-50 overflow-hidden min-h-[600px] flex flex-col">
                     <div className="p-10 flex-1">
                         {step === 1 && (
@@ -610,7 +632,7 @@ const InstallmentsEdit = () => {
                                     <div className="space-y-4">
                                         <InputField label="Company / Brand" value={form.companyName} onChange={v => updateForm('companyName', v)} />
                                         {/* for user id */}
-                                        <InputField label="User ID" value={form.user || form.userId || ''} onChange={v => updateForm('user', v)} />
+                                        <InputField label="Owner / Partner User ID" value={form.userId || form.user || ''} onChange={v => updateForm('userId', v)} placeholder="Catalog owner or partner to scope plan edits" />
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
                                             <textarea value={form.description} onChange={e => updateForm('description', e.target.value)} rows={4} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-[2rem] text-sm font-bold outline-none transition-all resize-none shadow-inner" />
