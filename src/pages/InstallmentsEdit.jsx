@@ -951,9 +951,6 @@ const InstallmentsEdit = () => {
                                 {/* Installments Tab Content */}
                                 {step4Tab === 'installments' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        <div className="flex justify-end">
-                                            <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
-                                </div>
                                 <div className="space-y-6">
                                     {form.paymentPlans.map((p, idx) => (
                                         <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
@@ -1116,6 +1113,9 @@ const InstallmentsEdit = () => {
                                                     {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                                 </div>
                                             ))}
+                                            <div className="flex justify-end pt-2">
+                                                <button type="button" onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -1303,6 +1303,9 @@ const InstallmentsEdit = () => {
                                                         {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
                                                     </div>
                                                 ))}
+                                                <div className="flex justify-end pt-2">
+                                                    <button type="button" onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
