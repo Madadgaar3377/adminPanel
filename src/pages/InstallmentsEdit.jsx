@@ -99,6 +99,8 @@ const InstallmentsEdit = () => {
     const [loadingUser, setLoadingUser] = useState(false);
     const [productOwnerUserId, setProductOwnerUserId] = useState("");
     const [isAttachedProduct, setIsAttachedProduct] = useState(false);
+    /** Update variant cash prices only; leave existing payment plans unchanged */
+    const [saveVariantsOnly, setSaveVariantsOnly] = useState(false);
 
     const showToast = (message, type) => {
         setToast({ message, type });
@@ -505,12 +507,14 @@ const InstallmentsEdit = () => {
                     form: formForSave,
                     editorUserId: scopedEditorId,
                     isAttachedProduct: true,
+                    variantsOnly: saveVariantsOnly,
                 })
                 : buildInstallmentUpdateBody({
                     form: formForSave,
                     editorUserId: scopedEditorId,
                     isAttachedProduct: false,
                     includeFullForm: true,
+                    variantsOnly: saveVariantsOnly,
                 });
 
             const res = await fetch(`${ApiBaseUrl}/updateInstallment/${id}`, {
@@ -523,7 +527,9 @@ const InstallmentsEdit = () => {
             });
             const data = await res.json();
             if (data.success) {
-                const successMsg = "✓ Installment plan updated successfully!";
+                const successMsg = saveVariantsOnly
+                    ? "✓ Variant cash prices updated. Payment plans were not changed."
+                    : "✓ Installment plan updated successfully!";
                 setMessage(successMsg);
                 showToast(successMsg, 'success');
                 setTimeout(() => navigate('/installments/update'), 1500);
@@ -951,6 +957,25 @@ const InstallmentsEdit = () => {
                                 {/* Installments Tab Content */}
                                 {step4Tab === 'installments' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                {form.variants?.length > 0 && (
+                                    <label className="flex items-start gap-3 p-4 bg-white border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer hover:bg-blue-50/50">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                            checked={saveVariantsOnly}
+                                            onChange={(e) => setSaveVariantsOnly(e.target.checked)}
+                                        />
+                                        <span>
+                                            <span className="block text-sm font-black text-gray-800 uppercase tracking-tight">
+                                                Update variant cash prices only
+                                            </span>
+                                            <span className="block text-xs text-gray-600 mt-1 font-medium">
+                                                Saves variant pricing without changing installment payment plans on this listing.
+                                            </span>
+                                        </span>
+                                    </label>
+                                )}
+                                {!saveVariantsOnly && (
                                 <div className="space-y-6">
                                     {form.paymentPlans.map((p, idx) => (
                                         <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
@@ -1117,6 +1142,12 @@ const InstallmentsEdit = () => {
                                                 <button type="button" onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
                                             </div>
                                         </div>
+                                )}
+                                {saveVariantsOnly && (
+                                    <p className="text-sm text-green-800 bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 font-medium">
+                                        Only variant cash prices will be saved; existing payment plans stay as they are.
+                                    </p>
+                                )}
                                     </div>
                                 )}
 
@@ -1478,7 +1509,11 @@ const InstallmentsEdit = () => {
                                 <button onClick={() => setStep(s => s + 1)} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all">Next Phase Matrix</button>
                                 :
                                 <button onClick={handleSubmit} disabled={loading} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95">
-                                    {loading ? 'Saving Changes...' : 'Update Plan'}
+                                    {loading
+                                        ? 'Saving Changes...'
+                                        : saveVariantsOnly
+                                          ? 'Save Variant Prices'
+                                          : 'Update Plan'}
                                 </button>
                             }
                         </div>

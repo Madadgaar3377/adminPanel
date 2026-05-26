@@ -5,6 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 import RichTextEditor from '../compontents/RichTextEditor';
 import SearchableProductSelect from '../compontents/SearchableProductSelect';
+import {
+    buildCreateInstallmentPayload,
+    getActivePaymentPlans,
+    hasStandardVariant,
+} from '../utils/installmentPlanEditor';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -149,6 +154,8 @@ const InstallmentsAdd = () => {
     const [existingProducts, setExistingProducts] = useState([]);
     const [selectedProductId, setSelectedProductId] = useState('');
     const [existingPlans, setExistingPlans] = useState([]);
+    /** Save product with variant cash prices only; installment plans can be added later */
+    const [saveVariantsOnly, setSaveVariantsOnly] = useState(false);
 
     // Fetch all existing installment products on mount
     useEffect(() => {
@@ -162,7 +169,9 @@ const InstallmentsAdd = () => {
                 });
                 const data = await res.json();
                 if (data.success && data.data) {
-                    setExistingProducts(data.data);
+                    setExistingProducts(
+                        data.data.filter((p) => String(p.status || "").toLowerCase() !== "deleted")
+                    );
                 }
             } catch (err) {
                 console.error("Failed to fetch existing products:", err);
@@ -553,12 +562,20 @@ const InstallmentsAdd = () => {
         setError(null);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            
+            const activePlans = saveVariantsOnly ? [] : getActivePaymentPlans(form.paymentPlans);
+
             if (selectedProductId) {
+                if (!activePlans.length) {
+                    const errorMsg = "Add at least one payment plan when attaching to an existing product.";
+                    setError(errorMsg);
+                    showToast(errorMsg, 'error');
+                    setLoading(false);
+                    return;
+                }
                 const partnerBasePrice = deriveProductPrice(form.variants, form.price);
                 const partnerVariantPricing = buildPartnerVariantPricing(form.variants);
                 let successCount = 0;
-                for (const plan of form.paymentPlans) {
+                for (const plan of activePlans) {
                     const variantIdx = resolvePlanVariantIndex(plan, form.variants);
                     const planPayload = {
                         ...plan,
@@ -596,48 +613,27 @@ const InstallmentsAdd = () => {
                 setTimeout(() => navigate('/'), 1500);
 
             } else {
-                const productPrice = deriveProductPrice(form.variants, form.price);
                 const res = await fetch(`${ApiBaseUrl}/createInstallmentPlan`, {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
                         ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
                     },
-                    body: JSON.stringify({
-                        ...form,
-                        category: form.category === "other" ? form.customCategory : form.category,
-                        price: productPrice,
-                        downpayment: Number(form.downpayment),
-                        variants: form.variants.map((v, vIdx) => ({
-                            variantName: v.variantName,
-                            price: Number(v.price),
-                            discountPercent: Number(v.discountPercent) || 0,
-                            status: v.status || "active",
-                            paymentPlans: form.paymentPlans
-                                .filter(p => p.variantIndex === vIdx)
-                                .map(p => ({
-                                    ...p,
-                                    cashPrice: getVariantEffectivePrice(v),
-                                    installmentPrice: Number(p.installmentPrice),
-                                    downPayment: Number(p.downPayment),
-                                    monthlyInstallment: Number(p.monthlyInstallment)
-                                }))
-                        })),
-                        paymentPlans: form.paymentPlans
-                            .filter(p => p.variantIndex === null || p.variantIndex === undefined || p.variantIndex === -1)
-                            .map(p => ({
-                                ...p,
-                                cashPrice: productPrice,
-                                installmentPrice: Number(p.installmentPrice),
-                                downPayment: Number(p.downPayment),
-                                monthlyInstallment: Number(p.monthlyInstallment)
-                            })),
-                        status: 'approved'
-                    }),
+                    body: JSON.stringify(
+                        buildCreateInstallmentPayload({
+                            form,
+                            activePlans,
+                            getVariantEffectivePrice,
+                            deriveProductPrice,
+                            status: "approved",
+                        })
+                    ),
                 });
                 const data = await res.json();
                 if (data.success) {
-                    const successMsg = "✓ Installment plan created successfully!";
+                    const successMsg = activePlans.length
+                        ? "✓ Installment plan created successfully!"
+                        : "✓ Product saved with variant cash prices. Add installment plans later from the list.";
                     setMessage(successMsg);
                     showToast(successMsg, 'success');
                     setTimeout(() => navigate('/'), 1500);
@@ -665,10 +661,13 @@ const InstallmentsAdd = () => {
         }
         if (step === 3 && !selectedProductId) return form.productImages.length > 0;
         if (step === 4) {
-            if (!form.paymentPlans.length) return false;
+            const productPrice = deriveProductPrice(form.variants, form.price);
+            if (!productPrice) return false;
+
             if (showVariantSection && !selectedProductId) {
                 if (form.variants.length === 0) return false;
-                if (form.variants.some((v) => !v.variantName || !Number(v.price))) return false;
+                if (form.variants.some((v) => !String(v.variantName || "").trim() || !Number(v.price))) return false;
+                if (saveVariantsOnly) return true;
             }
             if (showVariantSection && selectedProductId) {
                 const planVariantIdxs = form.paymentPlans
@@ -678,13 +677,22 @@ const InstallmentsAdd = () => {
                     if (!planVariantIdxs.every((ix) => Number(form.variants[Number(ix)]?.price) > 0)) return false;
                 } else if (form.variants.length > 0) {
                     if (!form.variants.some((v) => Number(v.price) > 0)) return false;
-                } else if (!Number(form.price)) {
-                    return false;
                 }
             }
             if (!showVariantSection && !selectedProductId && !Number(form.price)) return false;
             if (!showVariantSection && selectedProductId && !Number(form.price)) return false;
-            return true;
+
+            const activePlans = getActivePaymentPlans(form.paymentPlans);
+            if (activePlans.length === 0) {
+                return saveVariantsOnly && showVariantSection && !selectedProductId && form.variants.length > 0;
+            }
+            return activePlans.every((p) => {
+                const vIdx = p.variantIndex;
+                const isStandard =
+                    vIdx === null || vIdx === undefined || vIdx === "" || vIdx === -1 || vIdx === "-1";
+                if (isStandard) return productPrice > 0;
+                return Number(form.variants[Number(vIdx)]?.price) > 0;
+            });
         }
         if (step === 5 && selectedProductId) return Boolean(form.userId?.trim());
         return true;
@@ -1130,15 +1138,50 @@ const InstallmentsAdd = () => {
                                 {/* Installments Tab Content */}
                                 {step4Tab === 'installments' && (
                                     <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+                                        {showVariantSection && !selectedProductId && (
+                                            <label className="flex items-start gap-3 p-4 bg-white border-2 border-dashed border-blue-300 rounded-2xl cursor-pointer hover:bg-blue-50/50">
+                                                <input
+                                                    type="checkbox"
+                                                    className="mt-1 h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                                    checked={saveVariantsOnly}
+                                                    onChange={(e) => setSaveVariantsOnly(e.target.checked)}
+                                                />
+                                                <span>
+                                                    <span className="block text-sm font-black text-gray-800 uppercase tracking-tight">
+                                                        Save variant cash prices only (no installment plans yet)
+                                                    </span>
+                                                    <span className="block text-xs text-gray-600 mt-1 font-medium">
+                                                        Add variants with cash price and discount. Installment plans can be added later from the installments list.
+                                                    </span>
+                                                </span>
+                                            </label>
+                                        )}
                                         {showVariantSection && (
                                             <div className="space-y-4 p-6 bg-blue-50 border-2 border-blue-200 rounded-[2rem]">
                                                 {!selectedProductId && (
-                                                <div className="flex items-center justify-between">
+                                                <div className="flex items-center justify-between flex-wrap gap-3">
                                                     <div>
                                                         <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight">Create Product Variants</h3>
                                                         <p className="text-xs text-blue-700 font-medium mt-1">Cash price + discount % per variant.</p>
                                                     </div>
+                                                    <div className="flex flex-wrap gap-2">
                                                     <button type="button" onClick={() => setForm(f => ({ ...f, variants: [...f.variants, { variantName: "", price: "", discountPercent: 0, paymentPlans: [], status: "active" }] }))} className="px-5 py-2.5 bg-blue-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">+ Add Variant</button>
+                                                    {!hasStandardVariant(form.variants) && Number(form.price) > 0 && (
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => setForm(f => ({
+                                                                ...f,
+                                                                variants: [
+                                                                    { variantName: "Standard", price: f.price, discountPercent: 0, paymentPlans: [], status: "active" },
+                                                                    ...f.variants,
+                                                                ],
+                                                            }))}
+                                                            className="px-5 py-2.5 bg-white border-2 border-blue-300 text-blue-800 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-blue-100"
+                                                        >
+                                                            + Add Standard (base cash price)
+                                                        </button>
+                                                    )}
+                                                    </div>
                                                 </div>
                                                 )}
                                                 {form.variants.length === 0 ? (
@@ -1184,6 +1227,7 @@ const InstallmentsAdd = () => {
                                         {selectedProductId && existingPlans.length === 0 && (
                                             <p className="text-xs text-blue-800 bg-blue-50 border border-blue-200 rounded-xl p-4 font-medium">No plans from this partner on the product yet. Other companies&apos; plans are hidden.</p>
                                         )}
+                                {!saveVariantsOnly && (
                                 <div className="space-y-6">
                                     {/* Render Existing Plans (Read-Only) */}
                                     {existingPlans.map((p, idx) => (
@@ -1371,9 +1415,25 @@ const InstallmentsAdd = () => {
                                                 </div>
                                             ))}
                                             <div className="flex justify-end pt-2">
-                                                <button type="button" onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
+                                                <button type="button" onClick={() => setForm(f => ({
+                                                    ...f,
+                                                    paymentPlans: [
+                                                        ...f.paymentPlans,
+                                                        {
+                                                            ...defaultPlan,
+                                                            variantIndex:
+                                                                f.variants.length === 1 ? 0 : f.variants.length > 1 ? null : defaultPlan.variantIndex,
+                                                        },
+                                                    ],
+                                                }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
                                             </div>
                                         </div>
+                                )}
+                                {saveVariantsOnly && (
+                                    <p className="text-sm text-green-800 bg-green-50 border-2 border-green-200 rounded-2xl px-4 py-3 font-medium">
+                                        Ready to save: {form.variants.length} variant(s) with cash prices. Installment plans are optional and can be added later.
+                                    </p>
+                                )}
                                     </div>
                                 )}
 
@@ -1767,7 +1827,11 @@ const InstallmentsAdd = () => {
                                 <button onClick={() => setStep(s => s + 1)} disabled={!isStepValid()} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">Next Phase Matrix</button>
                                 :
                                 <button onClick={handleSubmit} disabled={loading || !isStepValid()} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
-                                    {loading ? 'Creating Plan...' : 'Create Plan'}
+                                    {loading
+                                        ? 'Creating Plan...'
+                                        : saveVariantsOnly
+                                          ? 'Save Product (variants only)'
+                                          : 'Create Plan'}
                                 </button>
                             }
                         </div>

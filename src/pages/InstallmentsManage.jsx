@@ -35,12 +35,16 @@ const InstallmentsManage = () => {
         }
     };
 
-    const handleDelete = async (id) => {
-        if (!window.confirm("ARE YOU SURE YOU WANT TO DESTRUCT THIS PROTOCOL? This action cannot be reversed.")) return;
+    const handleDelete = async (id, permanent = false) => {
+        const message = permanent
+            ? "Permanently delete this installment from the database? This cannot be undone."
+            : "Mark this installment as deleted? It will be hidden from the public site but can still be permanently removed later.";
+        if (!window.confirm(message)) return;
 
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const res = await fetch(`${ApiBaseUrl}/deleteInstallment/${id}?permanent=true`, {
+            const query = permanent ? "?permanent=true" : "";
+            const res = await fetch(`${ApiBaseUrl}/deleteInstallment/${id}${query}`, {
                 method: 'DELETE',
                 headers: {
                     ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
@@ -48,8 +52,16 @@ const InstallmentsManage = () => {
             });
             const data = await res.json();
             if (data.success) {
-                setInstallments(installments.filter(i => i._id !== id));
-                alert("Protocol Terminated Successfully.");
+                if (permanent) {
+                    setInstallments(installments.filter(i => i._id !== id));
+                } else {
+                    setInstallments(
+                        installments.map((i) =>
+                            i._id === id ? { ...i, status: "deleted" } : i
+                        )
+                    );
+                }
+                alert(permanent ? "Installment permanently deleted." : "Installment marked as deleted.");
             } else {
                 alert(data.message || "Termination failed.");
             }
@@ -132,7 +144,13 @@ const InstallmentsManage = () => {
                                         </div>
                                     </td>
                                     <td className="px-8 py-6">
-                                        <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${item.status === 'approved' ? 'bg-emerald-50 text-emerald-500 border border-emerald-100' : 'bg-orange-50 text-orange-500 border border-orange-100'}`}>
+                                        <span className={`px-3 py-1 rounded-lg text-[8px] font-black uppercase tracking-widest ${
+                                            item.status === 'approved'
+                                                ? 'bg-emerald-50 text-emerald-500 border border-emerald-100'
+                                                : item.status === 'deleted'
+                                                  ? 'bg-gray-100 text-gray-500 border border-gray-200'
+                                                  : 'bg-orange-50 text-orange-500 border border-orange-100'
+                                        }`}>
                                             {item.status}
                                         </span>
                                     </td>
@@ -147,7 +165,16 @@ const InstallmentsManage = () => {
                                                 </svg>
                                             </button>
                                             <button
-                                                onClick={() => handleDelete(item._id)}
+                                                title="Soft delete (hide from site)"
+                                                onClick={() => handleDelete(item._id, false)}
+                                                disabled={item.status === "deleted"}
+                                                className="px-3 py-2 bg-gray-50 text-gray-500 hover:text-orange-600 hover:bg-orange-50 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border border-transparent hover:border-orange-100 disabled:opacity-40"
+                                            >
+                                                Archive
+                                            </button>
+                                            <button
+                                                title="Permanent delete"
+                                                onClick={() => handleDelete(item._id, true)}
                                                 className="p-3 bg-gray-50 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition-all border border-transparent hover:border-red-100"
                                             >
                                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">

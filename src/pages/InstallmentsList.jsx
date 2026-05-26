@@ -37,6 +37,7 @@ const InstallmentsList = () => {
     };
 
     const filteredData = installments.filter(item => {
+        if (String(item.status || "").toLowerCase() === "deleted") return false;
         const matchesSearch = item.productName.toLowerCase().includes(search.toLowerCase()) ||
             item.companyName.toLowerCase().includes(search.toLowerCase());
         const matchesCategory = categoryFilter === "All" || item.category === categoryFilter;
