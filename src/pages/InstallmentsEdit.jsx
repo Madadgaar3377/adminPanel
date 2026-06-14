@@ -5,11 +5,16 @@ import RichTextEditor from '../compontents/RichTextEditor';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 import {
     isAttachedMultiVendor,
-    filterPlansForEditor,
-    mapVariantsForEditor,
-    processPlansForForm,
-    buildInstallmentUpdateBody,
-} from '../utils/installmentPlanEditor';
+    mapInstallmentPlanToForm,
+    submitInstallmentPlanUpdate,
+    STEP4_SAVE_MODES,
+    getActivePaymentPlans,
+    getVariantEffectivePrice,
+    getBaseEffectivePrice,
+    deriveProductPrice,
+    recalculatePaymentPlan,
+} from '../utils/installmentAdminPlans';
+import AdminInstallmentStep4 from '../components/installment/AdminInstallmentStep4';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -55,24 +60,6 @@ const Toast = ({ message, type, onClose }) => {
     );
 };
 
-const defaultPlan = {
-    planName: "",
-    installmentPrice: 0,
-    downPayment: 0,
-    monthlyInstallment: 0,
-    tenureMonths: 12,
-    interestRatePercent: 0,
-    interestType: "Flat Rate",
-    markup: 0,
-    otherChargesNote: "",
-    finance: {
-        bankName: "",
-        financeInfo: "",
-    },
-    hasFinance: false,
-    cashPrice: 0,
-};
-
 const CATEGORY_OPTIONS = [
     { value: "", label: "Select category" },
     { value: "phones", label: "Phones / Mobile" },
@@ -94,7 +81,8 @@ const InstallmentsEdit = () => {
     const [error, setError] = useState(null);
     const [toast, setToast] = useState(null);
     const [localImages, setLocalImages] = useState([]);
-    const [step4Tab, setStep4Tab] = useState('installments'); // 'finance' or 'installments'
+    const [step4Tab, setStep4Tab] = useState('installments');
+    const [step4SaveMode, setStep4SaveMode] = useState(STEP4_SAVE_MODES.CASH_INSTALLMENTS);
     const [userData, setUserData] = useState(null);
     const [loadingUser, setLoadingUser] = useState(false);
     const [productOwnerUserId, setProductOwnerUserId] = useState("");
@@ -109,6 +97,8 @@ const InstallmentsEdit = () => {
         productName: "",
         city: "",
         price: "",
+        discountedPrice: "",
+        discountPercent: 0,
         downpayment: "",
         installment: "",
         tenure: "",
@@ -122,7 +112,7 @@ const InstallmentsEdit = () => {
         customCategory: "",
         status: "pending",
         productImages: [],
-        paymentPlans: [{ ...defaultPlan }],
+        paymentPlans: [],
         variants: [], // New: Product Variants
 
         // New dynamic product specifications
@@ -283,52 +273,35 @@ const InstallmentsEdit = () => {
                 }
             });
             const data = await res.json();
-            if (data.success) {
+            if (data.success && data.data) {
                 const plan = data.data;
-                if (plan) {
-                    const ownerId = plan.userId || "";
-                    setProductOwnerUserId(ownerId);
-                    setIsAttachedProduct(false);
-
-                    const processedPaymentPlans =
-                        plan.paymentPlans && plan.paymentPlans.length > 0
-                            ? processPlansForForm(plan.paymentPlans)
-                            : [{ ...defaultPlan }];
-                    const variantsRaw = plan.variants || [];
-
-                    setForm(prev => ({
-                        ...prev,
-                        ...plan,
-                        userId: plan.userId || "",
-                        // Ensure specs objects exist to avoid crashes
-                        generalFeatures: plan.generalFeatures || prev.generalFeatures,
-                        performance: plan.performance || prev.performance,
-                        display: plan.display || prev.display,
-                        battery: plan.battery || prev.battery,
-                        camera: plan.camera || prev.camera,
-                        memory: plan.memory || prev.memory,
-                        connectivity: plan.connectivity || prev.connectivity,
-                        airConditioner: plan.airConditioner || prev.airConditioner,
-                        paymentPlans: processedPaymentPlans,
-                        variants: variantsRaw || [],
-                        electricalBike: plan.electricalBike || prev.electricalBike,
-                        mechanicalBike: plan.mechanicalBike || prev.mechanicalBike,
-                        // Finance information
-                        finance: plan.finance || prev.finance,
-                        // Product specifications
-                        productSpecifications: plan.productSpecifications || prev.productSpecifications,
-                    }));
-                } else {
-                    const errorMsg = "Plan not found.";
-                    setError(errorMsg);
-                    showToast(errorMsg, 'error');
-                }
+                const editorUserId = plan.userId || '';
+                const mapped = mapInstallmentPlanToForm(plan, editorUserId);
+                const { _meta, ...formData } = mapped;
+                setProductOwnerUserId(_meta.ownerId || plan.userId || '');
+                setIsAttachedProduct(_meta.attached);
+                setForm((prev) => ({
+                    ...prev,
+                    ...formData,
+                    postedBy: plan.postedBy || 'Admin',
+                    generalFeatures: plan.generalFeatures || prev.generalFeatures,
+                    performance: plan.performance || prev.performance,
+                    display: plan.display || prev.display,
+                    battery: plan.battery || prev.battery,
+                    camera: plan.camera || prev.camera,
+                    memory: plan.memory || prev.memory,
+                    connectivity: plan.connectivity || prev.connectivity,
+                    airConditioner: plan.airConditioner || prev.airConditioner,
+                    electricalBike: plan.electricalBike || prev.electricalBike,
+                    mechanicalBike: plan.mechanicalBike || prev.mechanicalBike,
+                }));
             } else {
-                setError(data.message);
-                showToast(data.message, 'error');
+                const errorMsg = data.message || 'Plan not found.';
+                setError(errorMsg);
+                showToast(errorMsg, 'error');
             }
         } catch (err) {
-            const errorMsg = err.message || "Failed to fetch plan data.";
+            const errorMsg = err.message || 'Failed to fetch plan data.';
             setError(errorMsg);
             showToast(errorMsg, 'error');
         } finally {
@@ -336,84 +309,28 @@ const InstallmentsEdit = () => {
         }
     };
 
-    const amortizedMonthlyPayment = (principal, annualInterestPercent, months) => {
-        if (!months || months <= 0) return 0;
-        const r = Number(annualInterestPercent) / 100 / 12;
-        if (!r) return principal / months;
-        const monthly = (principal * r) / (1 - Math.pow(1 + r, -months));
-        return monthly;
-    };
-
-    const flatRateMonthlyPayment = (principal, annualInterestPercent, months) => {
-        if (!months || months <= 0) return 0;
-        const years = months / 12;
-        const totalInterest = (principal * (Number(annualInterestPercent) / 100) * years);
-        const totalPayable = principal + totalInterest;
-        return totalPayable / months;
-    };
-
     const recalcPlan = (index) => {
         setForm(f => {
             if (!f.paymentPlans || !f.paymentPlans[index]) return f;
             const pp = [...f.paymentPlans];
-            const p = { ...pp[index] };
-
-            let cashPrice = Number(p.cashPrice) || Number(f.price) || 0;
-            // If plan is assigned to a specific variant, use variant's cash price
-            if (p.variantIndex !== undefined && p.variantIndex !== null && p.variantIndex !== -1 && f.variants?.[p.variantIndex]) {
-                cashPrice = Number(p.cashPrice) || Number(f.variants[p.variantIndex].price) || 0;
-            }
-
-            const downPayment = Number(p.downPayment) || 0;
-            const financedAmount = Math.max(0, cashPrice - downPayment);
-            const months = parseInt(p.tenureMonths) || 0;
-            const isIslamic = p.interestType === "Profit-Based (Islamic/Shariah)";
-            const isReducing = p.interestType === "Reducing Balance";
-
-            let monthly = 0;
-            let totalPayable = 0;
-            let totalMarkup = 0;
-            let rate = Number(p.interestRatePercent) || 0;
-
-            if (isIslamic) {
-                // Profit-Based (Islamic): Markup is input, Rate is derived
-                totalMarkup = Number(p.markup) || 0;
-                rate = cashPrice > 0 ? (totalMarkup / cashPrice) * 100 : 0;
-                totalPayable = financedAmount + totalMarkup;
-                monthly = months > 0 ? totalPayable / months : 0;
-            } else if (isReducing) {
-                // Reducing Balance: Rate is input, Monthly is amortized
-                monthly = amortizedMonthlyPayment(financedAmount, rate, months);
-                totalPayable = monthly * months;
-                totalMarkup = Math.max(0, totalPayable - financedAmount);
-            } else {
-                // Flat Rate: Rate is input, Markup is (Financed * Rate * years)
-                totalMarkup = financedAmount * (rate / 100) * (months / 12);
-                totalPayable = financedAmount + totalMarkup;
-                monthly = months > 0 ? totalPayable / months : 0;
-            }
-
-            const totalCostToCustomer = cashPrice + totalMarkup;
-
-            pp[index] = {
-                ...p,
-                interestRatePercent: Number(rate.toFixed(2)),
-                markup: Number(totalMarkup.toFixed(2)),
-                monthlyInstallment: Number(monthly.toFixed(2)),
-                installmentPrice: Number(totalPayable.toFixed(2)),
-                totalInterest: Number(totalMarkup.toFixed(2)),
-                totalCostToCustomer: Number(totalCostToCustomer.toFixed(2)),
-            };
-
+            pp[index] = recalculatePaymentPlan(pp[index], f);
             return { ...f, paymentPlans: pp };
         });
     };
 
     useEffect(() => {
+        if (!fetching && form.paymentPlans?.length) {
+            form.paymentPlans.forEach((_, idx) => recalcPlan(idx));
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetching]);
+
+    useEffect(() => {
         if (form.paymentPlans.length) {
             form.paymentPlans.forEach((_, idx) => recalcPlan(idx));
         }
-    }, [form.price]);
+        // eslint-disable-next-line
+    }, [form.price, form.variants, form.discountedPrice, form.discountPercent]);
 
     const handleFilesChange = (e) => {
         const files = Array.from(e.target.files || []);
@@ -481,64 +398,62 @@ const InstallmentsEdit = () => {
         setError(null);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
-            const scopedEditorId = (form.userId || form.user || productOwnerUserId || "").trim();
-            const attached = isAttachedMultiVendor(scopedEditorId, productOwnerUserId);
+            const token = authData?.token || '';
+            const editorUserId = (form.userId || productOwnerUserId || '').trim();
+            const attached =
+                isAttachedProduct ||
+                isAttachedMultiVendor(editorUserId, productOwnerUserId);
 
-            const formForSave = attached
-                ? {
-                    ...form,
-                    paymentPlans: filterPlansForEditor(
-                        form.paymentPlans,
-                        scopedEditorId,
-                        productOwnerUserId
-                    ),
-                    variants: mapVariantsForEditor(
-                        form.variants,
-                        scopedEditorId,
-                        productOwnerUserId
-                    ),
-                }
-                : form;
-
-            const body = attached
-                ? buildInstallmentUpdateBody({
-                    form: formForSave,
-                    editorUserId: scopedEditorId,
-                    isAttachedProduct: true,
-                })
-                : buildInstallmentUpdateBody({
-                    form: formForSave,
-                    editorUserId: scopedEditorId,
-                    isAttachedProduct: false,
-                    includeFullForm: true,
-                });
-
-            const res = await fetch(`${ApiBaseUrl}/updateInstallment/${id}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
-                },
-                body: JSON.stringify(body),
+            await submitInstallmentPlanUpdate({
+                installmentId: id,
+                form,
+                editorUserId,
+                isAttachedProduct: attached,
+                baseApi: ApiBaseUrl,
+                token,
+                step4SaveMode,
             });
-            const data = await res.json();
-            if (data.success) {
-                const successMsg = "✓ Installment plan updated successfully!";
-                setMessage(successMsg);
-                showToast(successMsg, 'success');
-                setTimeout(() => navigate('/installments/update'), 1500);
-            } else {
-                const errorMsg = data.message || "Update failed. Please try again.";
-                setError(errorMsg);
-                showToast(errorMsg, 'error');
-            }
+
+            showToast('Installment plan updated successfully!', 'success');
+            setTimeout(() => navigate('/installments/update'), 1500);
         } catch (err) {
-            const errorMsg = err.message || "Server error. Please check your connection and try again.";
+            const errorMsg = err.message || 'Update failed. Please try again.';
             setError(errorMsg);
             showToast(errorMsg, 'error');
         } finally {
             setLoading(false);
         }
+    };
+
+    const showVariantSection = Boolean(form.category);
+    const isCashOnlyMode = step4SaveMode === STEP4_SAVE_MODES.CASH;
+    const isInstallmentsOnlyMode = step4SaveMode === STEP4_SAVE_MODES.INSTALLMENTS_ONLY;
+
+    const variantHasCalcPrice = (v) => {
+        const cash = Number(v?.price) || 0;
+        return cash > 0 && getVariantEffectivePrice(v) > 0;
+    };
+
+    const isStepValid = () => {
+        if (step === 4) {
+            const calcPrice = deriveProductPrice(form.variants, form.price, form);
+            if (isCashOnlyMode) {
+                if (!calcPrice) return false;
+                if (showVariantSection && form.variants.length > 0) {
+                    return !form.variants.some((v) => !Number(v.price));
+                }
+                return Number(form.price) > 0;
+            }
+            if (isInstallmentsOnlyMode) {
+                const activePlans = getActivePaymentPlans(form.paymentPlans);
+                if (!activePlans.length) return false;
+                return activePlans.every((p) => p.planName && Number(p.installmentPrice) > 0);
+            }
+            const activePlans = getActivePaymentPlans(form.paymentPlans);
+            if (!activePlans.length) return calcPrice > 0 || (showVariantSection && form.variants.length > 0);
+            return activePlans.every((p) => p.planName && Number(p.installmentPrice) > 0);
+        }
+        return true;
     };
 
     if (fetching) return (
@@ -863,451 +778,19 @@ const InstallmentsEdit = () => {
                         )}
 
                         {step === 4 && (
-                            <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial</h2>
-                                    <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
-                                        <div className="flex flex-col">
-                                            <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Global Cash Price</span>
-                                            <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Tab Buttons */}
-                                <div className="flex gap-4 bg-white rounded-2xl p-2 shadow-sm border border-gray-200">
-                                    <button
-                                        onClick={() => setStep4Tab('finance')}
-                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
-                                            step4Tab === 'finance'
-                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        💰 Finance
-                                    </button>
-                                    <button
-                                        onClick={() => setStep4Tab('installments')}
-                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
-                                            step4Tab === 'installments'
-                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        📊 Installments
-                                    </button>
-                                    <button
-                                        onClick={() => setStep4Tab('both')}
-                                        className={`flex-1 px-6 py-4 rounded-xl font-black uppercase text-[10px] tracking-widest transition-all duration-300 ${
-                                            step4Tab === 'both'
-                                                ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-lg shadow-red-200 scale-105'
-                                                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                                        }`}
-                                    >
-                                        🔄 Both
-                                    </button>
-                                </div>
-
-                                {/* Finance Tab Content */}
-                                {step4Tab === 'finance' && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-8 border-2 border-blue-200">
-                                            <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight mb-6 flex items-center gap-2">
-                                                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                Finance Information
-                                            </h3>
-                                            
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                        Bank Name
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.finance?.bankName || ''}
-                                                        onChange={(e) => updateForm('finance.bankName', e.target.value)}
-                                                        placeholder="Enter bank name (e.g., HBL, UBL, Meezan Bank...)"
-                                                        className="w-full px-5 py-3.5 border-2 border-blue-200 rounded-2xl text-sm font-bold transition-all outline-none focus:border-blue-500 focus:bg-white bg-white"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                        Finance Information
-                                                    </label>
-                                                    <RichTextEditor
-                                                        value={form.finance?.financeInfo || ''}
-                                                        onChange={(value) => updateForm('finance.financeInfo', value)}
-                                                        placeholder="Enter detailed finance information, terms, conditions, eligibility criteria, etc..."
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Installments Tab Content */}
-                                {step4Tab === 'installments' && (
-                                    <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        <div className="flex justify-end">
-                                            <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
-                                </div>
-                                <div className="space-y-6">
-                                    {form.paymentPlans.map((p, idx) => (
-                                        <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
-                                            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-2">
-                                                {/* Variant Selection for this Plan */}
-                                                {form.variants.length > 0 && (
-                                                    <div className="space-y-2">
-                                                        <label className="text-[10px] font-black text-blue-600 uppercase tracking-widest border-b border-blue-200 pb-1">Applies To Variant</label>
-                                                        <select 
-                                                            value={p.variantIndex ?? -1} 
-                                                            onChange={e => {
-                                                                const pp = [...form.paymentPlans];
-                                                                pp[idx].variantIndex = e.target.value === "-1" ? null : parseInt(e.target.value);
-                                                                setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                setTimeout(() => recalcPlan(idx), 0);
-                                                            }}
-                                                            className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none border-blue-100 focus:border-blue-500 shadow-sm transition-all"
-                                                        >
-                                                            <option value="-1">All Variants / Standard</option>
-                                                            {form.variants.map((v, vIdx) => (
-                                                                <option key={vIdx} value={vIdx}>{v.variantName} (PKR {v.price})</option>
-                                                            ))}
-                                                        </select>
-                                                    </div>
-                                                )}
-
-                                                <InputField label="Plan Name" value={p.planName} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].planName = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                }} placeholder="e.g. Premium 12M" />
-
-                                                <InputField label="Partner Cash Price (PKR)" type="number" value={p.cashPrice} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].cashPrice = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} placeholder="Override base price..." />
-
-                                                <div className="space-y-2">
-                                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
-                                                    <select value={p.interestType} onChange={e => {
-                                                        const pp = [...form.paymentPlans];
-                                                        pp[idx].interestType = e.target.value;
-                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                        setTimeout(() => recalcPlan(idx), 0);
-                                                    }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
-                                                        <option>Flat Rate</option>
-                                                        <option>Reducing Balance</option>
-                                                        <option>Profit-Based (Islamic/Shariah)</option>
-                                                    </select>
-                                                </div>
-
-                                                <InputField label="Tenure (Months)" type="number" value={p.tenureMonths} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].tenureMonths = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
-
-                                                        <InputField label="Down Payment (PKR)" type="number" value={p.downPayment} onChange={v => {
-                                                    const pp = [...form.paymentPlans];
-                                                    pp[idx].downPayment = v;
-                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                }} />
-                                            </div>
-
-                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
-                                                    <>
-                                                        <InputField label="Total Markup (Islamic)" type="number" value={p.markup} onChange={v => {
-                                                            const pp = [...form.paymentPlans];
-                                                            pp[idx].markup = v;
-                                                            setForm(f => ({ ...f, paymentPlans: pp }));
-                                                            setTimeout(() => recalcPlan(idx), 0);
-                                                        }} />
-                                                                <InputField label="Interest Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
-                                                    </>
-                                                ) : (
-                                                    <>
-                                                        <InputField label="Markup Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
-                                                            const pp = [...form.paymentPlans];
-                                                            pp[idx].interestRatePercent = v;
-                                                            setForm(f => ({ ...f, paymentPlans: pp }));
-                                                            setTimeout(() => recalcPlan(idx), 0);
-                                                        }} />
-                                                                <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
-                                                            </>
-                                                        )}
-                                                        </div>
-
-                                                        {/* Finance Section for this Payment Plan */}
-                                                        <div className="mt-6 pt-6 border-t border-gray-200">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Finance / Bank Information</label>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const pp = [...form.paymentPlans];
-                                                                        if (!pp[idx].hasFinance) {
-                                                                            pp[idx].hasFinance = true;
-                                                                            if (!pp[idx].finance) {
-                                                                                pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                            }
-                                                                        } else {
-                                                                            pp[idx].hasFinance = false;
-                                                                        }
-                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                    }}
-                                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                        p.hasFinance 
-                                                                            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' 
-                                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                                                    }`}
-                                                                >
-                                                                    {p.hasFinance ? '✓ Finance Enabled' : '+ Add Finance'}
-                                                                </button>
-                                                            </div>
-                                                            
-                                                            {p.hasFinance && (
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                                                                    <InputField 
-                                                                        label="Bank Name" 
-                                                                        value={p.finance?.bankName || ""} 
-                                                                        onChange={v => {
-                                                                            const pp = [...form.paymentPlans];
-                                                                            if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                            pp[idx].finance.bankName = v;
-                                                                            setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                        }} 
-                                                                        placeholder="e.g. HBL, UBL, Meezan Bank" 
-                                                                    />
-                                                                    <div className="space-y-2">
-                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Finance Information</label>
-                                                                        <div className="border-2 border-transparent rounded-2xl bg-white focus-within:border-red-600 transition-all shadow-sm">
-                                                                            <RichTextEditor
-                                                                                value={p.finance?.financeInfo || ""}
-                                                                                onChange={(html) => {
-                                                                                    const pp = [...form.paymentPlans];
-                                                                                    if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                                    pp[idx].finance.financeInfo = html;
-                                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                                }}
-                                                                                placeholder="Additional finance details, terms, conditions, etc."
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                    <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
-                                                        <SummaryItem label="Monthly Payment" value={p.monthlyInstallment} highlight />
-                                                        <SummaryItem label="Total Markup Amount" value={p.markup} />
-                                                        <SummaryItem label="Total Payable" value={p.installmentPrice} />
-                                                        <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
-                                                        <SummaryItem label="Loan Amount" value={Math.max(0, (p.cashPrice || (p.variantIndex !== null && p.variantIndex !== undefined && form.variants[p.variantIndex] ? parseFloat(form.variants[p.variantIndex].price) : parseFloat(form.price) || 0)) - (p.downPayment || 0))} border={false} />
-                                                    </div>
-                                                    {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                )}
-
-                                {/* Both Tab Content - Shows Finance and Installments Together */}
-                                {step4Tab === 'both' && (
-                                    <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                                        {/* Finance Section */}
-                                        <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-[2rem] p-8 border-2 border-blue-200">
-                                            <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight mb-6 flex items-center gap-2">
-                                                <svg className="w-6 h-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                Finance Information
-                                            </h3>
-                                            
-                                            <div className="space-y-6">
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                        Bank Name
-                                                    </label>
-                                                    <input
-                                                        type="text"
-                                                        value={form.finance?.bankName || ''}
-                                                        onChange={(e) => updateForm('finance.bankName', e.target.value)}
-                                                        placeholder="Enter bank name (e.g., HBL, UBL, Meezan Bank...)"
-                                                        className="w-full px-5 py-3.5 border-2 border-blue-200 rounded-2xl text-sm font-bold transition-all outline-none focus:border-blue-500 focus:bg-white bg-white"
-                                                    />
-                                                </div>
-
-                                                <div>
-                                                    <label className="block text-sm font-bold text-gray-700 mb-2">
-                                                        Finance Information
-                                                    </label>
-                                                    <RichTextEditor
-                                                        value={form.finance?.financeInfo || ''}
-                                                        onChange={(value) => updateForm('finance.financeInfo', value)}
-                                                        placeholder="Enter detailed finance information, terms, conditions, eligibility criteria, etc..."
-                                                    />
-                                                </div>
-                                            </div>
-                                        </div>
-
-                                        {/* Installments Section */}
-                                        <div className="space-y-6">
-                                            <div className="flex justify-between items-center">
-                                                <h3 className="text-lg font-black text-gray-800 uppercase tracking-tight flex items-center gap-2">
-                                                    <svg className="w-6 h-6 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-                                                    </svg>
-                                                    Payment Plans
-                                                </h3>
-                                                <button onClick={() => setForm(f => ({ ...f, paymentPlans: [...f.paymentPlans, { ...defaultPlan }] }))} className="px-5 py-2.5 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-900/20 hover:scale-105 active:scale-95 transition-all">+ Add Payment Plan</button>
-                                            </div>
-                                            <div className="space-y-6">
-                                                {form.paymentPlans.map((p, idx) => (
-                                                    <div key={idx} className="bg-gray-50/50 p-8 rounded-[2.5rem] border border-gray-100 relative group animate-in slide-in-from-right-4 duration-300">
-                                                        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                                                            <InputField label="Plan Name" value={p.planName} onChange={v => {
-                                                                const pp = [...form.paymentPlans];
-                                                                pp[idx].planName = v;
-                                                                setForm(f => ({ ...f, paymentPlans: pp }));
-                                                            }} placeholder="e.g. Premium 12M" />
-
-                                                            <div className="space-y-2">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest border-b border-gray-200 pb-1">Interest Type</label>
-                                                                <select value={p.interestType} onChange={e => {
-                                                                    const pp = [...form.paymentPlans];
-                                                                    pp[idx].interestType = e.target.value;
-                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                    setTimeout(() => recalcPlan(idx), 0);
-                                                                }} className="w-full px-4 py-2.5 bg-white border border-gray-100 rounded-xl text-xs font-black uppercase tracking-widest outline-none">
-                                                                    <option>Flat Rate</option>
-                                                                    <option>Reducing Balance</option>
-                                                                    <option>Profit-Based (Islamic/Shariah)</option>
-                                                                </select>
-                                                            </div>
-
-                                                            <InputField label="Tenure (Months)" type="number" value={p.tenureMonths} onChange={v => {
-                                                                const pp = [...form.paymentPlans];
-                                                                pp[idx].tenureMonths = v;
-                                                                setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                setTimeout(() => recalcPlan(idx), 0);
-                                                            }} />
-
-                                                            <InputField label="Down Payment (PKR)" type="number" value={p.downPayment} onChange={v => {
-                                                                const pp = [...form.paymentPlans];
-                                                                pp[idx].downPayment = v;
-                                                                setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                setTimeout(() => recalcPlan(idx), 0);
-                                                            }} />
-                                                        </div>
-
-                                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                                                            {p.interestType === "Profit-Based (Islamic/Shariah)" ? (
-                                                                <>
-                                                                    <InputField label="Total Markup (Islamic)" type="number" value={p.markup} onChange={v => {
-                                                                        const pp = [...form.paymentPlans];
-                                                                        pp[idx].markup = v;
-                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                        setTimeout(() => recalcPlan(idx), 0);
-                                                                    }} />
-                                                                    <InputField label="Interest Rate (Annual) % (Auto)" type="number" value={p.interestRatePercent} onChange={() => { }} readOnly={true} />
-                                                    </>
-                                                            ) : (
-                                                                <>
-                                                                    <InputField label="Markup Rate (Annual) %" type="number" value={p.interestRatePercent} onChange={v => {
-                                                                        const pp = [...form.paymentPlans];
-                                                                        pp[idx].interestRatePercent = v;
-                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                        setTimeout(() => recalcPlan(idx), 0);
-                                                                    }} />
-                                                                    <InputField label="Total Interest (Auto)" type="number" value={p.markup} onChange={() => { }} readOnly={true} />
-                                                                </>
-                                                            )}
-                                                        </div>
-
-                                                        {/* Finance Section for this Payment Plan */}
-                                                        <div className="mt-6 pt-6 border-t border-gray-200">
-                                                            <div className="flex items-center justify-between mb-4">
-                                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Finance / Bank Information</label>
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => {
-                                                                        const pp = [...form.paymentPlans];
-                                                                        if (!pp[idx].hasFinance) {
-                                                                            pp[idx].hasFinance = true;
-                                                                            if (!pp[idx].finance) {
-                                                                                pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                            }
-                                                                        } else {
-                                                                            pp[idx].hasFinance = false;
-                                                                        }
-                                                                        setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                    }}
-                                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                                                                        p.hasFinance 
-                                                                            ? 'bg-red-600 text-white shadow-lg shadow-red-900/20' 
-                                                                            : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
-                                                                    }`}
-                                                                >
-                                                                    {p.hasFinance ? '✓ Finance Enabled' : '+ Add Finance'}
-                                                                </button>
-                                                            </div>
-                                                            
-                                                            {p.hasFinance && (
-                                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4 bg-blue-50/50 p-6 rounded-2xl border border-blue-100">
-                                                                    <InputField 
-                                                                        label="Bank Name" 
-                                                                        value={p.finance?.bankName || ""} 
-                                                                        onChange={v => {
-                                                                            const pp = [...form.paymentPlans];
-                                                                            if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                            pp[idx].finance.bankName = v;
-                                                                            setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                        }} 
-                                                                        placeholder="e.g. HBL, UBL, Meezan Bank" 
-                                                                    />
-                                                                    <div className="space-y-2">
-                                                                        <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Finance Information</label>
-                                                                        <div className="border-2 border-transparent rounded-2xl bg-white focus-within:border-red-600 transition-all shadow-sm">
-                                                                            <RichTextEditor
-                                                                                value={p.finance?.financeInfo || ""}
-                                                                                onChange={(html) => {
-                                                                                    const pp = [...form.paymentPlans];
-                                                                                    if (!pp[idx].finance) pp[idx].finance = { bankName: "", financeInfo: "" };
-                                                                                    pp[idx].finance.financeInfo = html;
-                                                                                    setForm(f => ({ ...f, paymentPlans: pp }));
-                                                                                }}
-                                                                                placeholder="Additional finance details, terms, conditions, etc."
-                                                                            />
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </div>
-
-                                                        <div className="mt-8 grid grid-cols-2 md:grid-cols-5 gap-4 bg-white/50 p-6 rounded-3xl border border-white">
-                                                            <SummaryItem label="Monthly Payment" value={p.monthlyInstallment} highlight />
-                                                            <SummaryItem label="Total Markup Amount" value={p.markup} />
-                                                            <SummaryItem label="Total Payable" value={p.installmentPrice} />
-                                                            <SummaryItem label="Total Cost" value={p.totalCostToCustomer} highlight />
-                                                            <SummaryItem label="Loan Amount" value={Math.max(0, (parseFloat(form.price) || 0) - (p.downPayment || 0))} border={false} />
-                                                        </div>
-                                                        {form.paymentPlans.length > 1 && <button onClick={() => setForm(f => ({ ...f, paymentPlans: f.paymentPlans.filter((_, i) => i !== idx) }))} className="absolute top-4 right-4 text-gray-300 hover:text-red-600 transition-colors">✕</button>}
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
+                            <AdminInstallmentStep4
+                                form={form}
+                                setForm={setForm}
+                                updateForm={updateForm}
+                                step4Tab={step4Tab}
+                                setStep4Tab={setStep4Tab}
+                                step4SaveMode={step4SaveMode}
+                                setStep4SaveMode={setStep4SaveMode}
+                                selectedProductId=""
+                                existingPlans={[]}
+                                productId={id}
+                                showVariantSection={showVariantSection}
+                            />
                         )}
 
                         {step === 5 && (
@@ -1472,9 +955,9 @@ const InstallmentsEdit = () => {
                         <button onClick={() => setStep(s => Math.max(1, s - 1))} className={`px-10 py-4 font-black uppercase text-[10px] tracking-widest transition-all ${step === 1 ? 'opacity-0 pointer-events-none' : 'text-gray-400 hover:text-gray-900'}`}>Previous</button>
                         <div className="flex gap-4">
                             {step < 5 ?
-                                <button onClick={() => setStep(s => s + 1)} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all">Next Phase Matrix</button>
+                                <button onClick={() => setStep(s => s + 1)} disabled={!isStepValid()} className="px-12 py-4 bg-gray-900 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-600 shadow-xl shadow-gray-200 transition-all disabled:opacity-40 disabled:cursor-not-allowed">Next Phase Matrix</button>
                                 :
-                                <button onClick={handleSubmit} disabled={loading} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95">
+                                <button onClick={handleSubmit} disabled={loading || !isStepValid()} className="px-12 py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-[10px] tracking-[0.3em] hover:bg-red-700 shadow-xl shadow-red-100 transition-all active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed">
                                     {loading ? 'Saving Changes...' : 'Update Plan'}
                                 </button>
                             }
