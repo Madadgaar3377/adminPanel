@@ -5,6 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 import RichTextEditor from '../compontents/RichTextEditor';
 import SearchableProductSelect from '../compontents/SearchableProductSelect';
+import {
+    hasProductFinance,
+    isFinanceOnlyStep,
+    isSubmittablePaymentPlan,
+} from '../utils/installmentFinanceUtils';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -553,12 +558,73 @@ const InstallmentsAdd = () => {
         setError(null);
         try {
             const authData = JSON.parse(localStorage.getItem('adminAuth'));
+            const authHeaders = {
+                "Content-Type": "application/json",
+                ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
+            };
+
+            if (isFinanceOnlyStep(step4Tab)) {
+                if (!hasProductFinance(form.finance)) {
+                    const errorMsg = "Add bank name or finance information before saving.";
+                    setError(errorMsg);
+                    showToast(errorMsg, 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                if (selectedProductId) {
+                    const res = await fetch(`${ApiBaseUrl}/updateInstallment/${selectedProductId}`, {
+                        method: "PUT",
+                        headers: authHeaders,
+                        body: JSON.stringify({
+                            userId: form.userId,
+                            mergePartnerPlans: true,
+                            finance: form.finance || {},
+                        }),
+                    });
+                    const data = await res.json();
+                    if (!data.success) throw new Error(data.message || "Failed to save finance information.");
+                    const successMsg = "✓ Finance information saved on this product!";
+                    setMessage(successMsg);
+                    showToast(successMsg, 'success');
+                    setTimeout(() => navigate('/'), 1500);
+                    return;
+                }
+
+                const res = await fetch(`${ApiBaseUrl}/createInstallmentPlan`, {
+                    method: "POST",
+                    headers: authHeaders,
+                    body: JSON.stringify({
+                        ...form,
+                        category: form.category === "other" ? form.customCategory : form.category,
+                        price: 0,
+                        downpayment: 0,
+                        variants: [],
+                        paymentPlans: [],
+                        finance: form.finance || {},
+                        status: 'approved',
+                    }),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const successMsg = "✓ Finance listing created successfully!";
+                    setMessage(successMsg);
+                    showToast(successMsg, 'success');
+                    setTimeout(() => navigate('/'), 1500);
+                } else {
+                    const errorMsg = data.message || "Failed to create finance listing.";
+                    setError(errorMsg);
+                    showToast(errorMsg, 'error');
+                }
+                return;
+            }
             
             if (selectedProductId) {
                 const partnerBasePrice = deriveProductPrice(form.variants, form.price);
                 const partnerVariantPricing = buildPartnerVariantPricing(form.variants);
+                const plansToSubmit = form.paymentPlans.filter(isSubmittablePaymentPlan);
                 let successCount = 0;
-                for (const plan of form.paymentPlans) {
+                for (const plan of plansToSubmit) {
                     const variantIdx = resolvePlanVariantIndex(plan, form.variants);
                     const planPayload = {
                         ...plan,
@@ -665,7 +731,13 @@ const InstallmentsAdd = () => {
         }
         if (step === 3 && !selectedProductId) return form.productImages.length > 0;
         if (step === 4) {
-            if (!form.paymentPlans.length) return false;
+            if (isFinanceOnlyStep(step4Tab)) {
+                return hasProductFinance(form.finance);
+            }
+            if (step4Tab === "both" && !hasProductFinance(form.finance)) {
+                return false;
+            }
+            if (!form.paymentPlans.length && step4Tab !== "finance") return false;
             if (showVariantSection && !selectedProductId) {
                 if (form.variants.length === 0) return false;
                 if (form.variants.some((v) => !v.variantName || !Number(v.price))) return false;
@@ -1044,13 +1116,17 @@ const InstallmentsAdd = () => {
                         {step === 4 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial</h2>
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">
+                                        {isFinanceOnlyStep(step4Tab) ? "Step 4: Bank Finance" : "Step 4: Financial"}
+                                    </h2>
+                                    {!isFinanceOnlyStep(step4Tab) && (
                                     <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
                                         <div className="flex flex-col">
                                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Cash Price</span>
                                             <span className="text-lg font-black text-white tracking-tighter">PKR {deriveProductPrice(form.variants, form.price).toLocaleString()}</span>
                                         </div>
                                     </div>
+                                    )}
                                 </div>
 
                                 {/* Tab Buttons */}
@@ -1097,6 +1173,9 @@ const InstallmentsAdd = () => {
                                                 </svg>
                                                 Finance Information
                                             </h3>
+                                            <p className="text-sm text-blue-800 font-medium mb-6">
+                                                Bank finance only — cash price and installment plans are not required.
+                                            </p>
                                             
                                             <div className="space-y-6">
                                                 <div>

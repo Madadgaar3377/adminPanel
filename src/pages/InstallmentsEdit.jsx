@@ -9,7 +9,13 @@ import {
     mapVariantsForEditor,
     processPlansForForm,
     buildInstallmentUpdateBody,
+    isCashOnlySave,
+    roundPKR,
 } from '../utils/installmentPlanEditor';
+import {
+    hasProductFinance,
+    isFinanceOnlyStep,
+} from '../utils/installmentFinanceUtils';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -122,7 +128,7 @@ const InstallmentsEdit = () => {
         customCategory: "",
         status: "pending",
         productImages: [],
-        paymentPlans: [{ ...defaultPlan }],
+        paymentPlans: [],
         variants: [], // New: Product Variants
 
         // New dynamic product specifications
@@ -293,7 +299,7 @@ const InstallmentsEdit = () => {
                     const processedPaymentPlans =
                         plan.paymentPlans && plan.paymentPlans.length > 0
                             ? processPlansForForm(plan.paymentPlans)
-                            : [{ ...defaultPlan }];
+                            : [];
                     const variantsRaw = plan.variants || [];
 
                     setForm(prev => ({
@@ -358,13 +364,13 @@ const InstallmentsEdit = () => {
             const pp = [...f.paymentPlans];
             const p = { ...pp[index] };
 
-            let cashPrice = Number(p.cashPrice) || Number(f.price) || 0;
+            let cashPrice = roundPKR(p.cashPrice) || roundPKR(f.price) || 0;
             // If plan is assigned to a specific variant, use variant's cash price
             if (p.variantIndex !== undefined && p.variantIndex !== null && p.variantIndex !== -1 && f.variants?.[p.variantIndex]) {
-                cashPrice = Number(p.cashPrice) || Number(f.variants[p.variantIndex].price) || 0;
+                cashPrice = roundPKR(p.cashPrice) || roundPKR(f.variants[p.variantIndex].price) || 0;
             }
 
-            const downPayment = Number(p.downPayment) || 0;
+            const downPayment = roundPKR(p.downPayment);
             const financedAmount = Math.max(0, cashPrice - downPayment);
             const months = parseInt(p.tenureMonths) || 0;
             const isIslamic = p.interestType === "Profit-Based (Islamic/Shariah)";
@@ -397,23 +403,18 @@ const InstallmentsEdit = () => {
 
             pp[index] = {
                 ...p,
+                cashPrice: roundPKR(cashPrice),
                 interestRatePercent: Number(rate.toFixed(2)),
-                markup: Number(totalMarkup.toFixed(2)),
-                monthlyInstallment: Number(monthly.toFixed(2)),
-                installmentPrice: Number(totalPayable.toFixed(2)),
-                totalInterest: Number(totalMarkup.toFixed(2)),
-                totalCostToCustomer: Number(totalCostToCustomer.toFixed(2)),
+                markup: roundPKR(totalMarkup),
+                monthlyInstallment: roundPKR(monthly),
+                installmentPrice: roundPKR(totalPayable),
+                totalInterest: roundPKR(totalMarkup),
+                totalCostToCustomer: roundPKR(totalCostToCustomer),
             };
 
             return { ...f, paymentPlans: pp };
         });
     };
-
-    useEffect(() => {
-        if (form.paymentPlans.length) {
-            form.paymentPlans.forEach((_, idx) => recalcPlan(idx));
-        }
-    }, [form.price]);
 
     const handleFilesChange = (e) => {
         const files = Array.from(e.target.files || []);
@@ -484,6 +485,59 @@ const InstallmentsEdit = () => {
             const scopedEditorId = (form.userId || form.user || productOwnerUserId || "").trim();
             const attached = isAttachedMultiVendor(scopedEditorId, productOwnerUserId);
 
+            if (isFinanceOnlyStep(step4Tab)) {
+                if (!hasProductFinance(form.finance)) {
+                    const errorMsg = "Add bank name or finance information before saving.";
+                    setError(errorMsg);
+                    showToast(errorMsg, 'error');
+                    setLoading(false);
+                    return;
+                }
+
+                const financePatch = {
+                    userId: scopedEditorId,
+                    mergePartnerPlans: true,
+                    finance: form.finance || {},
+                };
+
+                if (!attached) {
+                    Object.assign(financePatch, {
+                        productName: form.productName,
+                        city: form.city,
+                        description: form.description || "",
+                        companyName: form.companyName || "",
+                        category: form.category === "other" ? form.customCategory : form.category,
+                        videoUrl: form.videoUrl || "",
+                        productImages: form.productImages || [],
+                        productSpecifications: form.productSpecifications || {},
+                        status: form.status || "approved",
+                    });
+                }
+
+                const res = await fetch(`${ApiBaseUrl}/updateInstallment/${id}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...(authData?.token ? { Authorization: `Bearer ${authData.token}` } : {}),
+                    },
+                    body: JSON.stringify(financePatch),
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const successMsg = "✓ Finance information saved successfully!";
+                    setMessage(successMsg);
+                    showToast(successMsg, 'success');
+                    setTimeout(() => navigate('/installments/update'), 1500);
+                } else {
+                    const errorMsg = data.message || "Update failed. Please try again.";
+                    setError(errorMsg);
+                    showToast(errorMsg, 'error');
+                }
+                return;
+            }
+
+            const cashOnly = isCashOnlySave(form);
+
             const formForSave = attached
                 ? {
                     ...form,
@@ -505,12 +559,14 @@ const InstallmentsEdit = () => {
                     form: formForSave,
                     editorUserId: scopedEditorId,
                     isAttachedProduct: true,
+                    cashOnly,
                 })
                 : buildInstallmentUpdateBody({
                     form: formForSave,
                     editorUserId: scopedEditorId,
                     isAttachedProduct: false,
                     includeFullForm: true,
+                    cashOnly,
                 });
 
             const res = await fetch(`${ApiBaseUrl}/updateInstallment/${id}`, {
@@ -865,13 +921,17 @@ const InstallmentsEdit = () => {
                         {step === 4 && (
                             <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                 <div className="flex justify-between items-center">
-                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">Step 4: Financial</h2>
+                                    <h2 className="text-xl font-black text-gray-800 uppercase tracking-tight border-l-8 border-red-600 pl-4">
+                                        {isFinanceOnlyStep(step4Tab) ? "Step 4: Bank Finance" : "Step 4: Financial"}
+                                    </h2>
+                                    {!isFinanceOnlyStep(step4Tab) && (
                                     <div className="flex items-center gap-4 bg-gray-900 px-6 py-3 rounded-2xl shadow-lg border border-gray-800">
                                         <div className="flex flex-col">
                                             <span className="text-[8px] font-black text-gray-400 uppercase tracking-widest leading-none">Global Cash Price</span>
                                             <span className="text-lg font-black text-white tracking-tighter">PKR {Number(form.price || 0).toLocaleString()}</span>
                                         </div>
                                     </div>
+                                    )}
                                 </div>
 
                                 {/* Tab Buttons */}
@@ -918,6 +978,9 @@ const InstallmentsEdit = () => {
                                                 </svg>
                                                 Finance Information
                                             </h3>
+                                            <p className="text-sm text-blue-800 font-medium mb-6">
+                                                Bank finance only — cash price and installment plans are not required.
+                                            </p>
                                             
                                             <div className="space-y-6">
                                                 <div>
