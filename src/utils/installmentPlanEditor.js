@@ -38,6 +38,25 @@ export const getVariantEffectivePrice = (variant) => {
   return roundPKR(base * (1 - disc / 100));
 };
 
+export const normalizeVariantsForCashSave = (variants, rootPrice, options = {}) => {
+  const { cashOnly = false, clearDiscounts = false } = options;
+  const list = variants || [];
+  if (!list.length) return list;
+  const root = roundPKR(rootPrice);
+  const syncSingle = (clearDiscounts || cashOnly) && root > 0 && list.length === 1;
+
+  return list.map((v) => {
+    const next = { ...v };
+    if (clearDiscounts || cashOnly) {
+      next.discountPercent = 0;
+    }
+    if (syncSingle) {
+      next.price = root;
+    }
+    return next;
+  });
+};
+
 export const isCashOnlySave = (form) => {
   const validPlans = filterValidPaymentPlans(form?.paymentPlans || []);
   if (validPlans.length > 0) return false;
@@ -100,6 +119,11 @@ export const buildInstallmentUpdateBody = ({
 }) => {
   const rawPlans = cashOnly ? [] : filterValidPaymentPlans(form.paymentPlans || []);
   const explicitPrice = roundPKR(form.price);
+  const clearDiscounts = cashOnly || isCashOnlySave(form);
+  const variantsForSave = normalizeVariantsForCashSave(form.variants, explicitPrice, {
+    cashOnly,
+    clearDiscounts,
+  });
 
   const rootPlans = rawPlans
     .filter(
@@ -110,8 +134,8 @@ export const buildInstallmentUpdateBody = ({
     )
     .map((p) => sanitizePlanForApi(p, editorUserId, explicitPrice));
 
-  const variantsPayload = (form.variants || []).map((v, vIdx) => {
-    const variantCash = getVariantEffectivePrice(v);
+  const variantsPayload = (variantsForSave || []).map((v, vIdx) => {
+    const variantCash = roundPKR(v.price) || getVariantEffectivePrice(v);
     const fromVariant = (v.paymentPlans || [])
       .filter((p) => filterValidPaymentPlans([p]).length > 0)
       .map((p) =>
@@ -131,7 +155,7 @@ export const buildInstallmentUpdateBody = ({
     return {
       ...v,
       price: roundPKR(v.price),
-      discountPercent: Number(v.discountPercent) || 0,
+      discountPercent: clearDiscounts || cashOnly ? 0 : Number(v.discountPercent) || 0,
       paymentPlans: cashOnly ? [] : [...fromVariant, ...fromRoot],
     };
   });

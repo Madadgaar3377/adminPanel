@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
+import AdminBulkDataModal from '../components/mada-data/AdminBulkDataModal';
 
 const accessOptions = [
     'Installments',
@@ -20,6 +21,7 @@ const Partners = () => {
     const [successMessage, setSuccessMessage] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPartner, setSelectedPartner] = useState(null);
+    const [showBulkData, setShowBulkData] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
@@ -565,9 +567,18 @@ const Partners = () => {
                                     <p className="text-[10px] font-black text-red-600 uppercase tracking-[0.3em]">Operational ID: {selectedPartner.userId || selectedPartner._id}</p>
                                 </div>
                             </div>
+                            <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setShowBulkData(true)}
+                                className="px-4 py-2 bg-red-600 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-black transition-colors"
+                            >
+                                Bulk Data
+                            </button>
                             <button onClick={() => setSelectedPartner(null)} className="p-3 hover:bg-white rounded-2xl transition-all text-gray-400 hover:text-red-600 border border-transparent hover:border-gray-100">
                                 <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>
+                            </div>
                         </div>
 
                         {/* Modal Body */}
@@ -937,6 +948,13 @@ const Partners = () => {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {showBulkData && selectedPartner && (
+                <AdminBulkDataModal
+                    partner={selectedPartner}
+                    onClose={() => setShowBulkData(false)}
+                />
             )}
         </div>
     );
