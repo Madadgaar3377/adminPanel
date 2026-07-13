@@ -102,7 +102,7 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
           try {
             if (job.hasDownload) {
               await downloadJobFile(data.jobId, `madadgaar-${exportType}-export.xlsx`);
-              setStatus('Download complete (removed from server storage)');
+              setStatus('Download complete ');
             }
           } catch (dlErr) {
             setError(dlErr.message);
