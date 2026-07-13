@@ -1,15 +1,21 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import ApiBaseUrl from '../../constants/apiUrl';
 
-const ADMIN_EXPORT_TYPES = [
-  { value: 'installments', label: 'Partner installment listings', needsPartner: true, needsCategory: true },
-  { value: 'partners', label: 'All partners', needsPartner: false, needsCategory: false },
-  { value: 'agents', label: 'All agents', needsPartner: false, needsCategory: false },
-  { value: 'finance', label: 'Finance & commissions', needsPartner: false, needsCategory: true },
-  { value: 'cases', label: 'Cases & track record', needsPartner: false, needsCategory: true },
+const PARTNER_RECORD_TYPES = [
+  { value: 'installments', label: 'Installment listings', description: 'Products & plans for this partner', categoryType: 'product' },
+  { value: 'agents', label: 'Linked agents', description: 'Agents connected to this partner', categoryType: null },
+  { value: 'finance', label: 'Finance & commissions', description: 'Commissions for this partner', categoryType: 'case' },
+  { value: 'cases', label: 'Cases & track record', description: 'Applications for this partner', categoryType: 'case' },
 ];
 
-const CATEGORY_OPTIONS = [
+const ALL_PARTNERS_TYPE = {
+  value: 'partners',
+  label: 'All partners (platform)',
+  description: 'Export every partner in the system',
+  categoryType: null,
+};
+
+const CASE_CATEGORY_OPTIONS = [
   { value: '', label: 'All categories' },
   { value: 'Installment', label: 'Installment' },
   { value: 'Property', label: 'Property' },
@@ -17,7 +23,7 @@ const CATEGORY_OPTIONS = [
   { value: 'Insurance', label: 'Insurance' },
 ];
 
-const INSTALLMENT_CATEGORIES = [
+const PRODUCT_CATEGORY_OPTIONS = [
   { value: '', label: 'All product categories' },
   { value: 'laptops', label: 'Laptops' },
   { value: 'smartphones', label: 'Smartphones' },
@@ -25,9 +31,15 @@ const INSTALLMENT_CATEGORIES = [
   { value: 'cars', label: 'Cars' },
 ];
 
-const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => {
-  const [exportType, setExportType] = useState('installments');
+const AdminExportModal = ({
+  onClose,
+  partners = [],
+  defaultPartnerId = '',
+  partnerOnly = false,
+  defaultExportType = 'installments',
+}) => {
   const [partnerId, setPartnerId] = useState(defaultPartnerId);
+  const [exportType, setExportType] = useState(defaultExportType);
   const [category, setCategory] = useState('');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
@@ -35,7 +47,26 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
-  const selected = ADMIN_EXPORT_TYPES.find((t) => t.value === exportType) || ADMIN_EXPORT_TYPES[0];
+  const availableTypes = useMemo(() => {
+    if (partnerId) return PARTNER_RECORD_TYPES;
+    if (partnerOnly) return PARTNER_RECORD_TYPES;
+    return [ALL_PARTNERS_TYPE];
+  }, [partnerId, partnerOnly]);
+
+  const selected = availableTypes.find((t) => t.value === exportType) || availableTypes[0];
+  const selectedPartner = partners.find((p) => (p.userId || p._id) === partnerId);
+
+  useEffect(() => {
+    setPartnerId(defaultPartnerId || '');
+  }, [defaultPartnerId]);
+
+  useEffect(() => {
+    if (partnerId) {
+      if (exportType === 'partners') setExportType('installments');
+    } else if (!partnerOnly && exportType !== 'partners') {
+      setExportType('partners');
+    }
+  }, [partnerId, partnerOnly]);
 
   const getToken = () => {
     const auth = JSON.parse(localStorage.getItem('adminAuth') || '{}');
@@ -65,8 +96,17 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
       setError('Start and end dates are required');
       return;
     }
-    if (selected.needsPartner && !partnerId) {
-      setError('Select a partner for this export');
+
+    const needsPartner = partnerOnly || partnerId || ['installments', 'agents', 'finance', 'cases'].includes(exportType);
+    const isPartnerScoped = partnerId && exportType !== 'partners';
+
+    if ((partnerOnly || isPartnerScoped) && !partnerId) {
+      setError('Please select a partner first');
+      return;
+    }
+
+    if (exportType === 'installments' && !partnerId) {
+      setError('Installment export requires a partner');
       return;
     }
 
@@ -77,7 +117,7 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
     try {
       const token = getToken();
       const params = new URLSearchParams({ startDate, endDate });
-      if (partnerId) params.set('partnerId', partnerId);
+      if (partnerId && exportType !== 'partners') params.set('partnerId', partnerId);
       if (category) params.set('category', category);
 
       const res = await fetch(`${ApiBaseUrl}/mada-data/export/${exportType}?${params}`, {
@@ -101,8 +141,9 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
           setStatus('Downloading…');
           try {
             if (job.hasDownload) {
-              await downloadJobFile(data.jobId, `madadgaar-${exportType}-export.xlsx`);
-              setStatus('Download complete ');
+              const partnerSlug = selectedPartner?.name?.replace(/\s+/g, '-').toLowerCase() || 'partner';
+              await downloadJobFile(data.jobId, `madadgaar-${partnerSlug}-${exportType}.xlsx`);
+              setStatus('Download complete');
             }
           } catch (dlErr) {
             setError(dlErr.message);
@@ -122,80 +163,133 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
     }
   };
 
+  const categoryOptions =
+    selected.categoryType === 'product' ? PRODUCT_CATEGORY_OPTIONS : CASE_CATEGORY_OPTIONS;
+
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gray-900/60" onClick={onClose} />
-      <div className="relative w-full max-w-lg bg-white rounded-3xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center mb-5">
+      <div className="relative w-full max-w-lg bg-white rounded-2xl shadow-2xl p-6 max-h-[90vh] overflow-y-auto">
+        <div className="flex justify-between items-start mb-5">
           <div>
-            <h3 className="text-xl font-black text-gray-900 uppercase tracking-tight">Download Records</h3>
-            <p className="text-[10px] font-bold text-red-600 uppercase tracking-widest">Mada Data Export</p>
+            <h3 className="text-xl font-bold text-gray-900">
+              {partnerOnly ? 'Download partner records' : 'Download records'}
+            </h3>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {partnerOnly
+                ? 'Select record type and date range for this partner'
+                : 'Select partner, record type, then export'}
+            </p>
           </div>
-          <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-xl text-gray-500">✕</button>
+          <button type="button" onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">✕</button>
         </div>
 
         <div className="space-y-4">
-          <div>
-            <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Export type</label>
+          {/* Step 1: Partner */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">1. Select partner</p>
             <select
-              value={exportType}
-              onChange={(e) => { setExportType(e.target.value); setCategory(''); }}
-              className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm font-semibold"
+              value={partnerId}
+              onChange={(e) => {
+                setPartnerId(e.target.value);
+                setCategory('');
+              }}
+              disabled={partnerOnly && !!defaultPartnerId}
+              className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white disabled:bg-gray-100"
             >
-              {ADMIN_EXPORT_TYPES.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
+              <option value="">Choose a partner…</option>
+              {partners.map((p) => (
+                <option key={p.userId || p._id} value={p.userId || p._id}>
+                  {p.name} — ID {p.userId || p._id}
+                </option>
               ))}
             </select>
+            {selectedPartner && (
+              <p className="text-xs text-gray-600 mt-2">
+                Exporting data for <strong>{selectedPartner.name}</strong>
+              </p>
+            )}
           </div>
 
-          {selected.needsPartner && (
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Partner *</label>
-              <select
-                value={partnerId}
-                onChange={(e) => setPartnerId(e.target.value)}
-                className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm"
-              >
-                <option value="">Select partner</option>
-                {partners.map((p) => (
-                  <option key={p.userId || p._id} value={p.userId || p._id}>
-                    {p.name} ({p.userId || p._id})
-                  </option>
-                ))}
-              </select>
+          {/* Step 2: Record type */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">2. Record type</p>
+            {!partnerId && exportType !== 'partners' && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg p-2 mb-3">
+                Select a partner above to download their installments, agents, finance, or cases.
+              </p>
+            )}
+            <div className="space-y-2">
+              {availableTypes.map((type) => (
+                <label
+                  key={type.value}
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${
+                    !partnerId && type.value !== 'partners'
+                      ? 'opacity-50 cursor-not-allowed border-gray-200 bg-gray-100'
+                      : exportType === type.value
+                        ? 'border-red-500 bg-red-50 cursor-pointer'
+                        : 'border-gray-200 bg-white hover:border-gray-300 cursor-pointer'
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="exportType"
+                    value={type.value}
+                    checked={exportType === type.value}
+                    disabled={!partnerId && type.value !== 'partners'}
+                    onChange={() => {
+                      setExportType(type.value);
+                      setCategory('');
+                    }}
+                    className="mt-1 text-red-600"
+                  />
+                  <div>
+                    <p className="text-sm font-semibold text-gray-900">{type.label}</p>
+                    <p className="text-xs text-gray-500">{type.description}</p>
+                  </div>
+                </label>
+              ))}
             </div>
-          )}
+          </div>
 
-          {selected.needsCategory && exportType === 'installments' && (
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Product category</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm">
-                {INSTALLMENT_CATEGORIES.map((c) => (
-                  <option key={c.value || 'all'} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-          )}
+          {/* Step 3: Filters */}
+          <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 space-y-3">
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">3. Filters (optional)</p>
 
-          {selected.needsCategory && exportType !== 'installments' && (
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Case category</label>
-              <select value={category} onChange={(e) => setCategory(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm">
-                {CATEGORY_OPTIONS.map((c) => (
-                  <option key={c.value || 'all'} value={c.value}>{c.label}</option>
-                ))}
-              </select>
-            </div>
-          )}
+            {selected.categoryType && (
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Category</label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm bg-white"
+                >
+                  {categoryOptions.map((c) => (
+                    <option key={c.value || 'all'} value={c.value}>{c.label}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">From</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm" />
-            </div>
-            <div>
-              <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">To</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="w-full border-2 border-gray-100 rounded-xl p-3 text-sm" />
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">From date *</label>
+                <input
+                  type="date"
+                  value={startDate}
+                  onChange={(e) => setStartDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">To date *</label>
+                <input
+                  type="date"
+                  value={endDate}
+                  onChange={(e) => setEndDate(e.target.value)}
+                  className="w-full border border-gray-300 rounded-lg p-2.5 text-sm"
+                />
+              </div>
             </div>
           </div>
 
@@ -206,9 +300,9 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
             type="button"
             disabled={loading}
             onClick={handleExport}
-            className="w-full py-4 bg-red-600 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-colors disabled:opacity-50"
+            className="w-full py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-50"
           >
-            {loading ? 'Exporting…' : 'Export xlsx'}
+            {loading ? 'Exporting…' : 'Download xlsx'}
           </button>
         </div>
       </div>

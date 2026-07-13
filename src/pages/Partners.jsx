@@ -27,6 +27,7 @@ const Partners = () => {
     const [bulkPartner, setBulkPartner] = useState(null);
     const [showExportModal, setShowExportModal] = useState(false);
     const [exportDefaultPartnerId, setExportDefaultPartnerId] = useState('');
+    const [exportPartnerOnly, setExportPartnerOnly] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [filterStatus, setFilterStatus] = useState('all');
@@ -235,7 +236,11 @@ const Partners = () => {
                             <div className="flex flex-wrap gap-2">
                                 <button
                                     type="button"
-                                    onClick={() => { setExportDefaultPartnerId(''); setShowExportModal(true); }}
+                                    onClick={() => {
+                                        setExportDefaultPartnerId('');
+                                        setExportPartnerOnly(false);
+                                        setShowExportModal(true);
+                                    }}
                                     className="px-4 py-2 text-sm font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
                                 >
                                     Download records
@@ -416,6 +421,17 @@ const Partners = () => {
                                                                 className="px-3 py-1.5 text-xs font-semibold text-white bg-gray-900 rounded-lg hover:bg-black"
                                                             >
                                                                 Edit
+                                                            </button>
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => {
+                                                                    setExportDefaultPartnerId(partner.userId || partner._id);
+                                                                    setExportPartnerOnly(true);
+                                                                    setShowExportModal(true);
+                                                                }}
+                                                                className="px-3 py-1.5 text-xs font-semibold text-red-600 bg-red-50 border border-red-200 rounded-lg hover:bg-red-100"
+                                                            >
+                                                                Download
                                                             </button>
                                                             <button
                                                                 type="button"
@@ -666,6 +682,7 @@ const Partners = () => {
                                 type="button"
                                 onClick={() => {
                                     setExportDefaultPartnerId(selectedPartner.userId || selectedPartner._id);
+                                    setExportPartnerOnly(true);
                                     setShowExportModal(true);
                                 }}
                                 className="px-4 py-2 text-sm font-semibold text-red-600 border border-red-200 rounded-lg hover:bg-red-50"
@@ -1068,7 +1085,12 @@ const Partners = () => {
                 <AdminExportModal
                     partners={partners}
                     defaultPartnerId={exportDefaultPartnerId}
-                    onClose={() => { setShowExportModal(false); setExportDefaultPartnerId(''); }}
+                    partnerOnly={exportPartnerOnly}
+                    onClose={() => {
+                        setShowExportModal(false);
+                        setExportDefaultPartnerId('');
+                        setExportPartnerOnly(false);
+                    }}
                 />
             )}
             </div>
