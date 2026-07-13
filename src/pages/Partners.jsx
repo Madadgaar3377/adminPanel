@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import ApiBaseUrl from '../constants/apiUrl';
 import { useNavigate } from 'react-router-dom';
 import AdminBulkDataModal from '../components/mada-data/AdminBulkDataModal';
+import AdminExportModal from '../components/mada-data/AdminExportModal';
 
 const accessOptions = [
     'Installments',
@@ -22,6 +23,8 @@ const Partners = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [selectedPartner, setSelectedPartner] = useState(null);
     const [showBulkData, setShowBulkData] = useState(false);
+    const [showExportModal, setShowExportModal] = useState(false);
+    const [exportDefaultPartnerId, setExportDefaultPartnerId] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
 
@@ -200,6 +203,14 @@ const Partners = () => {
                         </div>
                     </div>
 
+                    <div className="flex flex-wrap items-center gap-3">
+                    <button
+                        type="button"
+                        onClick={() => { setExportDefaultPartnerId(''); setShowExportModal(true); }}
+                        className="px-5 py-3 bg-white text-red-600 rounded-xl text-sm font-bold shadow-lg hover:bg-red-50 transition-colors"
+                    >
+                        Download Records
+                    </button>
                     <div className="flex bg-white/10 backdrop-blur-sm p-1.5 rounded-2xl border-2 border-white/20">
                         <button
                             onClick={() => setActiveTab('list')}
@@ -224,6 +235,7 @@ const Partners = () => {
                             </svg>
                             Add Partner
                         </button>
+                    </div>
                     </div>
                 </div>
             </div>
@@ -568,6 +580,16 @@ const Partners = () => {
                                 </div>
                             </div>
                             <div className="flex items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    setExportDefaultPartnerId(selectedPartner.userId || selectedPartner._id);
+                                    setShowExportModal(true);
+                                }}
+                                className="px-4 py-2 bg-white border-2 border-red-600 text-red-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-50 transition-colors"
+                            >
+                                Download
+                            </button>
                             <button
                                 type="button"
                                 onClick={() => setShowBulkData(true)}
@@ -954,6 +976,14 @@ const Partners = () => {
                 <AdminBulkDataModal
                     partner={selectedPartner}
                     onClose={() => setShowBulkData(false)}
+                />
+            )}
+
+            {showExportModal && (
+                <AdminExportModal
+                    partners={partners}
+                    defaultPartnerId={exportDefaultPartnerId}
+                    onClose={() => { setShowExportModal(false); setExportDefaultPartnerId(''); }}
                 />
             )}
         </div>
