@@ -30,6 +30,23 @@ const AdminBulkDataModal = ({ partner, onClose }) => {
   const grouped = getGroupedCategories();
   const partnerId = partner?.userId || partner?._id;
 
+  const downloadJobFile = async (jobId, filename) => {
+    const res = await fetch(`${ApiBaseUrl}/mada-data/jobs/${jobId}/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Download failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `madadgaar-${jobId}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const loadHistory = useCallback(async () => {
     if (!token || !partnerId) return;
     try {
@@ -168,10 +185,14 @@ const AdminBulkDataModal = ({ partner, onClose }) => {
                     <div className="text-right text-xs">
                       <p className="text-emerald-600 font-bold">{h.successCount || 0} ok</p>
                       <p className="text-red-600 font-bold">{h.failCount || 0} fail</p>
-                      {h.resultFileUrl && (
-                        <a href={h.resultFileUrl} target="_blank" rel="noopener noreferrer" className="text-red-600 underline">
+                      {(h.resultFileUrl || h.resultFileKey) && !h.resultFileDeleted && (
+                        <button
+                          type="button"
+                          onClick={() => downloadJobFile(h._id, `madadgaar-import-${h._id}.xlsx`).catch((e) => setError(e.message))}
+                          className="text-red-600 underline"
+                        >
                           Report
-                        </a>
+                        </button>
                       )}
                     </div>
                   </div>
@@ -224,8 +245,14 @@ const AdminBulkDataModal = ({ partner, onClose }) => {
               )}
               <p className="font-bold capitalize">{job?.status}</p>
               <p className="text-sm text-gray-600">{job?.successCount || 0} succeeded · {job?.failCount || 0} failed</p>
-              {job?.resultFileUrl && (
-                <a href={job.resultFileUrl} className="text-red-600 text-sm font-bold underline" target="_blank" rel="noopener noreferrer">Download report</a>
+              {job?.hasDownload && (
+                <button
+                  type="button"
+                  onClick={() => downloadJobFile(job.jobId || job._id, 'madadgaar-import-result.xlsx').catch((e) => setError(e.message))}
+                  className="text-red-600 text-sm font-bold underline"
+                >
+                  Download report
+                </button>
               )}
               <button type="button" onClick={onClose} className="w-full py-3 bg-red-600 text-white rounded-xl font-bold">Done</button>
             </div>

@@ -42,6 +42,24 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
     return auth.token;
   };
 
+  const downloadJobFile = async (jobId, filename) => {
+    const token = getToken();
+    const res = await fetch(`${ApiBaseUrl}/mada-data/jobs/${jobId}/download`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.message || 'Download failed');
+    }
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename || `madadgaar-${jobId}.xlsx`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   const handleExport = async () => {
     if (!startDate || !endDate) {
       setError('Start and end dates are required');
@@ -80,8 +98,16 @@ const AdminExportModal = ({ onClose, partners = [], defaultPartnerId = '' }) => 
         if (job.status === 'completed') {
           clearInterval(interval);
           setLoading(false);
-          setStatus('Export ready — download started');
-          if (job.resultFileUrl) window.open(job.resultFileUrl, '_blank');
+          setStatus('Downloading…');
+          try {
+            if (job.hasDownload) {
+              await downloadJobFile(data.jobId, `madadgaar-${exportType}-export.xlsx`);
+              setStatus('Download complete (removed from server storage)');
+            }
+          } catch (dlErr) {
+            setError(dlErr.message);
+            setStatus('');
+          }
         } else if (job.status === 'failed') {
           clearInterval(interval);
           setLoading(false);
