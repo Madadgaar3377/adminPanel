@@ -371,8 +371,8 @@ const Partners = () => {
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4 hidden md:table-cell">
-                                                        <p className="text-sm text-gray-700 truncate max-w-[200px]">{partner.email || '—'}</p>
-                                                        <p className="text-xs text-gray-500">{partner.phoneNumber || partner.WhatsappNumber || '—'}</p>
+                                                        <p className="text-sm text-gray-700 truncate max-w-[200px]">{partner.email || ''}</p>
+                                                        <p className="text-xs text-gray-500">{partner.phoneNumber || partner.WhatsappNumber || ''}</p>
                                                     </td>
                                                     <td className="px-5 py-4 hidden lg:table-cell">
                                                         <div className="flex flex-wrap gap-1 max-w-[220px]">
@@ -386,7 +386,7 @@ const Partners = () => {
                                                                     +{partner.userAccess.length - 3}
                                                                 </span>
                                                             )}
-                                                            {!(partner.userAccess || []).length && <span className="text-xs text-gray-400">—</span>}
+                                                            {!(partner.userAccess || []).length && <span className="text-xs text-gray-400"></span>}
                                                         </div>
                                                     </td>
                                                     <td className="px-5 py-4">

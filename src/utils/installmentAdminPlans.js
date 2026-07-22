@@ -10,6 +10,13 @@ export const getAdminAuthToken = () => {
   }
 };
 
+/** Whole PKR amounts — avoids float drift */
+export const roundPKR = (value) => {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return 0;
+  return Math.round(n);
+};
+
 export const DEFAULT_INSTALLMENT_PLAN = {
   planName: "",
   installmentPrice: 0,
@@ -101,22 +108,24 @@ export const applyBasePricingUpdate = (form, field, value) => {
 
 export const getVariantEffectivePrice = (variant) => {
   if (!variant) return 0;
-  const discounted = Number(variant.discountedPrice);
-  if (Number.isFinite(discounted) && discounted > 0) {
-    return Math.round(discounted);
-  }
-  const base = Number(variant.price) || 0;
+  const discounted = roundPKR(variant.discountedPrice);
+  if (discounted > 0) return discounted;
+  const base = roundPKR(variant.price);
   const disc = Math.min(100, Math.max(0, Number(variant.discountPercent) || 0));
-  return Math.round(base * (1 - disc / 100));
+  if (base <= 0) return 0;
+  if (disc <= 0) return base;
+  return roundPKR(base * (1 - disc / 100));
 };
 
 /** Effective price when product has no variant rows */
 export const getBaseEffectivePrice = (form) => {
-  const discounted = Number(form?.discountedPrice);
-  if (Number.isFinite(discounted) && discounted > 0) return Math.round(discounted);
-  const cash = Number(form?.price) || 0;
+  const discounted = roundPKR(form?.discountedPrice);
+  if (discounted > 0) return discounted;
+  const cash = roundPKR(form?.price);
   const disc = Math.min(100, Math.max(0, Number(form?.discountPercent) || 0));
-  return Math.round(cash * (1 - disc / 100));
+  if (cash <= 0) return 0;
+  if (disc <= 0) return cash;
+  return roundPKR(cash * (1 - disc / 100));
 };
 
 export const amortizedMonthlyPayment = (principal, annualInterestPercent, months) => {
@@ -126,23 +135,35 @@ export const amortizedMonthlyPayment = (principal, annualInterestPercent, months
   return (principal * r) / (1 - Math.pow(1 + r, -months));
 };
 
-/** Recalculate EMI, markup, totals for one payment plan row (canonical partner-panel formulas) */
+/** Normalize UI draft variant index (defaults to 0 when product has variants) */
+export const normalizeComposerVariantIndex = (plan, form) => {
+  const variants = form?.variants || [];
+  if (!variants.length) return null;
+  const raw = plan?.variantIndex;
+  if (raw === null || raw === undefined || raw === "") return 0;
+  const idx = Number(raw);
+  if (!Number.isFinite(idx) || idx < 0 || idx >= variants.length) return 0;
+  return idx;
+};
+
+/** Recalculate EMI, markup, totals for one payment plan row */
 export function recalculatePaymentPlan(plan, form) {
   const p = { ...plan };
+  const variants = form?.variants || [];
+  const variantIndex = normalizeComposerVariantIndex(p, form);
+  p.variantIndex = variantIndex;
 
   let cashPrice = 0;
-  if (
-    p.variantIndex !== undefined &&
-    p.variantIndex !== null &&
-    p.variantIndex !== -1 &&
-    form.variants?.[p.variantIndex]
-  ) {
-    cashPrice = getVariantEffectivePrice(form.variants[p.variantIndex]);
+  if (variantIndex !== null && variants[variantIndex]) {
+    cashPrice = getVariantEffectivePrice(variants[variantIndex]);
+  } else if (variants.length > 0) {
+    cashPrice = deriveProductPrice(variants, 0, form);
   } else {
-    cashPrice = deriveProductPrice(form.variants, form.price, form);
+    cashPrice = getBaseEffectivePrice(form);
+    if (cashPrice <= 0) cashPrice = roundPKR(form?.price);
   }
 
-  const downPayment = Number(p.downPayment) || 0;
+  const downPayment = roundPKR(p.downPayment);
   const financedAmount = Math.max(0, cashPrice - downPayment);
   const months = parseInt(p.tenureMonths, 10) || 0;
   const isIslamic = p.interestType === "Profit-Based (Islamic/Shariah)";
@@ -154,7 +175,7 @@ export function recalculatePaymentPlan(plan, form) {
   let rate = Number(p.interestRatePercent) || 0;
 
   if (isIslamic) {
-    totalMarkup = Number(p.markup) || 0;
+    totalMarkup = roundPKR(p.markup);
     rate = cashPrice > 0 ? (totalMarkup / cashPrice) * 100 : 0;
     totalPayable = financedAmount + totalMarkup;
     monthly = months > 0 ? totalPayable / months : 0;
@@ -172,12 +193,14 @@ export function recalculatePaymentPlan(plan, form) {
 
   return {
     ...p,
+    cashPrice: roundPKR(cashPrice),
+    financedAmount: roundPKR(financedAmount),
     interestRatePercent: Number(rate.toFixed(2)),
-    markup: Number(totalMarkup.toFixed(2)),
-    monthlyInstallment: Number(monthly.toFixed(2)),
-    installmentPrice: Number(totalPayable.toFixed(2)),
-    totalInterest: Number(totalMarkup.toFixed(2)),
-    totalCostToCustomer: Number(totalCostToCustomer.toFixed(2)),
+    markup: roundPKR(totalMarkup),
+    monthlyInstallment: roundPKR(monthly),
+    installmentPrice: roundPKR(totalPayable),
+    totalInterest: roundPKR(totalMarkup),
+    totalCostToCustomer: roundPKR(totalCostToCustomer),
   };
 }
 

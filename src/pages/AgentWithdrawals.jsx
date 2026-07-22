@@ -177,7 +177,7 @@ const AgentWithdrawals = () => {
                 {requests.map((r) => (
                   <tr key={r._id} className="hover:bg-gray-50">
                     <td className="px-4 py-3">
-                      <p className="font-medium text-gray-800">{r.agentName || r.agentId || "—"}</p>
+                      <p className="font-medium text-gray-800">{r.agentName || r.agentId || ""}</p>
                       <p className="text-xs text-gray-500">{r.agentEmail || ""}</p>
                       {r.agentWalletBalance != null && (
                         <p className="text-xs text-gray-500">Wallet: PKR {Number(r.agentWalletBalance).toLocaleString()}</p>
@@ -187,12 +187,12 @@ const AgentWithdrawals = () => {
                       PKR {Number(r.amount).toLocaleString()}
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600">
-                      <p>{r.bankName || "—"}</p>
-                      <p>{r.bankAccountName || "—"}</p>
-                      <p className="text-gray-500">{r.bankAccountNumber ? `****${String(r.bankAccountNumber).slice(-4)}` : "—"}</p>
+                      <p>{r.bankName || ""}</p>
+                      <p>{r.bankAccountName || ""}</p>
+                      <p className="text-gray-500">{r.bankAccountNumber ? `****${String(r.bankAccountNumber).slice(-4)}` : ""}</p>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-600 max-w-[120px] truncate" title={r.note}>
-                      {r.note || "—"}
+                      {r.note || ""}
                     </td>
                     <td className="px-4 py-3">
                       <span
@@ -208,7 +208,7 @@ const AgentWithdrawals = () => {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">
-                      {r.createdAt ? new Date(r.createdAt).toLocaleString() : "—"}
+                      {r.createdAt ? new Date(r.createdAt).toLocaleString() : ""}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <div className="flex justify-end items-center gap-2 flex-wrap">
@@ -311,13 +311,13 @@ const AgentWithdrawals = () => {
             <div className="p-6 space-y-5">
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Request ID</p>
-                <p className="text-sm text-gray-800 font-mono break-all">{detailModal._id || "—"}</p>
+                <p className="text-sm text-gray-800 font-mono break-all">{detailModal._id || ""}</p>
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Agent</p>
-                <p className="text-sm font-medium text-gray-800">{detailModal.agentName || detailModal.agentId || "—"}</p>
-                <p className="text-sm text-gray-600">{detailModal.agentEmail || "—"}</p>
-                <p className="text-xs text-gray-500 mt-0.5">Agent ID: {detailModal.agentId || "—"}</p>
+                <p className="text-sm font-medium text-gray-800">{detailModal.agentName || detailModal.agentId || ""}</p>
+                <p className="text-sm text-gray-600">{detailModal.agentEmail || ""}</p>
+                <p className="text-xs text-gray-500 mt-0.5">Agent ID: {detailModal.agentId || ""}</p>
                 {detailModal.agentWalletBalance != null && (
                   <p className="text-sm text-gray-700 mt-1">Wallet balance: <strong>PKR {Number(detailModal.agentWalletBalance).toLocaleString()}</strong></p>
                 )}
@@ -334,7 +334,7 @@ const AgentWithdrawals = () => {
                       <ul className="space-y-1.5 text-sm text-gray-700">
                         {detailModal.deductionBreakdown.deductions.map((d, i) => (
                           <li key={i} className="flex justify-between">
-                            <span>{d.name}{d.percent ? ` (${d.percent}%)` : ""}{d.description ? ` — ${d.description}` : ""}</span>
+                            <span>{d.name}{d.percent ? ` (${d.percent}%)` : ""}{d.description ? `  ${d.description}` : ""}</span>
                             <span className="font-medium">{detailModal.deductionBreakdown.currencyCode || "PKR"} {Number(d.amount).toLocaleString()}</span>
                           </li>
                         ))}
@@ -356,14 +356,14 @@ const AgentWithdrawals = () => {
               <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Bank details (complete)</p>
                 <ul className="space-y-1.5 text-sm text-gray-700">
-                  <li><span className="text-gray-500">Bank name:</span> <strong>{detailModal.bankName || "—"}</strong></li>
-                  <li><span className="text-gray-500">Account holder:</span> <strong>{detailModal.bankAccountName || "—"}</strong></li>
-                  <li><span className="text-gray-500">Account number:</span> <strong className="font-mono">{detailModal.bankAccountNumber || "—"}</strong></li>
+                  <li><span className="text-gray-500">Bank name:</span> <strong>{detailModal.bankName || ""}</strong></li>
+                  <li><span className="text-gray-500">Account holder:</span> <strong>{detailModal.bankAccountName || ""}</strong></li>
+                  <li><span className="text-gray-500">Account number:</span> <strong className="font-mono">{detailModal.bankAccountNumber || ""}</strong></li>
                 </ul>
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Note from agent</p>
-                <p className="text-sm text-gray-700">{detailModal.note || "—"}</p>
+                <p className="text-sm text-gray-700">{detailModal.note || ""}</p>
               </div>
               <div className="flex flex-wrap gap-2 items-center">
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</p>
@@ -381,7 +381,7 @@ const AgentWithdrawals = () => {
               </div>
               <div>
                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Requested at</p>
-                <p className="text-sm text-gray-700">{detailModal.createdAt ? new Date(detailModal.createdAt).toLocaleString() : "—"}</p>
+                <p className="text-sm text-gray-700">{detailModal.createdAt ? new Date(detailModal.createdAt).toLocaleString() : ""}</p>
               </div>
               {(detailModal.reviewedAt || detailModal.reviewedBy || detailModal.adminNote) && (
                 <div className="bg-gray-50 rounded-lg p-4 border border-gray-100">

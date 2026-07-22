@@ -200,7 +200,7 @@ const AdminExportModal = ({
               <option value="">Choose a partner…</option>
               {partners.map((p) => (
                 <option key={p.userId || p._id} value={p.userId || p._id}>
-                  {p.name} — ID {p.userId || p._id}
+                  {p.name}  ID {p.userId || p._id}
                 </option>
               ))}
             </select>

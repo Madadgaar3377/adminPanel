@@ -63,8 +63,8 @@ const Toast = ({ message, type, onClose }) => {
 const CATEGORY_OPTIONS = [
     { value: "", label: "Select category" },
     { value: "phones", label: "Phones / Mobile" },
-    { value: "bikes_mechanical", label: "Bikes — Mechanical" },
-    { value: "bikes_electric", label: "Bikes — Electric" },
+    { value: "bikes_mechanical", label: "Bikes  Mechanical" },
+    { value: "bikes_electric", label: "Bikes  Electric" },
     { value: "air_conditioner", label: "Air Conditioner" },
     { value: "appliances", label: "Home Appliances / Other" },
     { value: "other", label: "Other (custom)" },
@@ -497,7 +497,7 @@ const InstallmentsEdit = () => {
                 {error && <div className="p-4 bg-red-50 border-2 border-red-100 text-red-600 rounded-2xl font-bold">{error}</div>}
 
                 <p className="text-sm text-blue-800 bg-blue-50 border border-blue-200 rounded-2xl px-5 py-3 font-medium">
-                    Payment plans: you see <strong>all vendors</strong> on this listing. To update only one partner&apos;s plans without removing others, set <strong>User ID</strong> to that partner (different from owner {productOwnerUserId || "—"}) before saving step 4.
+                    Payment plans: you see <strong>all vendors</strong> on this listing. To update only one partner&apos;s plans without removing others, set <strong>User ID</strong> to that partner (different from owner {productOwnerUserId || ""}) before saving step 4.
                 </p>
 
                 <div className="bg-white rounded-[3rem] shadow-xl border border-gray-50 overflow-hidden min-h-[600px] flex flex-col">

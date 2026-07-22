@@ -198,7 +198,7 @@ const AgentAssignments = () => {
                     </div>
                     <div>
                         <h1 className="text-3xl font-black text-white tracking-tight">Assignment Details</h1>
-                        <p className="text-red-100 text-sm font-medium mt-0.5">View assignment details — Agent, Partner & User (Applicant) • v2.0.5</p>
+                        <p className="text-red-100 text-sm font-medium mt-0.5">View assignment details  Agent, Partner & User (Applicant) • v2.0.5</p>
                     </div>
                 </div>
             </div>
@@ -360,7 +360,7 @@ const AgentAssignments = () => {
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setDetailsModalOpen(false)}>
                     <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 bg-gradient-to-r from-red-50 to-rose-50">
-                            <h3 className="text-lg font-bold text-gray-900">Assignment details — Agent, Partner & User</h3>
+                            <h3 className="text-lg font-bold text-gray-900">Assignment details  Agent, Partner & User</h3>
                             <button type="button" onClick={() => setDetailsModalOpen(false)} className="p-2 rounded-lg hover:bg-red-100 text-gray-600 hover:text-red-700">
                                 <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
                             </button>

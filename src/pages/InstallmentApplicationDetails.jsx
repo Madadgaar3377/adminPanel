@@ -110,8 +110,8 @@ const InstallmentApplicationDetails = () => {
     const planPic = plan.planpic || installmentPlanDetails?.productImages?.[0];
     const agent = application.agentDetails || null;
     const partner = application.partnerDetails || null;
-    const formatDate = (d) => d ? new Date(d).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' }) : '—';
-    const formatPkr = (n) => (n != null && n !== '') ? `PKR ${Number(n).toLocaleString()}` : '—';
+    const formatDate = (d) => d ? new Date(d).toLocaleString('en-PK', { dateStyle: 'medium', timeStyle: 'short' }) : '';
+    const formatPkr = (n) => (n != null && n !== '') ? `PKR ${Number(n).toLocaleString()}` : '';
 
     const hasPlanData = !!(
         application.installmentPlanId ||
@@ -297,11 +297,11 @@ const InstallmentApplicationDetails = () => {
                                     <div className="grid grid-cols-2 gap-3 pt-1">
                                         <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-center">
                                             <p className="text-xs text-slate-500 font-medium">Duration</p>
-                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{tenureMonths != null && tenureMonths !== '' ? `${tenureMonths} mo` : '—'}</p>
+                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{tenureMonths != null && tenureMonths !== '' ? `${tenureMonths} mo` : ''}</p>
                                         </div>
                                         <div className="rounded-lg border border-slate-100 bg-slate-50/50 p-3 text-center">
                                             <p className="text-xs text-slate-500 font-medium">Interest</p>
-                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{interestRatePercent != null && interestRatePercent !== '' ? `${interestRatePercent}%` : '—'}</p>
+                                            <p className="text-sm font-semibold text-slate-900 mt-0.5">{interestRatePercent != null && interestRatePercent !== '' ? `${interestRatePercent}%` : ''}</p>
                                         </div>
                                     </div>
                                     {interestType && <p className="text-xs text-slate-500 pt-1">Type: {interestType}</p>}
@@ -381,7 +381,7 @@ const InstallmentApplicationDetails = () => {
                                 <div className="p-5 space-y-4">
                                     {application.approval.map((a, i) => (
                                         <div key={i} className="rounded-lg border border-emerald-100 bg-emerald-50/30 p-3 text-sm">
-                                            <p className="font-semibold text-slate-900">Approved by: {a.approvedBy || '—'}</p>
+                                            <p className="font-semibold text-slate-900">Approved by: {a.approvedBy || ''}</p>
                                             <p className="text-slate-500 text-xs mt-1">{formatDate(a.approvedAt)}</p>
                                             {a.commissionProcessed != null && <p className="text-slate-600 text-xs mt-1">Commission processed: {a.commissionProcessed ? 'Yes' : 'No'}</p>}
                                             {a.commissionAmount != null && a.commissionAmount > 0 && <p className="text-emerald-700 text-xs font-medium mt-1">Commission: PKR {Number(a.commissionAmount).toLocaleString()}</p>}
@@ -401,7 +401,7 @@ const FormRow = ({ label, value, highlight = false, compact = false, fullWidth =
     <div className={`flex ${compact ? 'flex-row items-center gap-3 py-2.5 px-0' : 'flex-col gap-1 p-4'} ${fullWidth ? 'sm:col-span-2' : ''}`}>
         <span className={`${compact ? 'text-slate-500 text-sm w-28 shrink-0' : 'text-xs font-medium text-slate-500 uppercase tracking-wider'}`}>{label}</span>
         <span className={`font-medium text-slate-900 ${highlight ? 'text-red-600' : ''} ${compact ? 'text-sm' : 'text-sm'}`}>
-            {value || "—"}
+            {value || ""}
         </span>
     </div>
 );

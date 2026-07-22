@@ -63,7 +63,7 @@ const VariantPricingFields = ({ variant, onUpdate, calcOnly = false, compact = f
 };
 
 /**
- * Step 4 financial section — aligned with partner panel (variants, save modes, Step4PlansBuilder).
+ * Step 4 financial section  aligned with partner panel (variants, save modes, Step4PlansBuilder).
  */
 export default function AdminInstallmentStep4({
   form,

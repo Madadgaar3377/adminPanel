@@ -470,7 +470,7 @@ const SystemHealth = () => {
                                     {loginActivity.list.map((row, idx) => (
                                         <tr key={idx} className="border-b border-gray-100 hover:bg-gray-50">
                                             <td className="p-3 font-mono text-gray-900">{row.ip}</td>
-                                            <td className="p-3 text-gray-700">{row.address || '—'}</td>
+                                            <td className="p-3 text-gray-700">{row.address || ''}</td>
                                             <td className="p-3 text-right font-semibold text-gray-900">{row.count}</td>
                                             <td className="p-3">
                                                 <span className="text-blue-600">{row.sources?.madadgaar || 0}</span>
@@ -481,7 +481,7 @@ const SystemHealth = () => {
                                                 <span className="text-gray-400 mx-1">/</span>
                                                 <span className="text-red-600">{row.sources?.admin || 0}</span>
                                             </td>
-                                            <td className="p-3 text-gray-600">{row.lastSeen ? new Date(row.lastSeen).toLocaleString() : '—'}</td>
+                                            <td className="p-3 text-gray-600">{row.lastSeen ? new Date(row.lastSeen).toLocaleString() : ''}</td>
                                         </tr>
                                     ))}
                                 </tbody>

@@ -72,7 +72,7 @@ const LoanApplications = () => {
     };
 
     const formatDate = (d) => {
-        if (!d) return '—';
+        if (!d) return '';
         const date = new Date(d);
         return date.toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' });
     };
@@ -152,10 +152,10 @@ const LoanApplications = () => {
                             <div className="p-8 flex-1 space-y-6">
                                 <div className="flex justify-between items-start">
                                     <span className={`px-3 py-1.5 rounded-lg text-[8px] font-black uppercase tracking-widest border ${getStatusColor(app.status)}`}>
-                                        {app.status?.replace('_', ' ') || '—'}
+                                        {app.status?.replace('_', ' ') || ''}
                                     </span>
                                     <span className="text-[10px] font-black text-gray-300 uppercase tracking-widest">
-                                        {app.applicationId || app._id?.slice(-8) || '—'}
+                                        {app.applicationId || app._id?.slice(-8) || ''}
                                     </span>
                                 </div>
                                 <div className="space-y-4">
@@ -164,17 +164,17 @@ const LoanApplications = () => {
                                             {applicant.fullName || 'Applicant'}
                                         </h3>
                                         <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                            {contact.city || '—'} • {contact.mobileNumber || 'N/A'}
+                                            {contact.city || ''} • {contact.mobileNumber || 'N/A'}
                                         </p>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 pt-4 border-t border-gray-50">
                                         <div>
                                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Product</p>
-                                            <p className="text-xs font-black text-gray-900 line-clamp-1">{app.productName || '—'}</p>
+                                            <p className="text-xs font-black text-gray-900 line-clamp-1">{app.productName || ''}</p>
                                         </div>
                                         <div className="text-right">
                                             <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest">Bank</p>
-                                            <p className="text-xs font-black text-gray-900 line-clamp-1">{app.bankName || '—'}</p>
+                                            <p className="text-xs font-black text-gray-900 line-clamp-1">{app.bankName || ''}</p>
                                         </div>
                                     </div>
                                     <p className="text-[9px] font-bold text-gray-400 uppercase tracking-widest">

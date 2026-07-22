@@ -659,7 +659,7 @@ const InstallmentsAdd = () => {
                                         products={existingProducts}
                                         value={selectedProductId}
                                         onChange={handleSelectExistingProduct}
-                                        placeholder="Type to search — e.g. Samsung, Lahore, product ID..."
+                                        placeholder="Type to search  e.g. Samsung, Lahore, product ID..."
                                         createNewLabel="-- Create new product from scratch --"
                                     />
                                     <p className="text-xs text-blue-600 mt-2 font-medium">

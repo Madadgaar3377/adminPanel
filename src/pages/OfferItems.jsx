@@ -204,7 +204,7 @@ const OfferItems = () => {
                 <tr key={item._id} className="border-b border-gray-100 hover:bg-gray-50">
                   <td className="p-3 capitalize">{item.productType}</td>
                   <td className="p-3">{item.productTitle || item.productId}</td>
-                  <td className="p-3">{item.saleEndAt ? new Date(item.saleEndAt).toLocaleString() : '—'}</td>
+                  <td className="p-3">{item.saleEndAt ? new Date(item.saleEndAt).toLocaleString() : ''}</td>
                   <td className="p-3">
                     <span className={item.isActive ? 'text-green-600 font-medium' : 'text-gray-400'}>
                       {item.isActive ? 'Active' : 'Inactive'}
@@ -228,7 +228,7 @@ const OfferItems = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <p className="text-xs text-gray-500 mb-2">First choose a category, then select the product to add as offer.</p>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 1 — Category</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 1  Category</label>
                 <select
                   value={form.productType}
                   onChange={(e) => onCategoryChange(e.target.value)}
@@ -242,7 +242,7 @@ const OfferItems = () => {
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 2 — Product</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase mb-1">Step 2  Product</label>
                 <select
                   value={form.productId}
                   onChange={(e) => {
