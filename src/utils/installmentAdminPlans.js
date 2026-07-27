@@ -428,6 +428,45 @@ export const normalizePlansForForm = (plans, variants) =>
     };
   });
 
+/**
+ * installments-only products strip variant cash price from product variants.
+ * The only place it remains is inside each paymentPlan row as `cashPrice`.
+ *
+ * Map: variantIndex -> last non-zero cashPrice (used to repopulate variant.price for editing).
+ */
+export const collectVariantCashPricesFromPlans = (plans = []) => {
+  const map = new Map();
+  (plans || []).forEach((p) => {
+    const idx = Number(p?.variantIndex);
+    const cash = roundPKR(p?.cashPrice);
+    if (!Number.isFinite(idx) || idx < 0) return;
+    if (!cash || cash <= 0) return;
+    map.set(idx, cash);
+  });
+  return map;
+};
+
+/**
+ * Restore variant cash prices for edit mode (so calc-only UI doesn't show ₨ 0).
+ * Also recomputes discountedPrice from discountPercent.
+ */
+export const applySavedCalcPricesToVariants = (variants = [], cashByIndex = new Map()) =>
+  (variants || []).map((v, i) => {
+    const current = roundPKR(v?.price);
+    const saved = cashByIndex.get(i) || 0;
+    const nextPrice = current > 0 ? current : saved > 0 ? saved : current;
+
+    if (nextPrice === current && current > 0) return v;
+    if (nextPrice === current) return v;
+
+    // Pass through `enrichVariantWithDiscountedPrice` to keep discountedPrice + discountPercent consistent.
+    return enrichVariantWithDiscountedPrice({
+      ...v,
+      price: nextPrice,
+      lastPlanCashPrice: saved > 0 ? saved : null,
+    });
+  });
+
 const enrichVariantWithDiscountedPrice = (v) => {
   const price = Number(v?.price) || 0;
   const discounted =
@@ -534,6 +573,11 @@ export const mapInstallmentPlanToForm = (plan, partnerUserId) => {
       ? calcDiscountedPriceFromPercent(price, discountPercent)
       : "";
 
+  // For installments-only, `variant.price` is usually empty (product stripped),
+  // but each paymentPlan still has `cashPrice`. Restore it for edit UI + calculations.
+  const cashByIndex = collectVariantCashPricesFromPlans(paymentPlans);
+  const restoredVariants = applySavedCalcPricesToVariants(variants, cashByIndex);
+
   return {
     userId: partnerUserId || "",
     productName: plan.productName || "",
@@ -557,7 +601,7 @@ export const mapInstallmentPlanToForm = (plan, partnerUserId) => {
     productImages: plan.productImages || [],
         paymentPlans: paymentPlans.length ? paymentPlans : [],
     productSpecifications: mergeProductSpecifications(plan),
-    variants,
+    variants: restoredVariants,
     finance: plan.finance || { bankName: "", financeInfo: "" },
     _meta: { ownerId, attached },
   };
