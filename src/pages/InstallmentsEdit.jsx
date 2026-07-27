@@ -15,6 +15,8 @@ import {
     recalculatePaymentPlan,
 } from '../utils/installmentAdminPlans';
 import AdminInstallmentStep4 from '../components/installment/AdminInstallmentStep4';
+import CityMultiSelect from '../components/CityMultiSelect';
+import { STOCK_STATUS_OPTIONS, APPROVAL_STATUS_OPTIONS } from '../utils/installmentStatus';
 
 // Toast Notification Component - Enhanced
 const Toast = ({ message, type, onClose }) => {
@@ -96,6 +98,8 @@ const InstallmentsEdit = () => {
         userId: "",
         productName: "",
         city: "",
+        cityScope: "all",
+        cities: [],
         price: "",
         discountedPrice: "",
         discountPercent: 0,
@@ -111,6 +115,7 @@ const InstallmentsEdit = () => {
         category: "",
         customCategory: "",
         status: "pending",
+        stockStatus: "in_stock",
         productImages: [],
         paymentPlans: [],
         variants: [], // New: Product Variants
@@ -435,6 +440,11 @@ const InstallmentsEdit = () => {
     };
 
     const isStepValid = () => {
+        if (step === 1) {
+            const cityOk =
+                form.cityScope === 'all' || (Array.isArray(form.cities) && form.cities.length > 0);
+            return Boolean(form.productName?.trim() && cityOk && form.category);
+        }
         if (step === 4) {
             const calcPrice = deriveProductPrice(form.variants, form.price, form);
             if (isCashOnlyMode) {
@@ -508,10 +518,18 @@ const InstallmentsEdit = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <InputField label="Product Name" value={form.productName} onChange={v => updateForm('productName', v)} placeholder="Full product title..." />
-                                        <div className="grid grid-cols-2 gap-4">
-                                            <InputField label="City" value={form.city} onChange={v => updateForm('city', v)} />
-                                            <InputField label="Base Price (PKR)" type="number" value={form.price} onChange={v => updateForm('price', v)} />
-                                        </div>
+                                        <CityMultiSelect
+                                            cityScope={form.cityScope || 'all'}
+                                            cities={form.cities || []}
+                                            onChange={(payload) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    city: payload.city,
+                                                    cityScope: payload.cityScope,
+                                                    cities: payload.cities,
+                                                }))
+                                            }
+                                        />
                                         <div className="space-y-2">
                                             <label className="flex items-center gap-2 text-[10px] font-black text-gray-700 uppercase tracking-widest ml-1">
                                                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -538,7 +556,7 @@ const InstallmentsEdit = () => {
                                                     </svg>
                                                     <p className="text-xs text-blue-800 font-medium leading-relaxed">
                                                         Category selected: <strong>{PRODUCT_CATEGORIES.find(c => c.value === form.category)?.label}</strong>. 
-                                                        Proceed to Step 2 to fill product specifications.
+                                                        Proceed to Step 2 to fill product specifications. Variant pricing is on Step 4.
                                                     </p>
                                                 </div>
                                             )}
@@ -546,8 +564,31 @@ const InstallmentsEdit = () => {
                                     </div>
                                     <div className="space-y-4">
                                         <InputField label="Company / Brand" value={form.companyName} onChange={v => updateForm('companyName', v)} />
-                                        {/* for user id */}
-                                        <InputField label="Owner / Partner User ID" value={form.userId || form.user || ''} onChange={v => updateForm('userId', v)} placeholder="Catalog owner or partner to scope plan edits" />
+                                        <InputField label="User ID" value={form.userId || form.user || ''} onChange={v => updateForm('userId', v)} placeholder="Catalog owner or partner to scope plan edits" />
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Listing Status</label>
+                                            <select
+                                                value={form.status || 'pending'}
+                                                onChange={(e) => updateForm('status', e.target.value)}
+                                                className="w-full px-5 py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 rounded-2xl text-sm font-semibold outline-none"
+                                            >
+                                                {APPROVAL_STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Stock Status</label>
+                                            <select
+                                                value={form.stockStatus || 'in_stock'}
+                                                onChange={(e) => updateForm('stockStatus', e.target.value)}
+                                                className="w-full px-5 py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 rounded-2xl text-sm font-semibold outline-none"
+                                            >
+                                                {STOCK_STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
                                             <textarea value={form.description} onChange={e => updateForm('description', e.target.value)} rows={4} className="w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-[2rem] text-sm font-bold outline-none transition-all resize-none shadow-inner" />
@@ -666,8 +707,8 @@ const InstallmentsEdit = () => {
                                     </div>
                                 )}
 
-                                {/* Product Variants Section */}
-                                {form.category && (
+                                {/* Product Variants Section — pricing lives on Step 4 (partner parity) */}
+                                {false && form.category && (
                                     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                         <div className="flex items-center justify-between border-l-8 border-blue-600 pl-4">
                                             <div>
@@ -815,7 +856,9 @@ const InstallmentsEdit = () => {
                                                 <OverviewItem label="Category" value={form.category || form.customCategory} />
                                                 <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
                                                 <OverviewItem label="City" value={form.city} />
-                                                <OverviewItem label="Base Price" value={`PKR ${Number(form.price || 0).toLocaleString()}`} highlight />
+                                                <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price, form).toLocaleString()}`} highlight />
+                                                <OverviewItem label="User ID" value={form.userId || form.user || '—'} />
+                                                <OverviewItem label="Stock" value={form.stockStatus || 'in_stock'} />
                                                 {form.description && (
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500 mb-1 block">Description</label>

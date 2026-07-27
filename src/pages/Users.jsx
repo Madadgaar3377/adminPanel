@@ -171,7 +171,11 @@ const Users = () => {
             alert('Select at least one email-unverified user');
             return;
         }
-        if (!window.confirm(`Send verification email to ${selectedUserIds.length} selected user(s)?`)) {
+        if (selectedUserIds.length > 50) {
+            alert('Send at most 50 users at a time (Hostinger SMTP limit). Narrow your selection.');
+            return;
+        }
+        if (!window.confirm(`Queue verification email for ${selectedUserIds.length} selected user(s)?\n\nEmails send slowly in the background to avoid Hostinger blocking.`)) {
             return;
         }
         setSendingVerifyMail(true);
@@ -187,9 +191,7 @@ const Users = () => {
             });
             const result = await response.json();
             if (result.success) {
-                alert(
-                    `Sent: ${result.sent || 0}\nSkipped: ${result.skipped || 0}\nFailed: ${result.failed || 0}`
-                );
+                alert(result.message || 'Verification emails queued.');
                 setSelectedUserIds([]);
             } else {
                 alert(result.message || 'Failed to send verification emails');

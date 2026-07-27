@@ -1,5 +1,7 @@
 import { CATEGORY_SPECIFICATIONS } from '../constants/productCategories';
 import baseApi from '../constants/apiUrl';
+import { parseInstallmentCities } from '../constants/cities';
+import { normalizeStockStatus } from './installmentStatus';
 
 export const getAdminAuthToken = () => {
   try {
@@ -55,8 +57,11 @@ export const STEP4_SAVE_MODES = {
 
 /** Sync variant cash / discounted price and auto-calc discount % */
 export const applyVariantPricingUpdate = (variant, field, value) => {
-  const next = { ...variant, [field]: value };
-  const cash = Number(next.price) || 0;
+  const next = {
+    ...variant,
+    [field]: field === "price" || field === "discountedPrice" ? roundPKR(value) : value,
+  };
+  const cash = roundPKR(next.price);
 
   if (field === "price") {
     const discounted = Number(next.discountedPrice);
@@ -446,24 +451,48 @@ export const collectVariantCashPricesFromPlans = (plans = []) => {
   return map;
 };
 
+/** Collect calc cash from product root + nested variant payment plans */
+export const collectVariantCashPricesFromProduct = (product, partnerId = null) => {
+  const map = new Map();
+  const consider = (plan, variantIndex) => {
+    if (!plan) return;
+    if (
+      partnerId &&
+      plan.partnerId &&
+      String(plan.partnerId) !== String(partnerId)
+    ) {
+      return;
+    }
+    const cash = roundPKR(plan.cashPrice);
+    if (cash <= 0) return;
+    const idx =
+      variantIndex !== null && variantIndex !== undefined && variantIndex !== ""
+        ? Number(variantIndex)
+        : Number(plan.variantIndex);
+    if (!Number.isFinite(idx) || idx < 0) return;
+    map.set(idx, cash);
+  };
+
+  (product?.paymentPlans || []).forEach((p) => consider(p, p.variantIndex));
+  (product?.variants || []).forEach((v, i) => {
+    (v.paymentPlans || []).forEach((p) => consider(p, i));
+  });
+  return map;
+};
+
 /**
  * Restore variant cash prices for edit mode (so calc-only UI doesn't show ₨ 0).
  * Also recomputes discountedPrice from discountPercent.
  */
 export const applySavedCalcPricesToVariants = (variants = [], cashByIndex = new Map()) =>
   (variants || []).map((v, i) => {
-    const current = roundPKR(v?.price);
     const saved = cashByIndex.get(i) || 0;
-    const nextPrice = current > 0 ? current : saved > 0 ? saved : current;
-
-    if (nextPrice === current && current > 0) return v;
-    if (nextPrice === current) return v;
-
-    // Pass through `enrichVariantWithDiscountedPrice` to keep discountedPrice + discountPercent consistent.
+    const current = roundPKR(v?.price);
+    const price = current > 0 ? current : saved > 0 ? saved : "";
     return enrichVariantWithDiscountedPrice({
       ...v,
-      price: nextPrice,
-      lastPlanCashPrice: saved > 0 ? saved : null,
+      price,
+      lastPlanCashPrice: saved > 0 ? saved : current > 0 ? current : null,
     });
   });
 
@@ -480,6 +509,15 @@ const enrichVariantWithDiscountedPrice = (v) => {
     discountedPrice: discounted,
     discountPercent: v?.discountPercent ?? 0,
   };
+};
+
+/** Hydrate editor variants from product document (edit + attach flows) */
+export const hydrateVariantsForEditor = (product, partnerId, attached) => {
+  const base = attached
+    ? mapProductVariantsForPartner(product, partnerId)
+    : mapVariantsForOwnerEditor(product?.variants);
+  const cashByIndex = collectVariantCashPricesFromProduct(product, partnerId);
+  return applySavedCalcPricesToVariants(base, cashByIndex);
 };
 
 export const mapProductVariantsForPartner = (product, partnerId) => {
@@ -548,9 +586,7 @@ export const mapInstallmentPlanToForm = (plan, partnerUserId) => {
   const attached = isAttachedMultiVendor(partnerUserId, ownerId);
   const partnerEntry = getPartnerPricingEntry(plan, partnerUserId);
 
-  const variants = attached
-    ? mapProductVariantsForPartner(plan, partnerUserId)
-    : mapVariantsForOwnerEditor(plan.variants);
+  const variants = hydrateVariantsForEditor(plan, partnerUserId, attached);
 
   const rawPlans = flattenEditorPaymentPlans(plan, partnerUserId, ownerId);
   const paymentPlans = normalizePlansForForm(rawPlans, variants);
@@ -561,27 +597,32 @@ export const mapInstallmentPlanToForm = (plan, partnerUserId) => {
     category = "other";
   }
 
-  const price =
+  let price =
     attached && partnerEntry?.basePrice
       ? partnerEntry.basePrice
       : plan.price ?? "";
+  if (roundPKR(price) <= 0) {
+    const fromVariants = deriveProductPrice(variants, 0, null);
+    if (fromVariants > 0) price = fromVariants;
+  }
   const discountPercent = attached
     ? 0
     : Number(plan.discountPercent) || 0;
   const discountedPrice =
     Number(price) > 0
-      ? calcDiscountedPriceFromPercent(price, discountPercent)
+      ? discountPercent > 0
+        ? calcDiscountedPriceFromPercent(price, discountPercent)
+        : roundPKR(price)
       : "";
 
-  // For installments-only, `variant.price` is usually empty (product stripped),
-  // but each paymentPlan still has `cashPrice`. Restore it for edit UI + calculations.
-  const cashByIndex = collectVariantCashPricesFromPlans(paymentPlans);
-  const restoredVariants = applySavedCalcPricesToVariants(variants, cashByIndex);
+  const cityFields = parseInstallmentCities(plan);
 
   return {
     userId: partnerUserId || "",
     productName: plan.productName || "",
-    city: plan.city || "",
+    city: cityFields.display,
+    cityScope: cityFields.cityScope,
+    cities: cityFields.cities,
     price,
     discountedPrice,
     discountPercent,
@@ -598,10 +639,11 @@ export const mapInstallmentPlanToForm = (plan, partnerUserId) => {
     category,
     customCategory,
     status: plan.status || "pending",
+    stockStatus: normalizeStockStatus(plan.stockStatus),
     productImages: plan.productImages || [],
         paymentPlans: paymentPlans.length ? paymentPlans : [],
     productSpecifications: mergeProductSpecifications(plan),
-    variants: restoredVariants,
+    variants,
     finance: plan.finance || { bankName: "", financeInfo: "" },
     _meta: { ownerId, attached },
   };
@@ -917,11 +959,15 @@ export const buildInstallmentUpdateBody = ({
   const category =
     form.category === "other" ? form.customCategory || form.category : form.category;
 
+  const cityFields = parseInstallmentCities(form);
+
   return {
     userId: editorUserId || form.userId,
     mergePartnerPlans: true,
     productName: form.productName,
-    city: form.city,
+    city: cityFields.display,
+    cities: cityFields.cities,
+    cityScope: cityFields.cityScope,
     price: productPrice,
     downpayment: Number(form.downpayment) || 0,
     installment: form.installment !== "" && form.installment != null ? Number(form.installment) : undefined,
@@ -935,6 +981,7 @@ export const buildInstallmentUpdateBody = ({
     category,
     customCategory: form.customCategory || "",
     status: form.status || "pending",
+    stockStatus: form.stockStatus || "in_stock",
     productImages: form.productImages || [],
     productSpecifications: form.productSpecifications || {},
     finance: form.finance || {},

@@ -5,8 +5,11 @@ import { useNavigate } from 'react-router-dom';
 import { PRODUCT_CATEGORIES, CATEGORY_SPECIFICATIONS, getGroupedCategories } from '../constants/productCategories';
 import RichTextEditor from '../compontents/RichTextEditor';
 import SearchableProductSelect from '../compontents/SearchableProductSelect';
+import CityMultiSelect from '../components/CityMultiSelect';
 import AdminInstallmentStep4 from '../components/installment/AdminInstallmentStep4';
 import { planPayloadWithFinance } from '../components/installment/InstallmentFinanceUI';
+import { STOCK_STATUS_OPTIONS, APPROVAL_STATUS_OPTIONS } from '../utils/installmentStatus';
+import { parseInstallmentCities } from '../constants/cities';
 import {
   STEP4_SAVE_MODES,
   getActivePaymentPlans,
@@ -14,7 +17,7 @@ import {
   getBaseEffectivePrice,
   deriveProductPrice,
   collectPartnerPlans,
-  mapProductVariantsForPartner,
+  hydrateVariantsForEditor,
   getPartnerPricingEntry,
   resolvePlanVariantIndex,
   buildPartnerVariantPricing,
@@ -120,6 +123,8 @@ const InstallmentsAdd = () => {
                 ...prev,
                 productName: "",
                 city: "",
+                cityScope: "all",
+                cities: [],
                 price: "",
                 partnerBasePrice: "",
                 downpayment: "",
@@ -132,6 +137,7 @@ const InstallmentsAdd = () => {
                 companyNameOther: "",
                 category: "",
                 customCategory: "",
+                stockStatus: "in_stock",
                 productImages: [],
                 paymentPlans: [],
                 productSpecifications: { category: "", subCategory: "", specifications: [] },
@@ -146,10 +152,13 @@ const InstallmentsAdd = () => {
         if (product) {
             setForm(prev => {
             setExistingPlans(collectPartnerPlans(product, prev.userId));
+            const cityFields = parseInstallmentCities(product);
             return {
                 ...prev,
                 productName: product.productName || "",
-                city: product.city || "",
+                city: cityFields.display,
+                cityScope: cityFields.cityScope,
+                cities: cityFields.cities,
                 price: product.price || "",
                 partnerBasePrice: "",
                 downpayment: product.downpayment || "",
@@ -162,10 +171,11 @@ const InstallmentsAdd = () => {
                 companyNameOther: product.companyNameOther || "",
                 category: product.category || "",
                 customCategory: product.customCategory || "",
+                stockStatus: product.stockStatus || "in_stock",
                 productImages: product.productImages || [],
                 paymentPlans: [],
                 productSpecifications: product.productSpecifications || { category: "", subCategory: "", specifications: [] },
-                variants: mapProductVariantsForPartner(product, prev.userId),
+                variants: hydrateVariantsForEditor(product, prev.userId, true),
             };
             });
             showToast("Existing product details loaded.", "success");
@@ -181,6 +191,8 @@ const InstallmentsAdd = () => {
         userId: "",
         productName: "",
         city: "",
+        cityScope: "all",
+        cities: [],
         price: "",
         discountedPrice: "",
         discountPercent: 0,
@@ -197,6 +209,7 @@ const InstallmentsAdd = () => {
         category: "",
         customCategory: "",
         status: "pending",
+        stockStatus: "in_stock",
         productImages: [],
         paymentPlans: [],
         variants: [], // New: Product Variants (e.g., RAM/Storage options)
@@ -494,6 +507,7 @@ const InstallmentsAdd = () => {
 
             const productPrice = isInstallmentsOnly ? 0 : deriveProductPrice(form.variants, form.price, form);
             const calcProductPrice = deriveProductPrice(form.variants, form.price, form);
+            const cityFields = parseInstallmentCities(form);
 
             const res = await fetch(`${ApiBaseUrl}/createInstallmentPlan`, {
                 method: 'POST',
@@ -504,9 +518,13 @@ const InstallmentsAdd = () => {
                 body: JSON.stringify({
                     ...form,
                     category: form.category === 'other' ? form.customCategory : form.category,
+                    city: cityFields.display,
+                    cities: cityFields.cities,
+                    cityScope: cityFields.cityScope,
                     price: productPrice,
                     downpayment: Number(form.downpayment),
                     postedBy: 'Admin',
+                    stockStatus: form.stockStatus || 'in_stock',
                     variants: mapVariantsForCreatePayload(form.variants, activePlans, {
                         installmentsOnly: isInstallmentsOnly,
                         planPayloadWithFinance,
@@ -522,7 +540,7 @@ const InstallmentsAdd = () => {
                             monthlyInstallment: Number(p.monthlyInstallment),
                         })),
                     finance: form.finance || {},
-                    status: 'approved',
+                    status: form.status || 'approved',
                 }),
             });
             const data = await res.json();
@@ -553,7 +571,9 @@ const InstallmentsAdd = () => {
     const isStepValid = () => {
         if (step === 1) {
             if (selectedProductId) return Boolean(form.userId?.trim());
-            return Boolean(form.productName?.trim() && form.city?.trim() && form.category);
+            const cityOk =
+                form.cityScope === 'all' || (Array.isArray(form.cities) && form.cities.length > 0);
+            return Boolean(form.productName?.trim() && cityOk && form.category && form.userId?.trim());
         }
         if (step === 3 && !selectedProductId) return form.productImages.length > 0;
         if (step === 4) {
@@ -670,7 +690,19 @@ const InstallmentsAdd = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                     <div className="space-y-4">
                                         <InputField label="Product Name" value={form.productName} onChange={v => updateForm('productName', v)} placeholder="Full product title..." readOnly={!!selectedProductId} />
-                                        <InputField label="City" value={form.city} onChange={v => updateForm('city', v)} readOnly={!!selectedProductId} />
+                                        <CityMultiSelect
+                                            cityScope={form.cityScope || 'all'}
+                                            cities={form.cities || []}
+                                            disabled={!!selectedProductId}
+                                            onChange={(payload) =>
+                                                setForm((prev) => ({
+                                                    ...prev,
+                                                    city: payload.city,
+                                                    cityScope: payload.cityScope,
+                                                    cities: payload.cities,
+                                                }))
+                                            }
+                                        />
                                         <div className="space-y-2">
                                             <label className="flex items-center gap-2 text-[10px] font-black text-gray-700 uppercase tracking-widest ml-1">
                                                 <span className="inline-block w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
@@ -698,7 +730,7 @@ const InstallmentsAdd = () => {
                                                     </svg>
                                                     <p className="text-xs text-blue-800 font-medium leading-relaxed">
                                                         Category selected: <strong>{PRODUCT_CATEGORIES.find(c => c.value === form.category)?.label}</strong>. 
-                                                        Proceed to Step 2 to fill product specifications.
+                                                        Proceed to Step 2 for specs. Variant pricing is on Step 4.
                                                     </p>
                                                 </div>
                                             )}
@@ -706,8 +738,33 @@ const InstallmentsAdd = () => {
                                     </div>
                                     <div className="space-y-4">
                                         <InputField label="Company / Brand" value={form.companyName} onChange={v => updateForm('companyName', v)} readOnly={!!selectedProductId} />
-                                        {/* for user id */}
                                         <InputField label="User ID" value={form.userId} onChange={v => updateForm('userId', v)} />
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Listing Status</label>
+                                            <select
+                                                value={form.status || 'pending'}
+                                                onChange={(e) => updateForm('status', e.target.value)}
+                                                disabled={!!selectedProductId}
+                                                className={`w-full px-5 py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 rounded-2xl text-sm font-semibold outline-none ${selectedProductId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                            >
+                                                {APPROVAL_STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest pl-1">Stock Status</label>
+                                            <select
+                                                value={form.stockStatus || 'in_stock'}
+                                                onChange={(e) => updateForm('stockStatus', e.target.value)}
+                                                disabled={!!selectedProductId}
+                                                className={`w-full px-5 py-3.5 bg-white border-2 border-gray-200 focus:border-red-500 rounded-2xl text-sm font-semibold outline-none ${selectedProductId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`}
+                                            >
+                                                {STOCK_STATUS_OPTIONS.map((option) => (
+                                                    <option key={option.value} value={option.value}>{option.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                         <div className="space-y-1.5">
                                             <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Description</label>
                                             <textarea value={form.description} readOnly={!!selectedProductId} onChange={e => updateForm('description', e.target.value)} rows={4} className={`w-full px-5 py-4 bg-gray-50 border-2 border-transparent focus:border-red-600 rounded-[2rem] text-sm font-bold outline-none transition-all resize-none shadow-inner ${!!selectedProductId ? 'bg-gray-100 text-gray-500 cursor-not-allowed' : ''}`} />
@@ -997,7 +1054,9 @@ const InstallmentsAdd = () => {
                                                 <OverviewItem label="Category" value={form.category || form.customCategory} />
                                                 <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
                                                 <OverviewItem label="City" value={form.city} />
-                                                <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price).toLocaleString()}`} highlight />
+                                                <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price, form).toLocaleString()}`} highlight />
+                                                <OverviewItem label="User ID" value={form.userId || '—'} />
+                                                <OverviewItem label="Stock" value={form.stockStatus || 'in_stock'} />
                                                 {form.description && (
                                                     <div>
                                                         <label className="text-xs font-bold text-gray-500 mb-1 block">Description</label>
