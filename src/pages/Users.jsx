@@ -22,6 +22,8 @@ const Users = () => {
     const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
     const [passwordForm, setPasswordForm] = useState({ targetUserId: '', newPassword: '', confirmPassword: '' });
     const [passwordUpdating, setPasswordUpdating] = useState(false);
+    const [selectedUserIds, setSelectedUserIds] = useState([]);
+    const [sendingVerifyMail, setSendingVerifyMail] = useState(false);
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -146,9 +148,58 @@ const Users = () => {
         const matchesStatus = filterStatus === 'all' ||
             (filterStatus === 'verified' && user.isVerified) ||
             (filterStatus === 'blocked' && user.isBlocked) ||
-            (filterStatus === 'unverified' && !user.isVerified);
+            (filterStatus === 'unverified' && !user.isVerified) ||
+            (filterStatus === 'email_unverified' && !user.emailVerify);
         return matchesSearch && matchesType && matchesStatus;
     });
+
+    const isEmailUnverified = (user) => !user.emailVerify && !!user.email && !user.isBlocked;
+
+    const toggleSelectUser = (userId) => {
+        setSelectedUserIds((prev) =>
+            prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+        );
+    };
+
+    const selectAllFilteredEmailUnverified = () => {
+        const ids = filteredUsers.filter(isEmailUnverified).map((u) => u.userId);
+        setSelectedUserIds(ids);
+    };
+
+    const handleSendVerificationEmails = async () => {
+        if (!selectedUserIds.length) {
+            alert('Select at least one email-unverified user');
+            return;
+        }
+        if (!window.confirm(`Send verification email to ${selectedUserIds.length} selected user(s)?`)) {
+            return;
+        }
+        setSendingVerifyMail(true);
+        const authData = JSON.parse(localStorage.getItem('adminAuth'));
+        try {
+            const response = await fetch(`${ApiBaseUrl}/admin/sendVerificationEmails`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${authData.token}`,
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ userIds: selectedUserIds })
+            });
+            const result = await response.json();
+            if (result.success) {
+                alert(
+                    `Sent: ${result.sent || 0}\nSkipped: ${result.skipped || 0}\nFailed: ${result.failed || 0}`
+                );
+                setSelectedUserIds([]);
+            } else {
+                alert(result.message || 'Failed to send verification emails');
+            }
+        } catch (err) {
+            alert('Network error while sending verification emails');
+        } finally {
+            setSendingVerifyMail(false);
+        }
+    };
 
     // Pagination
     const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
@@ -156,9 +207,28 @@ const Users = () => {
     const endIndex = startIndex + itemsPerPage;
     const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
+    const selectableOnPage = paginatedUsers.filter(isEmailUnverified);
+    const allPageSelected =
+        selectableOnPage.length > 0 &&
+        selectableOnPage.every((u) => selectedUserIds.includes(u.userId));
+
+    const toggleSelectAllOnPage = () => {
+        if (allPageSelected) {
+            const pageIds = new Set(selectableOnPage.map((u) => u.userId));
+            setSelectedUserIds((prev) => prev.filter((id) => !pageIds.has(id)));
+            return;
+        }
+        setSelectedUserIds((prev) => {
+            const next = new Set(prev);
+            selectableOnPage.forEach((u) => next.add(u.userId));
+            return [...next];
+        });
+    };
+
     // Reset to page 1 when search or filter changes
     useEffect(() => {
         setCurrentPage(1);
+        setSelectedUserIds([]);
     }, [searchTerm, filterType, filterStatus]);
 
     const openModal = (user) => {
@@ -273,11 +343,38 @@ const Users = () => {
                             >
                                 <option value="all">All Status</option>
                                 <option value="verified">Verified</option>
-                                <option value="unverified">Unverified</option>
+                                <option value="unverified">Unverified (approval)</option>
+                                <option value="email_unverified">Email not verified</option>
                                 <option value="blocked">Blocked</option>
                             </select>
                         </div>
-                        <div className="flex items-end justify-end">
+                        <div className="flex items-end justify-between gap-3 flex-wrap">
+                            <div className="flex flex-wrap gap-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setFilterStatus('email_unverified')}
+                                    className="px-3 py-2 text-xs font-semibold rounded-lg border border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100"
+                                >
+                                    Show email unverified
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={selectAllFilteredEmailUnverified}
+                                    className="px-3 py-2 text-xs font-semibold rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                                >
+                                    Select all email unverified
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={handleSendVerificationEmails}
+                                    disabled={sendingVerifyMail || selectedUserIds.length === 0}
+                                    className="px-3 py-2 text-xs font-semibold rounded-lg bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                                >
+                                    {sendingVerifyMail
+                                        ? 'Sending…'
+                                        : `Send verify mail (${selectedUserIds.length})`}
+                                </button>
+                            </div>
                             <div className="text-right">
                                 <p className="text-xs text-gray-500 font-medium">Showing</p>
                                 <p className="text-2xl font-bold text-gray-900">{filteredUsers.length} <span className="text-sm font-normal text-gray-500">of {users.length}</span></p>
@@ -292,6 +389,16 @@ const Users = () => {
                         <table className="w-full">
                             <thead className="bg-gray-50 border-b border-gray-200">
                                 <tr>
+                                    <th className="px-4 py-4 text-left">
+                                        <input
+                                            type="checkbox"
+                                            checked={allPageSelected}
+                                            onChange={toggleSelectAllOnPage}
+                                            disabled={selectableOnPage.length === 0}
+                                            title="Select email-unverified on this page"
+                                            className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500"
+                                        />
+                                    </th>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">User</th>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden md:table-cell">Contact</th>
                                     <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider hidden lg:table-cell">Type</th>
@@ -302,6 +409,20 @@ const Users = () => {
                             <tbody className="divide-y divide-gray-200">
                                 {paginatedUsers.map(user => (
                                     <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                                        <td className="px-4 py-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedUserIds.includes(user.userId)}
+                                                disabled={!isEmailUnverified(user)}
+                                                onChange={() => toggleSelectUser(user.userId)}
+                                                title={
+                                                    isEmailUnverified(user)
+                                                        ? 'Select for verify mail'
+                                                        : 'Only email-unverified users can be selected'
+                                                }
+                                                className="w-4 h-4 rounded border-gray-300 text-red-600 focus:ring-red-500 disabled:opacity-40"
+                                            />
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 {user.profilePic ? (
@@ -327,13 +448,20 @@ const Users = () => {
                                             </span>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="flex items-center gap-2">
+                                            <div className="flex items-center gap-2 flex-wrap">
                                                 <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
                                                     user.isVerified 
                                                         ? 'bg-green-100 text-green-700' 
                                                         : 'bg-yellow-100 text-yellow-700'
                                                 }`}>
                                                     {user.isVerified ? 'Verified' : 'Pending'}
+                                                </span>
+                                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${
+                                                    user.emailVerify
+                                                        ? 'bg-emerald-50 text-emerald-700'
+                                                        : 'bg-orange-100 text-orange-700'
+                                                }`}>
+                                                    {user.emailVerify ? 'Email OK' : 'Email unverified'}
                                                 </span>
                                                 {user.isBlocked && (
                                                     <span className="px-2 py-0.5 bg-red-100 text-red-700 rounded-full text-[10px] font-bold uppercase tracking-wider">
