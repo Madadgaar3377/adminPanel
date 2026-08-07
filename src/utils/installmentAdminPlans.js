@@ -992,6 +992,14 @@ export const buildInstallmentUpdateBody = ({
       : STEP4_SAVE_MODES.CASH_INSTALLMENTS,
   };
 };
+
+/** PUT installment (owner or attached partner) — used by admin InstallmentsEdit. */
+export const submitInstallmentPlanUpdate = async ({
+  installmentId,
+  form,
+  editorUserId,
+  isAttachedProduct,
+  baseApi,
   token,
   savePricingOnly = false,
   step4SaveMode,
