@@ -43,6 +43,7 @@ import CasesManagement from "./pages/CasesManagement";
 import CommissionManagement from "./pages/CommissionManagement";
 import SystemHealth from "./pages/SystemHealth";
 import TaxSettings from "./pages/TaxSettings";
+import AppVersionSettings from "./pages/AppVersionSettings";
 import AdminChat from "./pages/AdminChat";
 import BulkEmail from "./pages/BulkEmail";
 import InsurancePlansList from "./pages/InsurancePlansList";
@@ -345,6 +346,12 @@ function App() {
           <Route
             path="/system/tax-settings"
             element={isAuthenticated ? <Layout onLogout={handleLogout}><TaxSettings /></Layout> : <Navigate to="/login" />}
+          />
+
+          {/* App Version / Force Update Route */}
+          <Route
+            path="/system/app-version"
+            element={isAuthenticated ? <Layout onLogout={handleLogout}><AppVersionSettings /></Layout> : <Navigate to="/login" />}
           />
 
           {/* Contact Submissions Route */}

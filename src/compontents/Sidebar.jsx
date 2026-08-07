@@ -213,6 +213,7 @@ const Sidebar = ({ onLogout }) => {
             items: [
                 { label: 'System Health', href: '/system/health' },
                 { label: 'Tax Settings', href: '/system/tax-settings' },
+                { label: 'App Version', href: '/system/app-version' },
                 { label: 'Contact Submissions', href: '/system/contact-submissions' },
                 { label: 'Bulk Email', href: '/bulk-email' },
             ]

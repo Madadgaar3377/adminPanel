@@ -522,6 +522,11 @@ const InstallmentsAdd = () => {
                     cities: cityFields.cities,
                     cityScope: cityFields.cityScope,
                     price: productPrice,
+                    pricingMode: isInstallmentsOnly
+                        ? STEP4_SAVE_MODES.INSTALLMENTS_ONLY
+                        : isCashOnly
+                          ? STEP4_SAVE_MODES.CASH
+                          : STEP4_SAVE_MODES.CASH_INSTALLMENTS,
                     downpayment: Number(form.downpayment),
                     postedBy: 'Admin',
                     stockStatus: form.stockStatus || 'in_stock',
@@ -1055,7 +1060,7 @@ const InstallmentsAdd = () => {
                                                 <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
                                                 <OverviewItem label="City" value={form.city} />
                                                 <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price, form).toLocaleString()}`} highlight />
-                                                <OverviewItem label="User ID" value={form.userId || '—'} />
+                                                <OverviewItem label="User ID" value={form.userId || ''} />
                                                 <OverviewItem label="Stock" value={form.stockStatus || 'in_stock'} />
                                                 {form.description && (
                                                     <div>

@@ -12,7 +12,7 @@ export const getAdminAuthToken = () => {
   }
 };
 
-/** Whole PKR amounts — avoids float drift */
+/** Whole PKR amounts  avoids float drift */
 export const roundPKR = (value) => {
   const n = Number(value);
   if (!Number.isFinite(n)) return 0;
@@ -987,18 +987,11 @@ export const buildInstallmentUpdateBody = ({
     finance: form.finance || {},
     variants: ownerVariantsPayload.length ? ownerVariantsPayload : variantsPayload,
     paymentPlans: rootPlans,
+    pricingMode: installmentsOnly
+      ? STEP4_SAVE_MODES.INSTALLMENTS_ONLY
+      : STEP4_SAVE_MODES.CASH_INSTALLMENTS,
   };
 };
-
-/**
- * Save installment edit: single PUT with full paymentPlans list (backend merges by partner).
- */
-export const submitInstallmentPlanUpdate = async ({
-  installmentId,
-  form,
-  editorUserId,
-  isAttachedProduct,
-  baseApi,
   token,
   savePricingOnly = false,
   step4SaveMode,
@@ -1038,6 +1031,8 @@ export const submitInstallmentPlanUpdate = async ({
     plansForUpdate: form.paymentPlans,
     installmentsOnly: isInstallmentsOnly,
   });
+
+  patch.pricingMode = mode;
 
   enrichUpdatePayloadWithPartnerMeta(patch, profile, uid);
 

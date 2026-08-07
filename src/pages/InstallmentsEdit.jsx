@@ -707,7 +707,7 @@ const InstallmentsEdit = () => {
                                     </div>
                                 )}
 
-                                {/* Product Variants Section — pricing lives on Step 4 (partner parity) */}
+                                {/* Product Variants Section  pricing lives on Step 4 (partner parity) */}
                                 {false && form.category && (
                                     <div className="mt-12 space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                                         <div className="flex items-center justify-between border-l-8 border-blue-600 pl-4">
@@ -857,7 +857,7 @@ const InstallmentsEdit = () => {
                                                 <OverviewItem label="Company/Brand" value={form.companyName || form.companyNameOther} />
                                                 <OverviewItem label="City" value={form.city} />
                                                 <OverviewItem label="Reference Cash Price" value={`PKR ${deriveProductPrice(form.variants, form.price, form).toLocaleString()}`} highlight />
-                                                <OverviewItem label="User ID" value={form.userId || form.user || '—'} />
+                                                <OverviewItem label="User ID" value={form.userId || form.user || ''} />
                                                 <OverviewItem label="Stock" value={form.stockStatus || 'in_stock'} />
                                                 {form.description && (
                                                     <div>
