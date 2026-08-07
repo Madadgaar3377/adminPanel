@@ -14,19 +14,32 @@ const SystemHealth = () => {
 
     const fetchHealthData = useCallback(async () => {
         try {
+            const authData = JSON.parse(localStorage.getItem('adminAuth') || '{}');
+            const token = authData?.token;
+            if (!token) {
+                setError('Unauthorized: No Bearer token provided. Please log in again.');
+                setLoading(false);
+                return;
+            }
+
             const response = await fetch(`${ApiBaseUrl}/health`, {
                 method: 'GET',
                 headers: {
-                    'Content-Type': 'application/json'
-                }
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
             });
 
-            const result = await response.json();
-            if (result.success) {
+            const result = await response.json().catch(() => null);
+            if (response.status === 401 || response.status === 403) {
+                setError(result?.message || 'Unauthorized: Please log in again.');
+                return;
+            }
+            if (result?.success) {
                 setHealthData(result);
                 setError('');
             } else {
-                setError(result.message || 'Failed to fetch health data');
+                setError(result?.message || 'Failed to fetch health data');
             }
         } catch (err) {
             setError('Failed to connect to the server');
